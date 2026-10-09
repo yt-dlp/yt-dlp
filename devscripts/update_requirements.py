@@ -77,7 +77,7 @@ BUNDLE_TARGETS = {
     'default': Target(
         extras=['default'],
         # PyPy bundles cffi, which is a transitive dep of brotlicffi, which is only required for PyPy
-        prune_packages=['cffi'],
+        omit_packages=['cffi'],
     ),
     'curl-cffi': Target(
         extras=['default', 'curl-cffi'],
@@ -643,7 +643,7 @@ def update_requirements(
             extras=[extra_name],
             bare=True,
             # PyPy bundles cffi, which is a transitive dep of brotlicffi, which is only required for PyPy
-            prune_packages=['cffi'] if extra_name == 'default' else [],
+            omit_packages=['cffi'] if extra_name == 'default' else [],
         ).splitlines()
 
     # Write the finalized pyproject.toml

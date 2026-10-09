@@ -125,6 +125,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
                 'clientVersion': '2.20260708.00.00',
+                'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
