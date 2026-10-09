@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -8,6 +9,7 @@ from ..utils import (
     base_url,
     filter_dict,
     float_or_none,
+    int_or_none,
     parse_age_limit,
     parse_qs,
     str_or_none,
@@ -20,6 +22,7 @@ class CeskaTelevizeIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://(?:
             (?:www\.)?ceskatelevize\.cz/(?:ivysilani(?!/(?:kategorie|vypis)\b)|porady|zive)|
+            (?:decko|edu)\.ceskatelevize\.cz/video|
             (?:sport\.ceskatelevize\.cz|ct24\.ceskatelevize\.cz/video)(?=/zive-vysilani(?:[/?#]|$))
         )/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'''
     _API_BASE = 'https://api.ceskatelevize.cz/video/v1'
@@ -77,7 +80,7 @@ class CeskaTelevizeIE(InfoExtractor):
         },
         'params': {'skip_download': 'livestream'},
     }, {
-        # old embed player, IDEC is taken from the URL
+        # old embed player, IDEC is taken from the URL; has chapters and subtitles
         'url': 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
         'info_dict': {
             'id': '217562221500004',
@@ -85,6 +88,7 @@ class CeskaTelevizeIE(InfoExtractor):
             'title': 'Toulavá kamera 2017 | Toulavá kamera | 4',
             'thumbnail': r're:^https?://.*',
             'duration': 1750.04,
+            'chapters': 'count:8',
             'subtitles': {'cs': 'count:2'},
         },
         'params': {'skip_download': 'dash'},
@@ -141,30 +145,66 @@ class CeskaTelevizeIE(InfoExtractor):
             'skip_download': 'dash',
         },
     }, {
+        # Déčko (children's channel)
+        'url': 'https://decko.ceskatelevize.cz/video/e217543110100007',
+        'info_dict': {
+            'id': '217543110100007',
+            'ext': 'mp4',
+            'title': 'Pohádky Karla Jaromíra Erbena — Otesánek',
+            'description': r're:^Desatero příběhů nejznámějšího',
+            'display_id': 'e217543110100007',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 541.0,
+        },
+        'params': {'skip_download': 'dash'},
+    }, {
         # programme split into several parts
-        'url': 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?IDEC=217 543 11205/0027',
+        'url': 'https://decko.ceskatelevize.cz/video/i573319',
         'info_dict': {
             'id': '217543112050027',
-            'title': 'Wifina | Wifina | 27',
+            'title': 'Wifina — Společnost: Václav Havel a jeho odkaz',
+            'description': r're:^To, že byl Václav Havel prezidentem',
+            'display_id': 'i573319',
             'thumbnail': r're:^https?://.*',
         },
         'playlist': [{
             'info_dict': {
                 'id': '217543112050027-1',
                 'ext': 'mp4',
-                'title': 'Wifina | Wifina | 27',
+                'title': 'Wifina — Společnost: Václav Havel a jeho odkaz',
+                'description': r're:^To, že byl Václav Havel prezidentem',
+                'display_id': 'i573319',
                 'thumbnail': r're:^https?://.*',
                 'duration': 977.0,
+                'chapters': 'count:6',
             },
         }, {
             'info_dict': {
                 'id': '217543112050027-2',
                 'ext': 'mp4',
-                'title': 'Wifina | Wifina | 27',
+                'title': 'Wifina — Společnost: Václav Havel a jeho odkaz',
+                'description': r're:^To, že byl Václav Havel prezidentem',
+                'display_id': 'i573319',
                 'thumbnail': r're:^https?://.*',
                 'duration': 539.0,
+                'chapters': 'count:3',
             },
         }],
+        'params': {'skip_download': 'dash'},
+    }, {
+        # ČT edu, a clip cut out of a longer programme
+        'url': 'https://edu.ceskatelevize.cz/video/19049-whatsapp-kanaly-a-jejich-nebezpeci',
+        'info_dict': {
+            'id': '425235100261006',
+            'ext': 'mp4',
+            'title': 'WhatsApp kanály a jejich nebezpečí',
+            'description': r're:^WhatsApp není jen',
+            'display_id': '19049-whatsapp-kanaly-a-jejich-nebezpeci',
+            'thumbnail': r're:^https?://.*',
+            'duration': 321.0,
+            'section_start': 259,
+            'section_end': 580,
+        },
         'params': {'skip_download': 'dash'},
     }]
 
@@ -197,7 +237,13 @@ class CeskaTelevizeIE(InfoExtractor):
                     parts.append({
                         'formats': [],
                         'subtitles': self._parse_subtitles(stream),
-                        'duration': float_or_none(stream.get('duration')),
+                        **traverse_obj(stream, {
+                            'duration': ('duration', {float_or_none}),
+                            'chapters': ('chapters', lambda _, v: v['time'] is not None, {
+                                'title': ('title', {str}),
+                                'start_time': ('time', {float_or_none}),
+                            }),
+                        }),
                     })
                 for key, format_id in (('url', stream_type), ('audioDescriptionUrl', f'{stream_type}-ad')):
                     manifest_url = url_or_none(stream.get(key))
@@ -287,6 +333,7 @@ class CeskaTelevizeIE(InfoExtractor):
         # e.g. /zive/ct4/ redirects to the /ivysilani/ homepage
         if not self.suitable(urlh.url):
             raise UnsupportedError(urlh.url)
+        hostname = urllib.parse.urlparse(urlh.url).hostname
 
         title = self._og_search_title(webpage, default='').replace('\xa0', ' ')
         site_name = self._og_search_property('site_name', webpage, default='Česká televize')
@@ -296,6 +343,18 @@ class CeskaTelevizeIE(InfoExtractor):
             'title': re.split(rf'\s+[—|-]\s+(?:iVysílání|{re.escape(site_name)})', title, maxsplit=1)[0] or None,
             'description': description.replace('\xa0', ' ') or None,
         }
+
+        if hostname in ('decko.ceskatelevize.cz', 'edu.ceskatelevize.cz'):
+            idec = self._clean_idec(self._search_regex(r'\bIDEC=([\d /]+)', webpage, 'IDEC'))
+            # ČT edu videos can be clips cut out of a longer programme
+            clip = traverse_obj(parse_qs(self._og_search_video_url(webpage, default='')), {
+                'section_start': ('start', -1, {int_or_none}),
+                'section_end': ('end', -1, {int_or_none}),
+            })
+            info = self._extract_vod(f'media/external/{idec}', idec, page_info)
+            if len(clip) == 2 and info.get('_type') != 'playlist':
+                info.update(clip, chapters=None)
+            return info
 
         next_data = self._search_nextjs_data(webpage, display_id)
         page_data = traverse_obj(next_data, ('props', 'pageProps', 'data', {dict})) or {}
