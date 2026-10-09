@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class BlueBillywigIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<tenant>[^./?#]+)\.bbvms\.com/p/(?P<playout>[^/?#]+)/c/(?P<id>(?:[^:.]+:)?\d+)\.(?:js(?:on)?|html)(?:[?#]|$)'
+    _VALID_URL = r'https?://(?P<tenant>[^./?#]+)\.bbvms\.com/p/(?P<playout>[^/?#]+)/c/(?P<id>[^./?#]+)\.(?:js(?:on)?|html)(?:[?#]|$)'
     # Not handled: interactive videos. https://www.bluebillywig.com/interactive-video/
 
     _TESTS = [{
@@ -64,6 +64,9 @@ class BlueBillywigIE(InfoExtractor):
             'live_status': 'is_live',
             'thumbnail': str,
         },
+    }, {
+        'url': 'https://rtvdrenthe.bbvms.com/p/regiogroei_drenthe_web_videoplayer/c/sourceid_string:Paarse-vrijdag-DNO261009LA.json',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
