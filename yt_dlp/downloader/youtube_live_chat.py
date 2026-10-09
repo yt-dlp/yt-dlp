@@ -61,7 +61,7 @@ class YoutubeLiveChatFD(FragmentFD):
             return continuation_id, offset, click_tracking_params
 
         def try_refresh_beginning(live_chat_continuation):
-            # choose the second option that contains the unfiltered live chat replay
+            # choose the second option that contains the unfiltered live chat
             refresh_continuation = try_get(
                 live_chat_continuation,
                 lambda x: x['header']['liveChatHeaderRenderer']['viewSelector']['sortFilterSubMenuRenderer']['subMenuItems'][1]['continuation']['reloadContinuationData'], dict)
@@ -72,6 +72,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 offset = 0
                 click_tracking_params = refresh_continuation.get('trackingParams')
                 return refresh_continuation_id, offset, click_tracking_params
+            self.to_screen(f'[{self.FD_NAME}] Could not retrieve unfiltered live chat. Falling back to Top chat.')
             if info_dict['protocol'] == 'youtube_live_chat':
                 return parse_actions_live(live_chat_continuation)
             else:
