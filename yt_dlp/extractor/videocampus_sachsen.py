@@ -59,6 +59,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'video.hspv.nrw.de',  # Hochschule für Polizei und öffentliche Verwaltung NRW
         'video.irtshdf.fr',
         'video.medi.ch',
+        'video.ruhr-uni-bochum.de',  # Ruhr-Universität Bochum
         'video.tu-dortmund.de',  # Technische Universität Dortmund
         'video.tu-freiberg.de',  # Technische Universität Bergakademie Freiberg
         'video.viscom.com',
