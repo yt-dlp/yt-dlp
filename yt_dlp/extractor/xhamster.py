@@ -380,15 +380,17 @@ class XHamsterIE(InfoExtractor):
                                     '__needs_testing': True,
                                 })
 
-            categories_list = video.get('categories')
-            if isinstance(categories_list, list):
-                categories = []
-                for c in categories_list:
-                    if not isinstance(c, dict):
-                        continue
-                    c_name = c.get('name')
-                    if isinstance(c_name, str):
-                        categories.append(c_name)
+            categories_list = initials['videoTagsComponent']
+            if isinstance(categories_list, dict):
+                temp_categories = set[str]()
+                category_name = categories_list.get('orientation')
+                if isinstance(category_name, str):
+                    temp_categories.add(category_name.title())
+                for category in categories_list['tags']:
+                    category_name = category.get('name')
+                    if isinstance(category_name, str):
+                        temp_categories.add(category_name)
+                categories = sorted(temp_categories)
             else:
                 categories = None
 
