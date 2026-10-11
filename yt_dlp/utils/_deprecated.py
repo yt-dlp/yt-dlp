@@ -67,4 +67,8 @@ def random_uuidv4():
     return str(uuid.uuid4())
 
 
+def encodeArgument(s):
+    return s if isinstance(s, str) else s.decode('ascii')
+
+
 compiled_regex_type = type(re.compile(''))
