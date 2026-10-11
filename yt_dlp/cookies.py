@@ -177,7 +177,7 @@ def _extract_firefox_cookies(profile, container, logger):
             elif container == 'none':
                 logger.debug('Only loading cookies not belonging to any container')
                 cursor.execute(
-                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
+                    "SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,'userContextId=')")
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
@@ -325,7 +325,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
             # meta_version is necessary to determine if we need to trim the hash prefix from the cookies
             # Ref: https://chromium.googlesource.com/chromium/src/+/b02dcebd7cafab92770734dc2bc317bd07f1d891/net/extras/sqlite/sqlite_persistent_cookie_store.cc#223
-            meta_version = int(cursor.execute('SELECT value FROM meta WHERE key = "version"').fetchone()[0])
+            meta_version = int(cursor.execute("SELECT value FROM meta WHERE key = 'version'").fetchone()[0])
             decryptor = get_cookie_decryptor(
                 config['browser_dir'], config['keyring_name'], logger,
                 keyring=keyring, meta_version=meta_version)

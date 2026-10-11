@@ -45,7 +45,7 @@ class MockLogger:
     def debug(self, message: str, *, once=False):
         print(f'debug: {message}')
 
-    def info(self, message: str):
+    def info(self, message: str, *, once=False):
         print(f'info: {message}')
 
     def warning(self, message: str, *, once=False):

@@ -9,7 +9,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_x86_64-shared:latest
     environment:
-      REQUIREMENTS: linux-x86_64
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -45,7 +45,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux2014_aarch64-shared:latest
     environment:
-      REQUIREMENTS: linux-aarch64
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -81,7 +81,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/manylinux_2_31_armv7l-shared:latest
     environment:
-      REQUIREMENTS: linux-armv7l
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -117,7 +117,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_x86_64-shared:latest
     environment:
-      REQUIREMENTS: musllinux-x86_64
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
@@ -153,7 +153,7 @@ services:
       args:
         BUILDIMAGE: ghcr.io/yt-dlp/musllinux_1_2_aarch64-shared:latest
     environment:
-      REQUIREMENTS: musllinux-aarch64
+      REQUIREMENTS: linux
       EXE_NAME: ${EXE_NAME:?}
       CHANNEL: ${CHANNEL:?}
       ORIGIN: ${ORIGIN:?}
