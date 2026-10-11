@@ -1318,6 +1318,7 @@ from .omnyfm import (
     OmnyfmPlaylistIE,
     OmnyfmShowIE,
 )
+from .omroepflevoland import OmroepFlevolandIE
 from .on24 import On24IE
 from .ondemandkorea import (
     OnDemandKoreaIE,
