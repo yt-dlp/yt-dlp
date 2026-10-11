@@ -536,6 +536,9 @@ class YoutubeDL:
     dynamic_mpd:       Whether to process dynamic DASH manifests (default: True)
     hls_split_discontinuity: Split HLS playlists into different formats at
                        discontinuities such as ad breaks (default: False)
+    download_manifests: Whether to download HLS/DASH manifests to extract the
+                       formats they contain. If False, each manifest is reported
+                       as a single format with manifest_url set (default: True)
     extractor_args:    A dictionary of arguments to be passed to the extractors.
                        See "EXTRACTOR ARGUMENTS" for details.
                        Argument values must always be a list of string(s).
