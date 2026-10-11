@@ -121,7 +121,6 @@ from .utils import (
     deprecation_warning,
     determine_ext,
     determine_protocol,
-    encode_compat_str,
     escapeHTML,
     expand_path,
     extract_basic_auth,
@@ -1086,7 +1085,7 @@ class YoutubeDL:
                     tb = ''
                     if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
                         tb += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
-                    tb += encode_compat_str(traceback.format_exc())
+                    tb += traceback.format_exc()
                 else:
                     tb_data = traceback.format_list(traceback.extract_stack())
                     tb = ''.join(tb_data)
@@ -1748,7 +1747,7 @@ class YoutubeDL:
                     self.report_error(str(e), e.format_traceback())
                 except Exception as e:
                     if self.params.get('ignoreerrors'):
-                        self.report_error(str(e), tb=encode_compat_str(traceback.format_exc()))
+                        self.report_error(str(e), tb=traceback.format_exc())
                     else:
                         raise
                 break
