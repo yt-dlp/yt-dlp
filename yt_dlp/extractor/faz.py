@@ -1,7 +1,7 @@
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import compat_etree_fromstring
 from ..utils import (
     int_or_none,
     xpath_element,
@@ -51,7 +51,7 @@ class FazIE(InfoExtractor):
                 r"<iframe[^>]+?src='((?:http:)?//player\.performgroup\.com/eplayer/eplayer\.html#/?[0-9a-f]{26}\.[0-9a-z]{26})",
                 webpage, 'perform url')
             return self.url_result(perform_url)
-        config = compat_etree_fromstring(media)
+        config = xml.etree.ElementTree.fromstring(media)
 
         encodings = xpath_element(config, 'ENCODINGS', 'encodings', True)
         formats = []
