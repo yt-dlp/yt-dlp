@@ -1,16 +1,16 @@
-build==1.5.0 \
-    --hash=sha256:13f3eecb844759ab66efec90ca17639bbf14dc06cb2fdf37a9010322d9c50a6f \
-    --hash=sha256:302c22c3ba2a0fd5f3911918651341ebb3896176cbdec15bd421f80b1afc7647
+build==1.6.1 \
+    --hash=sha256:51cc11666391ab6f092070437ac747002ff46f3e4113a3622177ee6b488bfc53 \
+    --hash=sha256:ecd351a4be9d35a9eaaba244a7687143c9c7d4aea6ac964e7e7ddab20cbcf4e7
 colorama==0.4.6 ; os_name == 'nt' \
     --hash=sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44 \
     --hash=sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6
     # via build
-hatchling==1.32.0 \
-    --hash=sha256:0bdbde4a52b06c37e3eca395f85a762bf0ef06fe374fd8ae429dc6be10230f5f \
-    --hash=sha256:0e17c9c3b9aa7c625acc8d0f5b622f107d5049af9ecf5ada4de1aada5be7cdbc
-importlib-metadata==9.0.0 ; python_full_version < '3.10.2' \
-    --hash=sha256:2d21d1cc5a017bd0559e36150c21c830ab1dc304dedd1b7ea85d20f45ef3edd7 \
-    --hash=sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc
+hatchling==1.32.3 \
+    --hash=sha256:acdd4436d84d829c6e7ae6df723241d8f0bca9c5bad5a6148bd41f2ea6b8a792 \
+    --hash=sha256:d05b350af5d9aa5bf7b34b434a45a742b99e67d0b48ea67d240cfeab98e13945
+importlib-metadata==9.0.1 ; python_full_version < '3.10.2' \
+    --hash=sha256:ab830580bc0ef3db61ce8fae716389e5462b67e033018bab6d8f80ef17172f99 \
+    --hash=sha256:bba5600596a7e21f3eef53281cf28d6a5195634d2f2b78ff9501a3272c6eaab0
     # via build
 packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
@@ -26,9 +26,9 @@ pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
     --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
     # via hatchling
-pyproject-hooks==1.2.0 \
-    --hash=sha256:1e859bd5c40fae9448642dd871adf459e5e2084186e8d2c2a79a824c970da1f8 \
-    --hash=sha256:9e5c6bfa8dcc30091c74b0cf803c81fdd29d94f01992a7707bc97babb1141913
+pyproject-hooks==1.3.3 \
+    --hash=sha256:5fc53fdac9f7bd63fbcdc868fb5f90b4784d78a53a3d3388cd738b807441a20b \
+    --hash=sha256:defda19b854fa0d3bd4f76ea4ddcba8abd7dcfcdd585a6690ade050744fc5f43
     # via build
 tomli==2.4.1 ; python_full_version < '3.11' \
     --hash=sha256:01f520d4f53ef97964a240a035ec2a869fe1a37dde002b57ebc4417a27ccd853 \
