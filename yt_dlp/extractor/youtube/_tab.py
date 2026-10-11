@@ -323,7 +323,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             ie = YoutubeIE
             url = f'https://www.youtube.com/watch?v={content_id}'
             thumb_keys = (None,)
-        elif content_type in ('LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST'):
+        elif content_type in (
+            'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_PODCAST',
+            'LOCKUP_CONTENT_TYPE_SHOW', 'LOCKUP_CONTENT_TYPE_COURSE',
+        ):
             ie = YoutubeTabIE
             url = f'https://www.youtube.com/playlist?list={content_id}'
             thumb_keys = ('collectionThumbnailViewModel', 'primaryThumbnail')
@@ -1097,15 +1100,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
-            'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
+            'description': r're:(?s)Добро пожаловать на канал о Data Science.+\n$',
             'uploader': 'Igor DS: ИИ, Наука и Творчество ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'tags': 'count:19',
+            'tags': 'count:14',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
+            'channel_is_verified': True,
             'availability': 'public',
         },
     }, {
@@ -1115,15 +1119,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor DS: ИИ, Наука и Творчество  - Playlists',
-            'description': r're:(?s)Добро пожаловать! Здесь сложные технологии встречаются.+\n$',
+            'description': r're:(?s)Добро пожаловать на канал о Data Science.+\n$',
             'uploader': 'Igor DS: ИИ, Наука и Творчество ',
             'uploader_id': '@IgorDataScience',
             'uploader_url': 'https://www.youtube.com/@IgorDataScience',
-            'tags': 'count:19',
+            'tags': 'count:14',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'channel': 'Igor DS: ИИ, Наука и Творчество ',
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int,
+            'channel_is_verified': True,
             'availability': 'public',
         },
     }, {
@@ -2074,6 +2079,25 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'availability': 'public',
         },
         'playlist_mincount': 5,
+    }, {
+        # Playlists tab, with show lockupViewModel
+        'url': 'https://www.youtube.com/@TeamCoco/playlists',
+        'info_dict': {
+            'id': 'UCi7GJNg51C3jgmYTUwqoUXA',
+            'title': 'Team Coco - Playlists',
+            'description': 'md5:05c39a4bde71d9bad01a873347d95aaf',
+            'uploader': 'Team Coco',
+            'uploader_id': '@TeamCoco',
+            'uploader_url': 'https://www.youtube.com/@TeamCoco',
+            'channel': 'Team Coco',
+            'channel_id': 'UCi7GJNg51C3jgmYTUwqoUXA',
+            'channel_url': 'https://www.youtube.com/channel/UCi7GJNg51C3jgmYTUwqoUXA',
+            'channel_is_verified': True,
+            'channel_follower_count': int,
+            'tags': ["conan o'brien", 'team coco', 'conan'],
+            'availability': 'public',
+        },
+        'playlist_mincount': 57,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         'url': 'https://www.youtube.com/@AHimitsu/releases',
