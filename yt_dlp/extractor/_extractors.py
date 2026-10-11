@@ -529,6 +529,14 @@ from .err import (
     ERRArhiivIE,
     ERRJupiterIE,
 )
+from .ertecho import (
+    ERTEchoCategoryIE,
+    ERTEchoLiveIE,
+    ERTEchoOnDemandIE,
+    ERTEchoPodcastIE,
+    ERTEchoShowIE,
+    ERTEchoTagIE,
+)
 from .ertgr import (
     ERTFlixCodenameIE,
     ERTFlixIE,
