@@ -1760,7 +1760,7 @@ class InfoExtractor:
                         extract_video_object(e['video'][0])
                     elif is_type(traverse_obj(e, ('subjectOf', 0)), 'VideoObject'):
                         extract_video_object(e['subjectOf'][0])
-                elif is_type(e, 'VideoObject', 'AudioObject'):
+                elif is_type(e, 'VideoObject', 'AudioObject', 'Audiobook'):
                     extract_video_object(e)
                     if expected_type is None:
                         continue
