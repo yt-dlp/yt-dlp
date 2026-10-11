@@ -1,289 +1,331 @@
 import re
-import urllib.parse
 
 from .common import InfoExtractor
-from ..networking import Request
 from ..utils import (
     ExtractorError,
+    ISO639Utils,
+    UnsupportedError,
+    base_url,
+    filter_dict,
     float_or_none,
+    parse_age_limit,
+    parse_qs,
     str_or_none,
-    traverse_obj,
-    urlencode_postdata,
+    url_or_none,
 )
-
-USER_AGENTS = {
-    'Safari': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27',
-}
+from ..utils.traversal import traverse_obj
 
 
 class CeskaTelevizeIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady|zive)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:
+            (?:www\.)?ceskatelevize\.cz/(?:ivysilani(?!/(?:kategorie|vypis)\b)|porady|zive)|
+            (?:sport\.ceskatelevize\.cz|ct24\.ceskatelevize\.cz/video)(?=/zive-vysilani(?:[/?#]|$))
+        )/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'''
+    _API_BASE = 'https://api.ceskatelevize.cz/video/v1'
     _TESTS = [{
-        'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
+        'url': 'https://www.ceskatelevize.cz/porady/10441294653-hyde-park-civilizace/bonus/45890/',
         'info_dict': {
-            'id': '61924494877028507',
+            'id': 'BO-45890',
             'ext': 'mp4',
-            'title': 'Bonus 01 - En - Hyde Park Civilizace',
-            'description': 'English Subtittles',
+            'title': 'Interview with Walter Villadei - Hyde Park Civilizace',
+            'description': 'Interview with astronaut Walter Villadei',
+            'display_id': '45890',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 81.3,
+            'duration': 2295.0,
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'dash'},
     }, {
         # live stream
-        'url': 'http://www.ceskatelevize.cz/zive/ct1/',
+        'url': 'https://www.ceskatelevize.cz/zive/ct1/',
         'info_dict': {
             'id': '102',
             'ext': 'mp4',
-            'title': r'ČT1 - živé vysílání online',
-            'description': 'Sledujte živé vysílání kanálu ČT1 online. Vybírat si můžete i z dalších kanálů České televize na kterémkoli z vašich zařízení.',
-            'is_live': True,
+            'title': r're:^ČT1 - živé vysílání online',
+            'description': r're:^Sledujte živé vysílání kanálu ČT1',
+            'display_id': 'ct1',
+            'thumbnail': r're:^https?://.*',
+            'live_status': 'is_live',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'livestream'},
     }, {
-        # another
-        'url': 'http://www.ceskatelevize.cz/ivysilani/zive/ct4/',
+        'url': 'https://www.ceskatelevize.cz/zive/ct2/',
         'only_matching': True,
+    }, {
+        # /zive/sport/ redirects here
+        'url': 'https://sport.ceskatelevize.cz/zive-vysilani',
         'info_dict': {
             'id': '402',
             'ext': 'mp4',
-            'title': r're:^ČT Sport \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'is_live': True,
+            'title': r're:^Živé vysílání — ČT sport',
+            'display_id': 'zive-vysilani',
+            'thumbnail': r're:^https?://.*',
+            'live_status': 'is_live',
         },
-        # 'skip': 'Georestricted to Czech Republic',
+        'params': {'skip_download': 'livestream'},
     }, {
-        'url': 'http://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
-        'only_matching': True,
-    }, {
-        # video with 18+ caution trailer
-        'url': 'http://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
+        # /zive/ct24/ redirects here
+        'url': 'https://ct24.ceskatelevize.cz/video/zive-vysilani',
         'info_dict': {
-            'id': '215562210900007-bogotart',
+            'id': '2402',
+            'ext': 'mp4',
+            'title': r're:.+ČT24',
+            'description': str,
+            'display_id': 'zive-vysilani',
+            'thumbnail': r're:^https?://.*',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': 'livestream'},
+    }, {
+        # old embed player, IDEC is taken from the URL
+        'url': 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?hash=d6a3e1370d2e4fa76296b90bad4dfc19673b641e&IDEC=217 562 22150/0004&channelID=1&width=100%25',
+        'info_dict': {
+            'id': '217562221500004',
+            'ext': 'mp4',
+            'title': 'Toulavá kamera 2017 | Toulavá kamera | 4',
+            'thumbnail': r're:^https?://.*',
+            'duration': 1750.04,
+            'subtitles': {'cs': 'count:2'},
+        },
+        'params': {'skip_download': 'dash'},
+    }, {
+        # 18+ age restriction
+        'url': 'https://www.ceskatelevize.cz/porady/10520528904-queer/215562210900007-bogotart/',
+        'info_dict': {
+            'id': '215562210900007',
+            'ext': 'mp4',
             'title': 'Bogotart - Queer',
             'description': 'Hlavní město Kolumbie v doprovodu queer umělců. Vroucí svět plný vášně, sebevědomí, ale i násilí a bolesti',
+            'display_id': '215562210900007-bogotart',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 1556.0,
+            'age_limit': 18,
+        },
+        'params': {'skip_download': 'dash'},
+    }, {
+        'url': 'https://www.ceskatelevize.cz/porady/10614999031-neviditelni/21251212048/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.ceskatelevize.cz/ivysilani/10520528904-queer/215562210900007-bogotart/',
+        'only_matching': True,
+    }, {
+        # series page, extracts the episode its play button opens
+        'url': 'https://www.ceskatelevize.cz/porady/10195164142-vypravej/',
+        'info_dict': {
+            'id': '208522161400001',
+            'ext': 'mp4',
+            'title': 'Vyprávěj | Od začátku | 1',
+            'series': 'Vyprávěj',
+            'display_id': '10195164142-vypravej',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 3124.24,
+            'subtitles': {'cs': 'count:2'},
+        },
+        'params': {'skip_download': 'dash'},
+    }, {
+        # has an audio description track
+        'url': 'https://www.ceskatelevize.cz/porady/10213309156-cirkus-havel/',
+        'info_dict': {
+            'id': '409235100021004',
+            'ext': 'm4a',
+            'title': 'Cirkus Havel',
+            'description': r're:^Václav Havel, prezident, filozof',
+            'display_id': '10213309156-cirkus-havel',
+            'thumbnail': r're:^https?://.*',
+            'duration': 3384.92,
+            'format_note': 'Audio description',
+            'subtitles': {'cs': 'count:2'},
+        },
+        'params': {
+            'format': 'ba[format_note="Audio description"]',
+            'skip_download': 'dash',
+        },
+    }, {
+        # programme split into several parts
+        'url': 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php?IDEC=217 543 11205/0027',
+        'info_dict': {
+            'id': '217543112050027',
+            'title': 'Wifina | Wifina | 27',
+            'thumbnail': r're:^https?://.*',
         },
         'playlist': [{
             'info_dict': {
-                'id': '61924494877311053',
+                'id': '217543112050027-1',
                 'ext': 'mp4',
-                'title': 'Bogotart - Queer (Varování 18+)',
-                'duration': 11.9,
+                'title': 'Wifina | Wifina | 27',
+                'thumbnail': r're:^https?://.*',
+                'duration': 977.0,
             },
         }, {
             'info_dict': {
-                'id': '61924494877068022',
+                'id': '217543112050027-2',
                 'ext': 'mp4',
-                'title': 'Bogotart - Queer (Queer)',
-                'thumbnail': r're:^https?://.*\.jpg',
-                'duration': 1558.3,
+                'title': 'Wifina | Wifina | 27',
+                'thumbnail': r're:^https?://.*',
+                'duration': 539.0,
             },
         }],
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        # iframe embed
-        'url': 'http://www.ceskatelevize.cz/porady/10614999031-neviditelni/21251212048/',
-        'only_matching': True,
+        'params': {'skip_download': 'dash'},
     }]
 
-    def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        webpage, urlh = self._download_webpage_handle(url, playlist_id)
-        parsed_url = urllib.parse.urlparse(urlh.url)
-        site_name = self._og_search_property('site_name', webpage, fatal=False, default='Česká televize')
-        playlist_title = self._og_search_title(webpage, default=None)
-        if site_name and playlist_title:
-            playlist_title = re.split(rf'\s*[—|]\s*{site_name}', playlist_title, maxsplit=1)[0]
-        playlist_description = self._og_search_description(webpage, default=None)
-        if playlist_description:
-            playlist_description = playlist_description.replace('\xa0', ' ')
+    def _call_api(self, path, video_id, stream_type):
+        data = self._download_json(
+            f'{self._API_BASE}/{path}', video_id, f'Downloading {stream_type.upper()} stream data',
+            query={'canPlayDrm': 'false', 'streamType': stream_type},
+            expected_status=lambda status: 400 <= status < 500)
+        if not data.get('error'):
+            return data
 
-        type_ = 'IDEC'
-        if re.search(r'(^/porady|/zive)/', parsed_url.path):
-            next_data = self._search_nextjs_data(webpage, playlist_id)
-            if '/zive/' in parsed_url.path:
-                idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'liveBroadcast', 'current', 'idec'), get_all=False)
-            else:
-                idec = traverse_obj(next_data, ('props', 'pageProps', 'data', ('show', 'mediaMeta'), 'idec'), get_all=False)
-                if not idec:
-                    idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'videobonusDetail', 'bonusId'), get_all=False)
-                    if idec:
-                        type_ = 'bonus'
-            if not idec:
-                raise ExtractorError('Failed to find IDEC id')
-            iframe_hash = self._download_webpage(
-                'https://www.ceskatelevize.cz/v-api/iframe-hash/',
-                playlist_id, note='Getting IFRAME hash')
-            query = {'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', type_: idec}
-            webpage = self._download_webpage(
-                'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php',
-                playlist_id, note='Downloading player', query=query)
+        status = traverse_obj(data, ('message', 'status', 'name', {str}))
+        message = (
+            traverse_obj(data, ('message', 'labels', ('textLong', 'textShort'), {str}, filter, any))
+            or traverse_obj(data, ('error', (None, 'type'), {str}, any)))
+        if status == 'UNSUPPORTED_GEOLOCATION':
+            self.raise_geo_restricted(message, countries=['CZ'])
+        if status == 'UNSUPPORTED_DRM':
+            self.report_drm(video_id)
+        raise ExtractorError(f'{self.IE_NAME} said: {message}', expected=True)
 
-        NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
-        if f'{NOT_AVAILABLE_STRING}</p>' in webpage:
-            self.raise_geo_restricted(NOT_AVAILABLE_STRING)
-        if any(not_found in webpage for not_found in ('Neplatný parametr pro videopřehrávač', 'IDEC nebyl nalezen')):
-            raise ExtractorError('no video with IDEC available', video_id=idec, expected=True)
-
-        type_ = None
-        episode_id = None
-
-        playlist = self._parse_json(
-            self._search_regex(
-                r'getPlaylistUrl\(\[({.+?})\]', webpage, 'playlist',
-                default='{}'), playlist_id)
-        if playlist:
-            type_ = playlist.get('type')
-            episode_id = playlist.get('id')
-
-        if not type_:
-            type_ = self._html_search_regex(
-                r'getPlaylistUrl\(\[\{"type":"(.+?)","id":".+?"\}\],',
-                webpage, 'type')
-        if not episode_id:
-            episode_id = self._html_search_regex(
-                r'getPlaylistUrl\(\[\{"type":".+?","id":"(.+?)"\}\],',
-                webpage, 'episode_id')
-
-        data = {
-            'playlist[0][type]': type_,
-            'playlist[0][id]': episode_id,
-            'requestUrl': parsed_url.path,
-            'requestSource': 'iVysilani',
-        }
-
-        entries = []
-
-        for user_agent in (None, USER_AGENTS['Safari']):
-            req = Request(
-                'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
-                data=urlencode_postdata(data))
-
-            req.headers['Content-type'] = 'application/x-www-form-urlencoded'
-            req.headers['x-addr'] = '127.0.0.1'
-            req.headers['X-Requested-With'] = 'XMLHttpRequest'
-            if user_agent:
-                req.headers['User-Agent'] = user_agent
-            req.headers['Referer'] = url
-
-            playlistpage = self._download_json(req, playlist_id, fatal=False)
-
-            if not playlistpage:
-                continue
-
-            playlist_url = playlistpage['url']
-            if playlist_url == 'error_region':
-                raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
-
-            req = Request(urllib.parse.unquote(playlist_url))
-            req.headers['Referer'] = url
-
-            playlist = self._download_json(req, playlist_id, fatal=False)
-            if not playlist:
-                continue
-
-            playlist = playlist.get('playlist')
-            if not isinstance(playlist, list):
-                continue
-
-            playlist_len = len(playlist)
-
-            for num, item in enumerate(playlist):
-                is_live = item.get('type') == 'LIVE'
-                formats = []
-                for format_id, stream_url in item.get('streamUrls', {}).items():
-                    if 'playerType=flash' in stream_url:
-                        stream_formats = self._extract_m3u8_formats(
-                            stream_url, playlist_id, 'mp4', 'm3u8_native',
-                            m3u8_id=f'hls-{format_id}', fatal=False)
+    def _extract_vod(self, path, video_id, extra_info):
+        # Programmes with parts cut out (e.g. for licensing reasons) are split into several streams
+        parts = []
+        for stream_type in ('dash', 'hls'):
+            data = self._call_api(f'playlist-vod/v1/stream-data/{path}', video_id, stream_type)
+            streams = traverse_obj(data, ('streams', lambda _, v: url_or_none(v['url'])))
+            for idx, stream in enumerate(streams):
+                if idx == len(parts):
+                    parts.append({
+                        'formats': [],
+                        'subtitles': self._parse_subtitles(stream),
+                        'duration': float_or_none(stream.get('duration')),
+                    })
+                for key, format_id in (('url', stream_type), ('audioDescriptionUrl', f'{stream_type}-ad')):
+                    manifest_url = url_or_none(stream.get(key))
+                    if not manifest_url:
+                        continue
+                    if stream_type == 'dash':
+                        fmts, subs = self._extract_mpd_formats_from_location(manifest_url, video_id, format_id)
                     else:
-                        stream_formats = self._extract_mpd_formats(
-                            stream_url, playlist_id,
-                            mpd_id=f'dash-{format_id}', fatal=False)
-                    if 'drmOnly=true' in stream_url:
-                        for f in stream_formats:
-                            f['has_drm'] = True
-                    # See https://github.com/ytdl-org/youtube-dl/issues/12119#issuecomment-280037031
-                    if format_id == 'audioDescription':
-                        for f in stream_formats:
-                            f['source_preference'] = -10
-                    formats.extend(stream_formats)
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                            manifest_url, video_id, 'mp4', m3u8_id=format_id, fatal=False)
+                    if key == 'audioDescriptionUrl':
+                        # The DASH manifest repeats the main video as a separate video-only format; drop it.
+                        # HLS has no codec info, so its variants (video muxed with the narration) are kept
+                        fmts = [{
+                            **f,
+                            'format_note': 'Audio description',
+                            'language_preference': -10,
+                        } for f in fmts if f.get('acodec') != 'none']
+                    parts[idx]['formats'].extend(fmts)
+                    self._merge_subtitles(subs, target=parts[idx]['subtitles'])
 
-                if user_agent and len(entries) == playlist_len:
-                    entries[num]['formats'].extend(formats)
-                    continue
+        info = {
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'thumbnail': ('previewImageUrl', {url_or_none}),
+                'age_limit': ('labeling', ..., 'text', {parse_age_limit}, any),
+            }),
+            **filter_dict(extra_info),
+        }
+        if len(parts) == 1:
+            return {'id': video_id, **info, **parts[0]}
+        return self.playlist_result(
+            [{'id': f'{video_id}-{idx}', **info, **part} for idx, part in enumerate(parts, 1)],
+            video_id, multi_video=True, **info)
 
-                item_id = str_or_none(item.get('id') or item['assetId'])
-                title = item['title']
+    def _extract_mpd_formats_from_location(self, mpd_url, video_id, mpd_id):
+        res = self._download_xml_handle(mpd_url, video_id, 'Downloading MPD manifest', fatal=False)
+        if not res or res[0] is None:
+            return [], {}
+        mpd_doc, urlh = res
+        # ffmpeg can't read the chunked manifest served by the tokenized URL, so use the MPD's own Location
+        mpd_url = url_or_none(mpd_doc.findtext('{urn:mpeg:dash:schema:mpd:2011}Location')) or urlh.url
+        return self._parse_mpd_formats_and_subtitles(mpd_doc, mpd_id, base_url(mpd_url), mpd_url)
 
-                duration = float_or_none(item.get('duration'))
-                thumbnail = item.get('previewImageUrl')
-
-                subtitles = {}
-                if item.get('type') == 'VOD':
-                    subs = item.get('subtitles')
-                    if subs:
-                        subtitles = self.extract_subtitles(episode_id, subs)
-
-                if playlist_len == 1:
-                    final_title = playlist_title or title
-                else:
-                    final_title = f'{playlist_title} ({title})'
-
-                entries.append({
-                    'id': item_id,
-                    'title': final_title,
-                    'description': playlist_description if playlist_len == 1 else None,
-                    'thumbnail': thumbnail,
-                    'duration': duration,
-                    'formats': formats,
-                    'subtitles': subtitles,
-                    'is_live': is_live,
+    @staticmethod
+    def _parse_subtitles(stream):
+        subtitles = {}
+        for sub in traverse_obj(stream, ('subtitles', lambda _, v: v['files'])):
+            lang = ISO639Utils.long2short(sub.get('language')) or sub.get('language') or 'cs'
+            for sub_file in traverse_obj(sub, (
+                    'files', lambda _, v: url_or_none(v['url']) and v['format'] in ('vtt', 'ttml'))):
+                subtitles.setdefault(lang, []).append({
+                    'url': sub_file['url'],
+                    'ext': sub_file['format'],
                 })
+        return subtitles
 
-        if len(entries) == 1:
-            return entries[0]
-        return self.playlist_result(entries, playlist_id, playlist_title, playlist_description)
-
-    def _get_subtitles(self, episode_id, subs):
-        original_subtitles = self._download_webpage(
-            subs[0]['url'], episode_id, 'Downloading subtitles')
-        srt_subs = self._fix_subtitles(original_subtitles)
+    def _extract_live(self, channel, video_id, extra_info):
+        data = self._call_api(f'playlist-live/v1/stream-data/channel/{channel}', video_id, 'hls')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            data['streamUrls']['main'], video_id, 'mp4', m3u8_id='hls', live=True)
         return {
-            'cs': [{
-                'ext': 'srt',
-                'data': srt_subs,
-            }],
+            'id': str_or_none(data.get('id')) or video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': True,
+            **traverse_obj(data, {
+                'title': ('title', {str}),
+                'thumbnail': ('previewImageUrl', {url_or_none}),
+            }),
+            **filter_dict(extra_info),
         }
 
     @staticmethod
-    def _fix_subtitles(subtitles):
-        """ Convert millisecond-based subtitles to SRT """
+    def _clean_idec(idec):
+        # IDECs are often written with separators, e.g. "217 562 22150/0004"
+        return re.sub(r'\D', '', idec)
 
-        def _msectotimecode(msec):
-            """ Helper utility to convert milliseconds to timecode """
-            components = []
-            for divider in [1000, 60, 60, 100]:
-                components.append(msec % divider)
-                msec //= divider
-            return '{3:02}:{2:02}:{1:02},{0:03}'.format(*components)
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
 
-        def _fix_subtitle(subtitle):
-            for line in subtitle.splitlines():
-                m = re.match(r'^\s*([0-9]+);\s*([0-9]+)\s+([0-9]+)\s*$', line)
-                if m:
-                    yield m.group(1)
-                    start, stop = (_msectotimecode(int(t)) for t in m.groups()[1:])
-                    yield f'{start} --> {stop}'
-                else:
-                    yield line
+        # The old iFramePlayer.php embed is gone, but its URL still contains the IDEC
+        if idec := traverse_obj(parse_qs(url), ('IDEC', -1, {self._clean_idec})):
+            return self._extract_vod(f'media/external/{idec}', idec, {})
 
-        return '\r\n'.join(_fix_subtitle(subtitles))
+        webpage, urlh = self._download_webpage_handle(url, display_id)
+        # e.g. /zive/ct4/ redirects to the /ivysilani/ homepage
+        if not self.suitable(urlh.url):
+            raise UnsupportedError(urlh.url)
+
+        title = self._og_search_title(webpage, default='').replace('\xa0', ' ')
+        site_name = self._og_search_property('site_name', webpage, default='Česká televize')
+        description = self._html_search_meta(['og:description', 'description'], webpage, default='')
+        page_info = {
+            'display_id': display_id,
+            'title': re.split(rf'\s+[—|-]\s+(?:iVysílání|{re.escape(site_name)})', title, maxsplit=1)[0] or None,
+            'description': description.replace('\xa0', ' ') or None,
+        }
+
+        next_data = self._search_nextjs_data(webpage, display_id)
+        page_data = traverse_obj(next_data, ('props', 'pageProps', 'data', {dict})) or {}
+
+        # Live pages of the main site, ČT sport and ČT24
+        if live_data := traverse_obj(next_data, (
+                'props', 'pageProps', (('data', 'liveBroadcast'), 'liveData', 'videoModel'), {dict}, any)):
+            # current is null while the channel is off air, but the id is still the encoder
+            encoder = traverse_obj(live_data, ((('current', 'encoder'), 'id'), {str}, any))
+            if not encoder:
+                raise ExtractorError('Unable to extract live channel')
+            return self._extract_live(encoder, display_id, page_info)
+
+        if bonus_id := traverse_obj(page_data, ('videobonusDetail', 'bonusId', {str_or_none})):
+            bonus_id = f'BO-{bonus_id}'
+            return self._extract_vod(f'bonus/{bonus_id}', bonus_id, page_info)
+
+        if idec := traverse_obj(page_data, ('mediaMeta', 'idec', {str}, {self._clean_idec}, filter)):
+            return self._extract_vod(f'media/external/{idec}', idec, page_info)
+
+        # Series pages describe the show; extract the episode their play button opens
+        # (the first one, or the latest one for running shows) with its own metadata
+        if idec := traverse_obj(page_data, ('show', 'actionButton', 'idec', {str}, {self._clean_idec}, filter)):
+            return self._extract_vod(f'media/external/{idec}', idec, {
+                'display_id': display_id,
+                'series': traverse_obj(page_data, ('show', 'title', {str})),
+            })
+
+        # Pages of single programmes, e.g. films
+        idec = traverse_obj(page_data, ('show', 'idec', {str}, {self._clean_idec}, filter))
+        if not idec:
+            raise ExtractorError('Unable to extract IDEC')
+        return self._extract_vod(f'media/external/{idec}', idec, page_info)
