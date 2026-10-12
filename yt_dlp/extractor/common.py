@@ -3037,6 +3037,9 @@ class InfoExtractor:
                             'manifest_url': mpd_url,
                             'filesize': filesize,
                         }
+                        # Not in spec, but seen in wild, containing subtitle natural language
+                        if representation_attrib.get('label'):
+                            f['name'] = representation_attrib.get('label')
                     elif content_type in ('image/avif', 'image/jpeg'):
                         # See test case in VikiIE
                         # https://www.viki.com/videos/1175236v-choosing-spouse-by-lottery-episode-1
