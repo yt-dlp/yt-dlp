@@ -1005,6 +1005,7 @@ from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchitv import MatchiTVIE
 from .matchtv import MatchTVIE
+from .matreska import MatreshkaIE
 from .mave import (
     MaveChannelIE,
     MaveIE,
