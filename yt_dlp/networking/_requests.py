@@ -196,6 +196,18 @@ class RequestsSession(requests.sessions.Session):
     Ensure unified redirect method handling with our urllib redirect handler.
     """
 
+    def prepare_request(self, request):
+        prepared_request = super().prepare_request(request)
+        for name, value in list(prepared_request.headers.items()):
+            if not isinstance(value, str):
+                continue
+            try:
+                value.encode('latin-1')
+            except UnicodeEncodeError:
+                prepared_request.headers.pop(name, None)
+
+        return prepared_request
+
     def rebuild_method(self, prepared_request, response):
         new_method = get_redirect_method(prepared_request.method, response.status_code)
 
