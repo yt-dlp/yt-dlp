@@ -1608,7 +1608,6 @@ from .rozhlas import (
     RozhlasVltavaIE,
 )
 from .rte import (
-    RteIE,
     RteRadioIE,
 )
 from .rtl2 import RTL2IE
