@@ -179,7 +179,131 @@ class VRTIE(VRTBaseIE):
         }
 
 
-class VrtNUIE(VRTBaseIE):
+class VrtNUIEBase(VRTBaseIE):
+    _NETRC_MACHINE = 'vrtnu'
+    _TOKEN_COOKIE_DOMAIN = '.www.vrt.be'
+    _ACCESS_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_at'
+    _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
+    _MEDIA_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
+
+    def _fetch_tokens(self):
+        has_credentials = self._get_login_info()[0]
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._MEDIA_TOKEN_COOKIE_NAME)
+
+        if (access_token and not self._is_jwt_token_expired(access_token)
+                and video_token and not self._is_jwt_token_expired(video_token)):
+            return access_token, video_token
+
+        if has_credentials:
+            access_token, video_token = self.cache.load(self._NETRC_MACHINE, 'token_data', default=(None, None))
+
+            if (access_token and not self._is_jwt_token_expired(access_token)
+                    and video_token and not self._is_jwt_token_expired(video_token)):
+                self.write_debug('Restored tokens from cache')
+                self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._ACCESS_TOKEN_COOKIE_NAME, access_token)
+                self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._MEDIA_TOKEN_COOKIE_NAME, video_token)
+                return access_token, video_token
+
+        if not self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME):
+            return None, None
+
+        self._request_webpage(
+            'https://www.vrt.be/vrtmax/sso/refresh', None,
+            note='Refreshing tokens', errnote='Failed to refresh tokens', fatal=False)
+
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._MEDIA_TOKEN_COOKIE_NAME)
+
+        if not access_token or not video_token:
+            self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
+            self.cookiejar.clear(self._TOKEN_COOKIE_DOMAIN, '/vrtmax/sso', self._REFRESH_TOKEN_COOKIE_NAME)
+            msg = 'Refreshing of tokens failed'
+            if not has_credentials:
+                self.report_warning(msg)
+                return None, None
+            self.report_warning(f'{msg}. Re-logging in')
+            return self._perform_login(*self._get_login_info())
+
+        if has_credentials:
+            self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
+
+        return access_token, video_token
+
+    def _get_vrt_cookie(self, cookie_name):
+        # Refresh token cookie is scoped to /vrtmax/sso, others are scoped to /
+        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[cookie_name].value)
+
+    @staticmethod
+    def _is_jwt_token_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 300
+
+    def _perform_login(self, username, password):
+        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+            self.write_debug('Using refresh token from logged-in cookies; skipping login with credentials')
+            return
+
+        refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
+        if refresh_token and not self._is_jwt_token_expired(refresh_token):
+            self.write_debug('Restored refresh token from cache')
+            self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
+            return
+
+        self._request_webpage(
+            'https://www.vrt.be/vrtmax/sso/login', None,
+            note='Getting session cookies', errnote='Failed to get session cookies')
+
+        login_data = self._download_json(
+            'https://login.vrt.be/perform_login', None, data=json.dumps({
+                'clientId': 'vrtnu-site',
+                'loginID': username,
+                'password': password,
+            }).encode(), headers={
+                'Content-Type': 'application/json',
+                'Oidcxsrf': self._get_cookies('https://login.vrt.be')['OIDCXSRF'].value,
+            }, note='Logging in', errnote='Login failed', expected_status=403)
+        if login_data.get('errorCode'):
+            raise ExtractorError(f'Login failed: {login_data.get("errorMessage")}', expected=True)
+
+        self._request_webpage(
+            login_data['redirectUrl'], None,
+            note='Getting access token', errnote='Failed to get access token')
+
+        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
+        video_token = self._get_vrt_cookie(self._MEDIA_TOKEN_COOKIE_NAME)
+        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
+
+        if not all((access_token, video_token, refresh_token)):
+            raise ExtractorError('Unable to extract token cookie values')
+
+        self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
+        self.cache.store(self._NETRC_MACHINE, 'refresh_token', refresh_token)
+
+        return access_token, video_token
+
+    def fetch_query(self, url, access_token, display_id, query_name, query):
+        return self._download_json(
+            f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
+            display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
+            data=json.dumps({
+                'operationName': query_name,
+                'query': query,
+                'variables': {'pageId': urllib.parse.urlparse(url).path},
+            }).encode(),
+            headers=filter_dict({
+                'Authorization': f'Bearer {access_token}' if access_token else None,
+                'Content-Type': 'application/json',
+                'x-vrt-client-name': 'WEB',
+                'x-vrt-client-version': '1.5.9',
+                'x-vrt-zone': 'default',
+            }))['data']['page']
+
+    def fetch_metadata(self, url, access_token, display_id):
+        return self.fetch_query(url, access_token, display_id, self._MEDIA_PAGE_QUERY_OPERATION_NAME, self._MEDIA_PAGE_QUERY)
+
+
+class VrtNUIE(VrtNUIEBase):
     IE_NAME = 'vrtmax'
     IE_DESC = 'VRT MAX (formerly VRT NU)'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/(?:vrtnu|vrtmax)/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
@@ -257,13 +381,8 @@ class VrtNUIE(VRTBaseIE):
             ],
         },
     }]
-    _NETRC_MACHINE = 'vrtnu'
 
-    _TOKEN_COOKIE_DOMAIN = '.www.vrt.be'
-    _ACCESS_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_at'
-    _REFRESH_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_rt'
-    _VIDEO_TOKEN_COOKIE_NAME = 'vrtnu-site_profile_vt'
-    _VIDEO_PAGE_QUERY = '''
+    _MEDIA_PAGE_QUERY = '''
     query VideoPage($pageId: ID!) {
         page(id: $pageId) {
             ... on EpisodePage {
@@ -298,122 +417,13 @@ class VrtNUIE(VRTBaseIE):
         }
     }
     '''
-
-    def _fetch_tokens(self):
-        has_credentials = self._get_login_info()[0]
-        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
-        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
-
-        if (access_token and not self._is_jwt_token_expired(access_token)
-                and video_token and not self._is_jwt_token_expired(video_token)):
-            return access_token, video_token
-
-        if has_credentials:
-            access_token, video_token = self.cache.load(self._NETRC_MACHINE, 'token_data', default=(None, None))
-
-            if (access_token and not self._is_jwt_token_expired(access_token)
-                    and video_token and not self._is_jwt_token_expired(video_token)):
-                self.write_debug('Restored tokens from cache')
-                self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._ACCESS_TOKEN_COOKIE_NAME, access_token)
-                self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._VIDEO_TOKEN_COOKIE_NAME, video_token)
-                return access_token, video_token
-
-        if not self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME):
-            return None, None
-
-        self._request_webpage(
-            'https://www.vrt.be/vrtmax/sso/refresh', None,
-            note='Refreshing tokens', errnote='Failed to refresh tokens', fatal=False)
-
-        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
-        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
-
-        if not access_token or not video_token:
-            self.cache.store(self._NETRC_MACHINE, 'refresh_token', None)
-            self.cookiejar.clear(self._TOKEN_COOKIE_DOMAIN, '/vrtmax/sso', self._REFRESH_TOKEN_COOKIE_NAME)
-            msg = 'Refreshing of tokens failed'
-            if not has_credentials:
-                self.report_warning(msg)
-                return None, None
-            self.report_warning(f'{msg}. Re-logging in')
-            return self._perform_login(*self._get_login_info())
-
-        if has_credentials:
-            self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
-
-        return access_token, video_token
-
-    def _get_vrt_cookie(self, cookie_name):
-        # Refresh token cookie is scoped to /vrtmax/sso, others are scoped to /
-        return try_call(lambda: self._get_cookies('https://www.vrt.be/vrtmax/sso')[cookie_name].value)
-
-    @staticmethod
-    def _is_jwt_token_expired(token):
-        return jwt_decode_hs256(token)['exp'] - time.time() < 300
-
-    def _perform_login(self, username, password):
-        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
-        if refresh_token and not self._is_jwt_token_expired(refresh_token):
-            self.write_debug('Using refresh token from logged-in cookies; skipping login with credentials')
-            return
-
-        refresh_token = self.cache.load(self._NETRC_MACHINE, 'refresh_token', default=None)
-        if refresh_token and not self._is_jwt_token_expired(refresh_token):
-            self.write_debug('Restored refresh token from cache')
-            self._set_cookie(self._TOKEN_COOKIE_DOMAIN, self._REFRESH_TOKEN_COOKIE_NAME, refresh_token, path='/vrtmax/sso')
-            return
-
-        self._request_webpage(
-            'https://www.vrt.be/vrtmax/sso/login', None,
-            note='Getting session cookies', errnote='Failed to get session cookies')
-
-        login_data = self._download_json(
-            'https://login.vrt.be/perform_login', None, data=json.dumps({
-                'clientId': 'vrtnu-site',
-                'loginID': username,
-                'password': password,
-            }).encode(), headers={
-                'Content-Type': 'application/json',
-                'Oidcxsrf': self._get_cookies('https://login.vrt.be')['OIDCXSRF'].value,
-            }, note='Logging in', errnote='Login failed', expected_status=403)
-        if login_data.get('errorCode'):
-            raise ExtractorError(f'Login failed: {login_data.get("errorMessage")}', expected=True)
-
-        self._request_webpage(
-            login_data['redirectUrl'], None,
-            note='Getting access token', errnote='Failed to get access token')
-
-        access_token = self._get_vrt_cookie(self._ACCESS_TOKEN_COOKIE_NAME)
-        video_token = self._get_vrt_cookie(self._VIDEO_TOKEN_COOKIE_NAME)
-        refresh_token = self._get_vrt_cookie(self._REFRESH_TOKEN_COOKIE_NAME)
-
-        if not all((access_token, video_token, refresh_token)):
-            raise ExtractorError('Unable to extract token cookie values')
-
-        self.cache.store(self._NETRC_MACHINE, 'token_data', (access_token, video_token))
-        self.cache.store(self._NETRC_MACHINE, 'refresh_token', refresh_token)
-
-        return access_token, video_token
+    _MEDIA_PAGE_QUERY_OPERATION_NAME = 'VideoPage'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         access_token, video_token = self._fetch_tokens()
 
-        metadata = self._download_json(
-            f'https://www.vrt.be/vrtnu-api/graphql{"" if access_token else "/public"}/v1',
-            display_id, 'Downloading asset JSON', 'Unable to download asset JSON',
-            data=json.dumps({
-                'operationName': 'VideoPage',
-                'query': self._VIDEO_PAGE_QUERY,
-                'variables': {'pageId': urllib.parse.urlparse(url).path},
-            }).encode(),
-            headers=filter_dict({
-                'Authorization': f'Bearer {access_token}' if access_token else None,
-                'Content-Type': 'application/json',
-                'x-vrt-client-name': 'WEB',
-                'x-vrt-client-version': '1.5.9',
-                'x-vrt-zone': 'default',
-            }))['data']['page']
+        metadata = self.fetch_metadata(url, access_token, display_id)
 
         video_id = metadata['player']['modes'][0]['streamId']
 
@@ -460,6 +470,599 @@ class VrtNUIE(VRTBaseIE):
             'subtitles': subtitles,
             '_old_archive_ids': [make_archive_id('Canvas', video_id),
                                  make_archive_id('Ketnet', video_id)],
+        }
+
+
+class VrtNURadioIE(VrtNUIEBase):
+    IE_NAME = 'vrtmax_radio'
+    IE_DESC = 'VRT MAX Radio (formerly VRT NU)'
+
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtmax/luister/radio/[^/]+/[^/]+/(?P<id>[^/?#&]+)'
+    _TESTS = [{
+        'url': 'https://www.vrt.be/vrtmax/luister/radio/k/klara-live-op-jazz-middelheim~31-225/klara-live-op-jazz-middelheim~31-28457-0/',
+        'info_dict': {
+            'duration': 9000.043,
+            'thumbnail': 'https://images.vrt.be/orig/2024/07/04/be709dea-39e5-11ef-92ff-02b7b76bf47f.png',
+            'channel': 'klara',
+            'channel_url': 'https://www.vrt.be/vrtmax/kanalen/klara/',
+            'ext': 'mp4',
+            'timestamp': 1749319200,
+            'upload_date': '20250607',
+            'title': 'Klara Live op Jazz Middelheim - 2025-06-07 20_00',
+            'id': 'pbs-pub-57aa55b1-da11-4749-bdd6-a2cdc5bba25c$aud-4f672d08-c7ff-48d0-980e-5f43db55e381',
+            'description': 'Dee Dee Bridgewater laat met een kanjer van een stem zien waarom ze het label van jazzicoon meer dan verdient!\nBeleef Jazz Middelheim vanop de eerste rij! Bart Vanhoudt, Guy Peters en Lies Steppe laten u ook thuis en onderweg meegenieten met interviews, reportages en concerten.',
+            'display_id': 'klara-live-op-jazz-middelheim~31-28457-0',
+        },
+    }, {
+        'url': 'https://www.vrt.be/vrtmax/luister/radio/n/nieuwe-feiten~11-9/nieuwe-feiten~11-33278-0/',
+        'info_dict': {
+            'id': 'pbs-pub-d6b2929a-60b5-43fd-88ed-fb8cc6ae2bea$aud-10e4e771-bf76-409e-bddb-1b4c1d5c0f7c',
+            'ext': 'mp4',
+            'display_id': 'nieuwe-feiten~11-33278-0',
+            'title': 'Nieuwe Feiten - 2025-06-23 12_00',
+            'description': 'md5:2189eb55d66cd4bd4ba24a68d562dc45',
+            'channel': 'radio1',
+            'channel_url': 'https://www.vrt.be/vrtmax/kanalen/radio-1/',
+            'duration': 3119.424,
+            'thumbnail': 'https://images.vrt.be/orig/2025/02/07/d8cc34bf-9f61-41aa-81fc-906042ba0847.png',
+            'timestamp': 1750672800,
+            'upload_date': '20250623',
+        },
+    }]
+
+    _MEDIA_PAGE_QUERY = '''
+        query RadioEpisodePage($pageId: ID!) {
+        page(id: $pageId) {
+            ... on RadioEpisodePage {
+            radioEpisode {
+                objectId
+                startDate
+                presenters {
+                name
+                category
+                title
+                icon
+                __typename
+                }
+                __typename
+            }
+            __typename
+            }
+            ... on PlaybackPage {
+            ...playbackPageFragment
+            header {
+                title
+                announcementValue
+                brandsLogos {
+                brandTitle
+                logos {
+                    type
+                    mono
+                    width
+                    height
+                    __typename
+                }
+                __typename
+                }
+                __typename
+            }
+            __typename
+            }
+            ...errorFragment
+            __typename
+        }
+        }
+        fragment playbackPageFragment on PlaybackPage {
+        __typename
+        objectId
+        title
+        brand
+        brandLogos {
+            ...brandLogosFragment
+            __typename
+        }
+        permalink
+        seo {
+            ...seoFragment
+            __typename
+        }
+        socialSharing {
+            ...socialSharingFragment
+            __typename
+        }
+        trackingData {
+            ...trackingDataFragment
+            __typename
+        }
+        ldjson
+        player {
+            ...playerFragment
+            __typename
+        }
+        menu {
+            ...menuFragment
+            __typename
+        }
+        nudge {
+            ...nudgeFragment
+            __typename
+        }
+        components {
+            ...bannerFragment
+            ...contactInfoFragment
+            ...mediaInfoFragment
+            __typename
+        }
+        }
+        fragment menuFragment on ContainerNavigation {
+        __typename
+        objectId
+        items {
+            __typename
+            objectId
+            componentId
+            title
+            active
+            action {
+            ... on SwitchTabAction {
+                __typename
+                referencedTabId
+                mediaType
+                link
+            }
+            __typename
+            }
+        }
+        }
+        fragment seoFragment on SeoProperties {
+        __typename
+        title
+        description
+        }
+        fragment socialSharingFragment on SocialSharingProperties {
+        __typename
+        title
+        description
+        image {
+            __typename
+            objectId
+            templateUrl
+        }
+        }
+        fragment playerFragment on MediaPlayer {
+        __typename
+        objectId
+        classification {
+            iconName
+            __typename
+        }
+        maxAge
+        image {
+            ...imageFragment
+            __typename
+        }
+        modes {
+            __typename
+            active
+            adsUrl
+            cimMediaTrackingData {
+            channel
+            ct
+            programDuration
+            programId
+            programName
+            se
+            st
+            tv
+            __typename
+            }
+            mediaTrackingData {
+            ...trackingDataFragment
+            __typename
+            }
+            token {
+            placeholder
+            value
+            __typename
+            }
+            resumePointTemplate {
+            mediaId
+            mediaName
+            __typename
+            }
+            streamId
+            ... on VideoPlayerMode {
+            aspectRatio
+            __typename
+            }
+        }
+        progress {
+            __typename
+            completed
+            durationInSeconds
+            progressInSeconds
+        }
+        secondaryMeta {
+            ...metaFragment
+            __typename
+        }
+        sportBuffStreamId
+        subtitle
+        title
+        }
+        fragment imageFragment on Image {
+        __typename
+        objectId
+        alt
+        focusPoint {
+            x
+            y
+            __typename
+        }
+        templateUrl
+        }
+        fragment metaFragment on MetaDataItem {
+        __typename
+        type
+        value
+        shortValue
+        longValue
+        }
+        fragment trackingDataFragment on PageTrackingData {
+        data
+        perTrigger {
+            trigger
+            data
+            template {
+            id
+            __typename
+            }
+            __typename
+        }
+        __typename
+        }
+        fragment bannerFragment on Banner {
+        __typename
+        objectId
+        accessibilityTitle
+        brand
+        countdown {
+            date
+            __typename
+        }
+        richDescription {
+            __typename
+            text
+        }
+        image {
+            objectId
+            templateUrl
+            alt
+            focusPoint {
+            x
+            y
+            __typename
+            }
+            __typename
+        }
+        title
+        compactLayout
+        textTheme
+        backgroundColor
+        style
+        action {
+            ...actionFragment
+            __typename
+        }
+        actionItems {
+            ...actionItemFragment
+            __typename
+        }
+        titleArt {
+            objectId
+            templateUrl
+            __typename
+        }
+        labelMeta {
+            __typename
+            type
+            value
+        }
+        ... on IComponent {
+            ...componentTrackingDataFragment
+            __typename
+        }
+        }
+        fragment actionFragment on Action {
+        __typename
+        ... on FavoriteAction {
+            id
+            favorite
+            title
+            __typename
+        }
+        ... on ListDeleteAction {
+            listName
+            id
+            listId
+            title
+            __typename
+        }
+        ... on ListTileDeletedAction {
+            listName
+            id
+            listId
+            __typename
+        }
+        ... on LinkAction {
+            internalTarget
+            linkId
+            link
+            internalTarget
+            externalTarget
+            passUserIdentity
+            zone {
+            preferredZone
+            isExclusive
+            __typename
+            }
+            linkTokens {
+            __typename
+            placeholder
+            value
+            }
+            __typename
+        }
+        ... on ClientDrivenAction {
+            __typename
+            clientDrivenActionType
+        }
+        ... on ShareAction {
+            title
+            url
+            __typename
+        }
+        ... on SwitchTabAction {
+            referencedTabId
+            mediaType
+            link
+            __typename
+        }
+        ... on FinishAction {
+            id
+            __typename
+        }
+        }
+        fragment actionItemFragment on ActionItem {
+        __typename
+        objectId
+        accessibilityLabel
+        active
+        mode
+        title
+        themeOverride
+        action {
+            ...actionFragment
+            __typename
+        }
+        icons {
+            ...iconFragment
+            __typename
+        }
+        }
+        fragment iconFragment on Icon {
+        __typename
+        accessibilityLabel
+        position
+        ... on DesignSystemIcon {
+            value {
+            name
+            __typename
+            }
+            activeValue {
+            name
+            __typename
+            }
+            __typename
+        }
+        ... on ImageIcon {
+            value {
+            srcSet {
+                src
+                format
+                __typename
+            }
+            __typename
+            }
+            activeValue {
+            srcSet {
+                src
+                format
+                __typename
+            }
+            __typename
+            }
+            __typename
+        }
+        }
+        fragment componentTrackingDataFragment on IComponent {
+        trackingData {
+            data
+            perTrigger {
+            trigger
+            data
+            template {
+                id
+                __typename
+            }
+            __typename
+            }
+            __typename
+        }
+        __typename
+        }
+        fragment brandLogosFragment on Logo {
+        colorOnColor
+        height
+        mono
+        primary
+        type
+        width
+        __typename
+        }
+        fragment contactInfoFragment on ContactInfo {
+        __typename
+        title
+        items {
+            title
+            description
+            options {
+            objectId
+            title
+            icons {
+                ...iconFragment
+                __typename
+            }
+            action {
+                ... on LinkAction {
+                link
+                externalTarget
+                __typename
+                }
+                __typename
+            }
+            __typename
+            }
+            __typename
+        }
+        }
+        fragment mediaInfoFragment on MediaInfo {
+        __typename
+        objectId
+        title
+        maxAge
+        description
+        accessibilityTitle
+        actionItems {
+            ...actionItemFragment
+            __typename
+        }
+        trackingData {
+            ...trackingDataFragment
+            __typename
+        }
+        image {
+            ...imageFragment
+            __typename
+        }
+        primaryMeta {
+            ...metaFragment
+            __typename
+        }
+        secondaryMeta {
+            ...metaFragment
+            __typename
+        }
+        tertiaryMeta {
+            ...metaFragment
+            __typename
+        }
+        }
+        fragment nudgeFragment on PopUp {
+        __typename
+        buttons {
+            ...actionItemFragment
+            __typename
+        }
+        description
+        image {
+            ...imageFragment
+            __typename
+        }
+        objectId
+        title
+        trackingData {
+            ...trackingDataFragment
+            __typename
+        }
+        }
+        fragment errorFragment on ErrorPage {
+        errorComponents: components {
+            ...noContentFragment
+            __typename
+        }
+        __typename
+        }
+        fragment noContentFragment on NoContent {
+        __typename
+        objectId
+        title
+        text
+        backgroundImage {
+            ...imageFragment
+            __typename
+        }
+        mainImage {
+            ...imageFragment
+            __typename
+        }
+        noContentType
+        actionItems {
+            ...actionItemFragment
+            __typename
+        }
+        }'''
+    _MEDIA_PAGE_QUERY_OPERATION_NAME = 'RadioEpisodePage'
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        access_token, video_token = self._fetch_tokens()
+
+        metadata = self.fetch_metadata(url, access_token, display_id)
+
+        video_id = metadata['player']['modes'][0]['streamId']
+
+        try:
+            streaming_info = self._call_api(video_id, 'vrtnu-web@PROD', id_token=video_token)
+        except ExtractorError as e:
+            if not video_token and isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                self.raise_login_required()
+            raise
+
+        formats, subtitles = self._extract_formats_and_subtitles(streaming_info, video_id)
+
+        code = traverse_obj(streaming_info, ('code', {str}))
+        if not formats and code:
+            if code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS', 'CONTENT_AVAILABLE_ONLY_IN_BE', 'CONTENT_UNAVAILABLE_VIA_PROXY'):
+                self.raise_geo_restricted(countries=['BE'])
+            elif code in ('CONTENT_AVAILABLE_ONLY_FOR_BE_RESIDENTS_AND_EXPATS', 'CONTENT_IS_AGE_RESTRICTED', 'CONTENT_REQUIRES_AUTHENTICATION'):
+                self.raise_login_required()
+            else:
+                self.raise_no_formats(f'Unable to extract formats: {code}')
+
+        program_name = traverse_obj(metadata, ('player', 'modes', 0, 'cimMediaTrackingData', 'programName', {str}))
+        match = self._search_regex(r'^(.+?)\s*-\s*(\d{2})/(\d{2})/(\d{4})\s+(\d{2}):(\d{2})$', program_name, 'program_name', fatal=False, group=list(range(7)))
+        # reformat program name from 'ProgramName - 30/01/2025 22:00' to 'ProgramName - 2025-06-18 22_00'
+        if len(match) == 7:
+            show_name, day, month, year, hour, minute = match[1:]
+            program_name = f'{show_name} - {year}-{month}-{day} {hour}_{minute}'
+
+        return {
+            'duration': float_or_none(streaming_info.get('duration'), 1000),
+            **self._json_ld(traverse_obj(metadata, ('ldjson', ..., {json.loads})), video_id, fatal=False),
+            **traverse_obj(metadata, {
+                'timestamp': ('radioEpisode', 'startDate', {parse_iso8601}),
+                'title': ('title', {str}),
+                'channel': ('brand', {str}),
+                'channel_url': ('components', 0, 'actionItems', 1, 'action', 'link', {lambda x: urllib.parse.urljoin(urllib.parse.urlparse(url).scheme + '://' + urllib.parse.urlparse(url).netloc, str(x))}),
+                'description': ('components', 0, 'description', {str}),
+                'thumbnail': ('components', 0, 'image', 'templateUrl', {str}),
+            }),
+            'ext': 'm4a',
+            'title': program_name,
+            'id': video_id,
+            'display_id': display_id,
+            'formats': formats,
         }
 
 
