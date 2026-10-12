@@ -362,7 +362,7 @@ def makefile_variables(
     if filetypes:
         with io.BytesIO(data) as buf, zipfile.ZipFile(buf) as zipf:
             for ft in filetypes:
-                files, folders = zipf_files_and_folders(zipf, f'*.{ft.lower()}')
+                files, folders = zipf_files_and_folders(zipf, f'.{ft.lower()}')
                 variables[f'{prefix}_{ft.upper()}_FOLDERS'] = ' '.join(folders)
                 variables[f'{prefix}_{ft.upper()}_FILES'] = ' '.join(files)
 
