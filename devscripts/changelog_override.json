@@ -398,5 +398,11 @@
     {
         "action": "remove",
         "when": "2bf72df3deaf3dc835d2ff1c99484f01723a5d13"
+    },
+    {
+        "action": "change",
+        "when": "f1df65d5d7a97bd81b3c70bf4bc41897b0616f6e",
+        "short": "[utils] `download_range_func`: Improve `__eq__` and `__repr__` (#16393)",
+        "authors": ["atsushi2965"]
     }
 ]
