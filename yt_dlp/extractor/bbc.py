@@ -2,7 +2,6 @@ import functools
 import itertools
 import json
 import re
-import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor
@@ -12,6 +11,7 @@ from ..utils import (
     OnDemandPagedList,
     clean_html,
     dict_get,
+    extract_attributes,
     float_or_none,
     get_element_by_class,
     int_or_none,
@@ -21,7 +21,6 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     strip_or_none,
-    traverse_obj,
     try_get,
     unescapeHTML,
     unified_timestamp,
@@ -29,6 +28,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
+from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
 class BBCCoUkIE(InfoExtractor):
@@ -1560,8 +1560,7 @@ class BBCCoUkArticleIE(InfoExtractor):
 
 class BBCCoUkPlaylistBaseIE(InfoExtractor):
     def _entries(self, webpage, url, playlist_id):
-        single_page = 'page' in urllib.parse.parse_qs(
-            urllib.parse.urlparse(url).query)
+        single_page = 'page' in parse_qs(url)
         for page_num in itertools.count(2):
             for video_id in re.findall(
                     self._VIDEO_ID_TEMPLATE % BBCCoUkIE._ID_REGEX, webpage):
@@ -1569,13 +1568,14 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
                     self._URL_TEMPLATE % video_id, BBCCoUkIE.ie_key())
             if single_page:
                 return
-            next_page = self._search_regex(
-                r'<li[^>]+class=(["\'])pagination_+next\1[^>]*><a[^>]+href=(["\'])(?P<url>(?:(?!\2).)+)\2',
-                webpage, 'next page url', default=None, group='url')
+            next_page = traverse_obj(webpage, (
+                {find_elements(tag='li', attr='class', value='pagination_+next')},
+                ..., {find_element(tag='a', attr='href', html=True)},
+                {extract_attributes}, 'href', {urljoin(url)}, any))
             if not next_page:
                 break
             webpage = self._download_webpage(
-                urllib.parse.urljoin(url, next_page), playlist_id,
+                urljoin(url, next_page), playlist_id,
                 f'Downloading page {page_num}', page_num)
 
     def _real_extract(self, url):
@@ -1806,13 +1806,14 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
             'description': 'French thriller serial about a missing teenager.',
         },
         'playlist_mincount': 7,
+        'skip': 'clips removed',
     }, {
         # multipage playlist, explicit page
         'url': 'http://www.bbc.co.uk/programmes/b00mfl7n/clips?page=1',
         'info_dict': {
             'id': 'b00mfl7n',
-            'title': 'Frozen Planet - Clips - BBC One',
-            'description': 'md5:65dcbf591ae628dafe32aa6c4a4a0d8c',
+            'title': 'BBC One - Frozen Planet - Clips',
+            'description': 'Clips from Frozen Planet',
         },
         'playlist_mincount': 24,
     }, {
@@ -1820,8 +1821,8 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
         'url': 'http://www.bbc.co.uk/programmes/b00mfl7n/clips',
         'info_dict': {
             'id': 'b00mfl7n',
-            'title': 'Frozen Planet - Clips - BBC One',
-            'description': 'md5:65dcbf591ae628dafe32aa6c4a4a0d8c',
+            'title': 'BBC One - Frozen Planet - Clips',
+            'description': 'Clips from Frozen Planet',
         },
         'playlist_mincount': 142,
     }, {
@@ -1836,6 +1837,4 @@ class BBCCoUkPlaylistIE(BBCCoUkPlaylistBaseIE):
     }]
 
     def _extract_title_and_description(self, webpage):
-        title = self._og_search_title(webpage, fatal=False)
-        description = self._og_search_description(webpage)
-        return title, description
+        return self._og_search_title(webpage), self._og_search_description(webpage)
