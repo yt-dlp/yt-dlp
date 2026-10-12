@@ -155,9 +155,7 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
     ]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        if playlist_id.endswith('/'):
-            playlist_id = playlist_id[:-1]
+        playlist_id = self._match_id(url).removesuffix('/')
 
         webpage = self._download_webpage(url, playlist_id)
 
