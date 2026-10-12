@@ -13,6 +13,7 @@ from ..utils import (
     format_field,
     int_or_none,
     join_nonempty,
+    orderedSet,
     parse_iso8601,
     smuggle_url,
     unsmuggle_url,
@@ -373,7 +374,7 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
     IE_NAME = 'franceinfo'
     IE_DESC = 'franceinfo.fr (formerly francetvinfo.fr)'
-    _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.france(?:tv)?info.fr/(?:[^/?#]+/)*(?P<id>[^/?#&.]+)'
+    _VALID_URL = r'https?://(?:www|mobile|france3-regions|la1ere)\.france(?:tv)?info\.fr/(?!(?:[^/?#]+/)*programme-audio/)(?:[^/?#]+/)*(?P<id>[^/?#&.]+)'
 
     _TESTS = [{
         'url': 'https://www.francetvinfo.fr/replay-jt/france-3/soir-3/jt-grand-soir-3-jeudi-22-aout-2019_3561461.html',
@@ -461,6 +462,27 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
     }, {
         'url': 'https://www.franceinfo.fr/replay-jt/france-2/20-heures/robert-de-niro-portrait-d-un-monument-du-cinema_7245456.html',
         'only_matching': True,
+    }, {
+        # la1ere article page with several embedded videos
+        'url': 'https://la1ere.franceinfo.fr/nouvellecaledonie/l-hopital-de-poindimie-commence-a-rouvrir-quatorze-lits-pour-les-patients-de-la-cote-est-1698130.html',
+        'info_dict': {
+            'id': 'l-hopital-de-poindimie-commence-a-rouvrir-quatorze-lits-pour-les-patients-de-la-cote-est-1698130',
+        },
+        'playlist_mincount': 2,
+    }, {
+        # la1ere single episode page
+        'url': 'https://la1ere.franceinfo.fr/nouvellecaledonie/programme-video/la1ere_nouvelle-caledonie_journal-de-19h30-de-nouvelle-caledonie/diffusion/8412318-edition-du-mardi-05-mai-2026.html',
+        'info_dict': {
+            'id': 'bab33e2a-829f-4fda-9bde-b071ac808cde',
+            'ext': 'mp4',
+            'title': 'Journal de 19h30 de Nouvelle-Calédonie - Édition du mardi 05 mai 2026',
+            'duration': 1620,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'timestamp': 1777969766,
+            'upload_date': '20260505',
+        },
+        'params': {'skip_download': True},
+        'add_ie': [FranceTVIE.ie_key()],
     }]
 
     def _real_extract(self, url):
@@ -483,7 +505,25 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
                  r'id-video=([^@]+@[^"]+)',
                  r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
                  r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
-                webpage, 'video id')
+                webpage, 'video id', default=None)
         )
 
-        return self._make_url_result(video_id, url=url)
+        if video_id:
+            return self._make_url_result(video_id, url=url)
+
+        # la1ere falls back to inline JS data: a 'diffusion:{...}' block on
+        # single-episode pages, or one or more bare videoId fields on articles
+        diffusion_id = self._search_regex(
+            r'\bdiffusion:\{[^{}]*videoId:"([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})"',
+            webpage, 'diffusion video id', default=None)
+        if diffusion_id:
+            return self._make_url_result(diffusion_id, url=url)
+        video_ids = orderedSet(re.findall(
+            r'videoId:"([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})"', webpage))
+        if not video_ids:
+            raise ExtractorError('Unable to extract video id', expected=True)
+        if len(video_ids) == 1:
+            return self._make_url_result(video_ids[0], url=url)
+        return self.playlist_result(
+            [self._make_url_result(vid, url=url) for vid in video_ids],
+            playlist_id=display_id)
