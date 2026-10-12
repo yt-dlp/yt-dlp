@@ -1,6 +1,9 @@
 import itertools
 
-from .common import InfoExtractor
+from .common import (
+    ExtractorError,
+    InfoExtractor,
+)
 from ..utils import (
     UnsupportedError,
     bool_or_none,
@@ -66,11 +69,17 @@ class RutubeBaseIE(InfoExtractor):
         if not query:
             query = {}
         query['format'] = 'json'
-        return self._download_json(
+        query['no_404'] = 'true'
+        resp = self._download_json(
             f'https://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
+        if traverse_obj(resp, ('detail', 'type')) == 'blocking_rule':
+            raise ExtractorError(traverse_obj(
+                resp, ('detail', 'languages', ..., 'title', {str}, any),
+                default='Request is blocked for unknown reasons'), expected=True)
+        return resp
 
     def _extract_formats_and_subtitles(self, options, video_id):
         formats = []
