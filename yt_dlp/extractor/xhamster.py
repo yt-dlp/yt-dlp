@@ -625,7 +625,7 @@ class XHamsterUserIE(InfoExtractor):
                 video_id = XHamsterIE._match_id(video_url)
                 yield self.url_result(
                     video_url, ie=XHamsterIE.ie_key(), video_id=video_id)
-            mobj = re.search(r'<a[^>]+data-page=["\']next[^>]+>', page)
+            mobj = re.search(r'<a[^>]+rel=["\']next[^>]+>', page)
             if not mobj:
                 break
             next_page = extract_attributes(mobj.group(0))
