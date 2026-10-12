@@ -123,7 +123,7 @@ class RequestsResponseAdapter(Response):
         # Work around issue with `.read(amt)` then `.read()`
         # See: https://github.com/urllib3/urllib3/issues/3636
         if amt is None:
-            # compat: py3.9: Python 3.9 preallocates the whole read buffer, read in chunks
+            # Read in chunks to avoid preallocating a large buffer
             read_chunk = functools.partial(self.fp.read, 1 << 20, decode_content=True)
             return b''.join(iter(read_chunk, b''))
         # Interact with urllib3 response directly.
