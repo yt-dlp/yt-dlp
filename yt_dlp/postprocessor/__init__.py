@@ -8,6 +8,7 @@ from .ffmpeg import (
     FFmpegCopyStreamPP,
     FFmpegEmbedSubtitlePP,
     FFmpegExtractAudioPP,
+    FFmpegCENCDecryptPP,
     FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
     FFmpegFixupM3u8PP,
