@@ -107,16 +107,12 @@ def windows_set_version(exe, version):
         VarFileInfo,
         VarStruct,
         VSVersionInfo,
+        write_version_info_to_executable,
     )
-
-    try:
-        from PyInstaller.utils.win32.versioninfo import SetVersion
-    except ImportError:  # Pyinstaller >= 5.8
-        from PyInstaller.utils.win32.versioninfo import write_version_info_to_executable as SetVersion
 
     version_list = version_to_list(version)
     suffix = MACHINE and f'_{MACHINE}'
-    SetVersion(exe, VSVersionInfo(
+    write_version_info_to_executable(exe, VSVersionInfo(
         ffi=FixedFileInfo(
             filevers=version_list,
             prodvers=version_list,
