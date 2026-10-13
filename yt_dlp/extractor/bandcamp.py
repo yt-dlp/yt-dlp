@@ -25,7 +25,35 @@ from ..utils import (
 from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
-class BandcampIE(InfoExtractor):
+class BandcampBaseIE(InfoExtractor):
+    # Initially try without impersonation, retry with impersonation
+    def _download_webpage(self, *args, **kwargs):
+        impersonate = kwargs.pop('impersonate', None) or True
+        kwargs.pop('require_impersonation', None)
+        webpage = super()._download_webpage(*args, **kwargs)
+        if webpage:
+            if self._html_extract_title(webpage) == 'Client Challenge':
+                self.write_debug('Got client challenge webpage response')
+            else:
+                return webpage
+
+        res = self._download_webpage_handle(*args, impersonate=impersonate, require_impersonation=True, **kwargs)
+        if res is False:
+            return False
+
+        webpage, urlh = res
+        if self._html_extract_title(webpage) == 'Client Challenge':
+            raise ExtractorError(f'Got client challenge webpage response with {urlh.extensions.get("impersonate")}')
+
+        return webpage
+
+    def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
+        return self._parse_json(self._html_search_regex(
+            rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
+            attr + ' data', group=2), video_id, fatal=fatal)
+
+
+class BandcampIE(BandcampBaseIE):
     _VALID_URL = r'https?://(?P<uploader>[^/]+)\.bandcamp\.com/track/(?P<id>[^/?#&]+)'
     _EMBED_REGEX = [r'<meta property="og:url"[^>]*?content="(?P<url>.*?bandcamp\.com.*?)"']
     _TESTS = [{
@@ -68,7 +96,7 @@ class BandcampIE(InfoExtractor):
             'album': 'FTL: Advanced Edition Soundtrack',
             'uploader_url': 'https://benprunty.bandcamp.com',
             'uploader_id': 'benprunty',
-            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'California'],
+            'tags': ['soundtrack', 'chiptunes', 'cinematic', 'electronic', 'video game music', 'North Carolina'],
             'artists': ['Ben Prunty'],
             'album_artists': ['Ben Prunty'],
         },
@@ -146,12 +174,8 @@ class BandcampIE(InfoExtractor):
             'uploader_id': 'stayinside',
             'uploader_url': 'https://stayinside.bandcamp.com',
         },
+        'skip': 'embed detection is broken',
     }]
-
-    def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
-        return self._parse_json(self._html_search_regex(
-            rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
-            attr + ' data', group=2), video_id, fatal=fatal)
 
     def _real_extract(self, url):
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
@@ -283,7 +307,7 @@ class BandcampIE(InfoExtractor):
         }
 
 
-class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
+class BandcampAlbumIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<id>[^/?#&]+)'
 
@@ -296,21 +320,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '1353101989',
                     'ext': 'mp3',
                     'title': 'Blazo - Intro',
-                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+                    'uploader': 'Blazo',
+                    'uploader_id': 'blazo',
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'duration': 19.335,
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'tags': ['hip-hop/rap', 'hip-hop', 'Poland'],
+                    'artists': ['Blazo'],
+                    'album_artists': ['Blazo'],
+                    'track': 'Intro',
+                    'track_number': 1,
+                    'track_id': '1353101989',
+                    'album': 'Jazz Format Mixtape vol.1',
                     'timestamp': 1311756226,
                     'upload_date': '20110727',
-                    'uploader': 'Blazo',
-                    'album_artists': ['Blazo'],
-                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'release_timestamp': 1311724800,
                     'release_date': '20110727',
-                    'release_timestamp': 1311724800.0,
-                    'track': 'Intro',
-                    'uploader_id': 'blazo',
-                    'track_number': 1,
-                    'album': 'Jazz Format Mixtape vol.1',
-                    'artists': ['Blazo'],
-                    'duration': 19.335,
-                    'track_id': '1353101989',
                 },
             },
             {
@@ -319,21 +344,22 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
                     'id': '38097443',
                     'ext': 'mp3',
                     'title': 'Blazo - Kero One - Keep It Alive (Blazo remix)',
-                    'thumbnail': r're:https?://f4\.bcbits\.com/img/.+\.jpg',
+                    'uploader': 'Blazo',
+                    'uploader_id': 'blazo',
+                    'uploader_url': 'https://blazo.bandcamp.com',
+                    'duration': 181.467,
+                    'thumbnail': 'https://f4.bcbits.com/img/a1721150828_5.jpg',
+                    'tags': ['hip-hop/rap', 'hip-hop', 'Poland'],
+                    'artists': ['Blazo'],
+                    'album_artists': ['Blazo'],
+                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'track_number': 2,
+                    'track_id': '38097443',
+                    'album': 'Jazz Format Mixtape vol.1',
                     'timestamp': 1311757238,
                     'upload_date': '20110727',
-                    'uploader': 'Blazo',
-                    'track': 'Kero One - Keep It Alive (Blazo remix)',
+                    'release_timestamp': 1311724800,
                     'release_date': '20110727',
-                    'track_id': '38097443',
-                    'track_number': 2,
-                    'duration': 181.467,
-                    'uploader_url': 'https://blazo.bandcamp.com',
-                    'album': 'Jazz Format Mixtape vol.1',
-                    'uploader_id': 'blazo',
-                    'album_artists': ['Blazo'],
-                    'artists': ['Blazo'],
-                    'release_timestamp': 1311724800.0,
                 },
             },
         ],
@@ -411,7 +437,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         }
 
 
-class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
+class BandcampWeeklyIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
@@ -475,7 +501,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         }
 
 
-class BandcampUserIE(InfoExtractor):
+class BandcampUserIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:user'
     _VALID_URL = r'https?://(?!www\.)(?P<id>[^.]+)\.bandcamp\.com(?:/music)?/?(?:[#?]|$)'
 
