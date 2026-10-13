@@ -52,25 +52,27 @@ def ssl_load_windows_store_certs(ssl_context, storename):
 
 def make_socks_proxy_opts(socks_proxy):
     url_components = urllib.parse.urlparse(socks_proxy)
-    if url_components.scheme.lower() == 'socks5':
+    scheme = url_components.scheme.lower()
+
+    if scheme == 'socks5':
         socks_type = ProxyType.SOCKS5
         rdns = False
-    elif url_components.scheme.lower() == 'socks5h':
+    elif scheme == 'socks5h':
         socks_type = ProxyType.SOCKS5
         rdns = True
-    elif url_components.scheme.lower() == 'socks4':
+    elif scheme == 'socks4':
         socks_type = ProxyType.SOCKS4
         rdns = False
-    elif url_components.scheme.lower() == 'socks4a':
+    elif scheme == 'socks4a':
         socks_type = ProxyType.SOCKS4A
         rdns = True
     else:
-        raise ValueError(f'Unknown SOCKS proxy version: {url_components.scheme.lower()}')
+        raise ValueError(f'Unknown SOCKS proxy version: {scheme}')
 
     def unquote_if_non_empty(s):
         if not s:
             return s
-        return urllib.parse.unquote_plus(s)
+        return urllib.parse.unquote(s)
     return {
         'proxytype': socks_type,
         'addr': url_components.hostname,

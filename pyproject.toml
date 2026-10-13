@@ -74,6 +74,7 @@ pin = [
     "charset-normalizer==3.5.0",
     "idna==3.18",
     "mutagen==1.48.1",
+    "pycparser==3.0 ; implementation_name != 'PyPy' and implementation_name != 'cpython'",
     "pycryptodomex==3.23.0",
     "requests==2.34.2",
     "urllib3==2.7.0",

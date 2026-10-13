@@ -180,6 +180,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Location', '/a/b/./../../headers')
             self.send_header('Content-Length', '0')
             self.end_headers()
+        elif self.path == '/a/b/redirect_relative_dotsegments':
+            self.send_response(301)
+            self.send_header('Location', '../../headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path == '/redirect_dotsegments_absolute':
             self.send_response(301)
             # redirect to /headers but with dot segments before - absolute url
@@ -412,6 +417,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('path', [
         '/a/b/./../../headers',
         '/redirect_dotsegments',
+        '/a/b/redirect_relative_dotsegments',
         # https://github.com/yt-dlp/yt-dlp/issues/9020
         '/redirect_dotsegments_absolute',
     ])
