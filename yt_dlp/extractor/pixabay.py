@@ -45,8 +45,8 @@ class PixabaySoundMusicIE(PixabayBaseIE):
                 'ext': 'mp3',
                 'thumbnail': r're:^https?://.*\.(?:png|jpg)',
                 'view_count': int,
-                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-                'title': 'Calm Inspiring Technology Logo (Short Version) by AleXZavesa | Royalty-free Music',
+                'description': 'md5:5e204546f9e1ecab45ecb8638799866a',
+                'title': 'Calm Inspiring Technology Logo (Short Version) by AleXZavesa | Royalty-free Sound Effects',
             },
         },
         # Sound Effect - no thumbnail
@@ -57,7 +57,7 @@ class PixabaySoundMusicIE(PixabayBaseIE):
                 'ext': 'mp3',
                 'view_count': int,
                 'description': 'md5:a0ef48a42a6f1bb534b8478f4ca602eb',
-                'title': 'Relaxing Guitar Loop V5 by IdoBerg | Royalty-free Music',
+                'title': 'Relaxing Guitar Loop V5 by IdoBerg | Royalty-free Sound Effects',
             },
         }]
 
@@ -81,7 +81,7 @@ class PixabayVideosIE(PixabayBaseIE):
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.(?:png|jpg)',
             'view_count': int,
-            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'description': 'md5:dada78660f78efbb23daf7e4a7ccb90a',
             'title': 'Geothermal, Iceland, Nature. Free Stock Video',
         },
     }]
