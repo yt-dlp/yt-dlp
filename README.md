@@ -2476,10 +2476,7 @@ These options may no longer work as intended
     --no-include-ads                 Default
     --write-annotations              No supported site has annotations now
     --no-write-annotations           Default
-    --avconv-location                Removed alias for --ffmpeg-location
     --cn-verification-proxy URL      Removed alias for --geo-verification-proxy URL
-    --dump-headers                   Removed alias for --print-traffic
-    --dump-intermediate-pages        Removed alias for --dump-pages
     --youtube-skip-dash-manifest     Removed alias for --extractor-args "youtube:skip=dash" (Alias: --no-youtube-include-dash-manifest)
     --youtube-skip-hls-manifest      Removed alias for --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
@@ -2491,10 +2488,13 @@ These options may no longer work as intended
     --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 
 #### Removed
-These options were deprecated since 2014 and have now been entirely removed
+These aliases have been removed and may be reused. Please update your scripts and configuration files accordingly
 
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
     -t, -l, --title, --literal       -o "%(title)s-%(id)s.%(ext)s"
+    --avconv-location                --ffmpeg-location
+    --dump-headers                   --print-traffic
+    --dump-intermediate-pages        --dump-pages
 
 
 # CONTRIBUTING
