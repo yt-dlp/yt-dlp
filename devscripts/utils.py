@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import fnmatch
 import functools
 import json
 import os
@@ -101,10 +102,10 @@ def call_github_api(path: str, *, query: dict | None = None) -> dict | list:
         return json.load(resp)
 
 
-def zipf_files_and_folders(zipf: zipfile.ZipFile, suffix: str = '') -> tuple[list[str], list[str]]:
+def zipf_files_and_folders(zipf: zipfile.ZipFile, glob: str = '*') -> tuple[list[str], list[str]]:
     files = [
         info.filename for info in zipf.infolist()
-        if not info.is_dir() and info.filename.endswith(suffix)
+        if not info.is_dir() and fnmatch.fnmatchcase(info.filename, glob)
     ]
     folders = dict.fromkeys(name.rpartition('/')[0].rstrip('/') for name in files)
     folders.pop('', None)
