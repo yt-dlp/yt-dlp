@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import fnmatch
 import functools
-import itertools
 import json
 import os
 import re
@@ -103,16 +103,11 @@ def call_github_api(path: str, *, query: dict | None = None) -> dict | list:
 
 
 def zipf_files_and_folders(zipf: zipfile.ZipFile, glob: str = '*') -> tuple[list[str], list[str]]:
-    files = []
-    folders = []
+    files = [
+        info.filename for info in zipf.infolist()
+        if not info.is_dir() and fnmatch.fnmatchcase(info.filename, glob)
+    ]
+    folders = dict.fromkeys(name.rpartition('/')[0].rstrip('/') for name in files)
+    folders.pop('', None)
 
-    path = zipfile.Path(zipf)
-    for f in itertools.chain(path.glob(glob), path.rglob(glob)):
-        if not f.is_file():
-            continue
-        files.append(f.at)  # type: ignore[attr-defined]
-        folder = f.parent.at.rstrip('/')  # type: ignore[attr-defined]
-        if folder and folder not in folders:
-            folders.append(folder)
-
-    return files, folders
+    return files, list(folders)
