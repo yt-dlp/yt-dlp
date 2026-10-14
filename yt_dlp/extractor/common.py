@@ -1311,7 +1311,7 @@ class InfoExtractor:
             'entries': entries,
         }
 
-    def _search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
+    def _search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=re.NOFLAG, group=None):
         """
         Perform a regex search on the given string, using a single or a list of
         patterns returning the first matching group.
@@ -1373,7 +1373,7 @@ class InfoExtractor:
                     f'Unable to extract {_name} - Failed to parse JSON: {e}', video_id=video_id)
         return default
 
-    def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
+    def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=re.NOFLAG, group=None):
         """
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
