@@ -36,7 +36,7 @@ def calculate_version(version=None, fname='yt_dlp/version.py'):
         return version
 
     revision = version
-    version = dt.datetime.now(dt.timezone.utc).strftime('%Y.%m.%d')
+    version = dt.datetime.now(dt.UTC).strftime('%Y.%m.%d')
 
     if revision:
         assert re.fullmatch(r'[0-9]+', revision), 'Revision must be numeric'

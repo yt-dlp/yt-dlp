@@ -15,7 +15,7 @@ maintainers = [
 ]
 description = "A feature-rich command-line audio/video downloader"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = [
     "cli",
     "downloader",
@@ -32,11 +32,11 @@ classifiers = [
     "Environment :: Console",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
@@ -59,7 +59,6 @@ default = [
 ]
 curl-cffi = [
     "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.17 ; implementation_name == 'cpython'",
-    "typing-extensions ; python_full_version < '3.11'",
 ]
 secretstorage = [
     "secretstorage",
@@ -78,8 +77,7 @@ pin = [
     "pycryptodomex==3.23.0",
     "requests==2.34.2",
     "urllib3==2.7.0",
-    "websockets==16.1.1 ; python_full_version < '3.11'",
-    "websockets==17.0.1 ; python_full_version >= '3.11'",
+    "websockets==17.0.1",
     "yt-dlp-ejs==0.8.0",
 ]
 pin-curl-cffi = [
@@ -87,7 +85,6 @@ pin-curl-cffi = [
     "cffi==2.1.1 ; implementation_name == 'cpython'",
     "curl-cffi==0.16.0 ; implementation_name == 'cpython'",
     "pycparser==3.0 ; implementation_name == 'cpython'",
-    "typing-extensions==4.16.0 ; python_full_version < '3.11'",
 ]
 pin-secretstorage = [
     "cffi==2.1.1 ; platform_python_implementation != 'PyPy'",
@@ -95,7 +92,6 @@ pin-secretstorage = [
     "jeepney==0.9.0",
     "pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
     "secretstorage==3.5.0",
-    "typing-extensions==4.16.0 ; python_full_version < '3.11'",
 ]
 pin-deno = [
     "deno==2.9.5",
@@ -240,11 +236,11 @@ run-cov = "echo Code coverage not implemented && exit 1"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = [
-    "3.10",
     "3.11",
     "3.12",
     "3.13",
     "3.14",
+    "3.15",
     "pypy3.11",
 ]
 
