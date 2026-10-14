@@ -196,12 +196,8 @@ def _get_outdated_warning():
 
 
 def _sha256_file(path):
-    h = hashlib.sha256()
-    mv = memoryview(bytearray(128 * 1024))
     with open(os.path.realpath(path), 'rb', buffering=0) as f:
-        for n in iter(lambda: f.readinto(mv), 0):
-            h.update(mv[:n])
-    return h.hexdigest()
+        return hashlib.file_digest(f, hashlib.sha256).hexdigest()
 
 
 def _make_label(origin, tag, version=None):
