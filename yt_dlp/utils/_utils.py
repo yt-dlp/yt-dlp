@@ -984,7 +984,7 @@ class ExtractorError(YoutubeDLError):
         If expected is set, this is a normal error message and most likely not a bug in yt-dlp.
         """
         from ..networking.exceptions import network_exceptions
-        if sys.exc_info()[0] in network_exceptions:
+        if type(sys.exception()) in network_exceptions:
             expected = True
 
         self.orig_msg = str(msg)
