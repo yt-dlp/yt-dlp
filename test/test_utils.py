@@ -2177,8 +2177,7 @@ Line 1
         self.assertEqual(variadic(None), (None, ))
         self.assertEqual(variadic('spam'), ('spam', ))
         self.assertEqual(variadic('spam', allowed_types=dict), 'spam')
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with warnings.catch_warnings(action='ignore'):
             self.assertEqual(variadic('spam', allowed_types=[dict]), 'spam')
 
     def test_http_header_dict(self):
