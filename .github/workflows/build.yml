@@ -99,7 +99,7 @@ jobs:
           import os
           import re
           INPUTS = json.loads(os.environ['INPUTS'])
-          timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
+          timestamp = dt.datetime.now(tz=dt.UTC).strftime('%Y.%m.%d.%H%M%S.%f')
           version = INPUTS.get('version')
           if version and '.' not in version:
               # build.yml was dispatched with only a revision as the version input value
