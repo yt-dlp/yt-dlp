@@ -1492,6 +1492,39 @@ class DouyinIE(TikTokBaseIE):
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
     _WEBPAGE_HOST = 'https://www.douyin.com/'
     _SEC_SALT = 'A96D855A08C0A9707F8BEF0D9A527E4E'
+    _REQUIRED_COOKIES = [
+        'passport_csrf_token',  # pass anything just works
+        'ttwid',
+    ]
+    _DOMAINS = [
+        '.douyin.com',
+        'www.douyin.com',
+    ]
+    _AID = 6383  # aweme_general
+    _CSRF = uuid.uuid4().hex
+
+    def _get_ttwid(self):
+        self._request_webpage(f'{self._WEBPAGE_HOST}ttwid/register', None, data=json.dumps({
+            'aid': self._AID,
+            'service': 'www.douyin.com',
+        }).encode(), headers={
+            'content-type': 'application/json',
+        })
+        cookie = self._get_cookies(self._WEBPAGE_HOST).get('ttwid')
+        return cookie.value if cookie else None
+
+    def check_and_get_required_cookies(self):
+        for rc in self._REQUIRED_COOKIES:
+            if self._get_cookies(self._WEBPAGE_HOST).get(rc):
+                continue
+            if rc == 'ttwid':
+                cookie = self._get_ttwid()
+            else:
+                cookie = self._CSRF
+            if not cookie:
+                raise ExtractorError('Unable to generate required cookies')
+            for domain in self._DOMAINS:
+                self._set_cookie(domain, rc, cookie)
 
     def _get_uifid(self):
         uifid_cookie_names = (
@@ -1504,9 +1537,9 @@ class DouyinIE(TikTokBaseIE):
         )
         uifid = traverse_obj(self._get_cookies(self._WEBPAGE_HOST), (uifid_cookie_names, 'value'), get_all=False)
         if not uifid:
-            # uifid is needed for security hash calculation
-            raise ExtractorError('UIFID not found. Fresh cookies (not necessarily logged in) are needed',
-                                 expected=True)
+            # Try x-tt-trace-host header
+            urlh = self._request_webpage(self._WEBPAGE_HOST, None)
+            return urlh.headers.get('x-tt-trace-host')
         return uifid
 
     def _sign_query(self, query):
@@ -1521,11 +1554,11 @@ class DouyinIE(TikTokBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
+        self.check_and_get_required_cookies()
         detail = traverse_obj(self._download_json(
             'https://www.douyin.com/aweme/v1/web/aweme/detail/', video_id,
             'Downloading web detail JSON', 'Failed to download web detail JSON',
-            query=self._sign_query({'aweme_id': video_id}), fatal=False),
-            ('aweme_detail', {dict}))
+            query=self._sign_query({'aweme_id': video_id}), fatal=False), ('aweme_detail', {dict}))
         if not detail:
             # TODO: Run verification challenge code to generate signature cookies
             raise ExtractorError(
