@@ -1369,7 +1369,7 @@ class TikTokCollectionIE(TikTokBaseIE):
 
 
 class DouyinIE(TikTokBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?douyin\.com/(?:video/|.*[?&]modal_id=)(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',
         'md5': '9ecce7bc5b302601018ecb2871c63a75',
@@ -1488,6 +1488,15 @@ class DouyinIE(TikTokBaseIE):
             'save_count': int,
             'thumbnail': r're:https?://.+\.jpe?g',
         },
+    }, {
+        'url': 'https://www.douyin.com/jingxuan/travel?modal_id=7692776036492273326',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.douyin.com/series?modal_id=7690967686297292095',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.douyin.com/user/self?from_tab_name=main&modal_id=7692446657895517480&showTab=like',
+        'only_matching': True,
     }]
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
     _WEBPAGE_HOST = 'https://www.douyin.com/'
