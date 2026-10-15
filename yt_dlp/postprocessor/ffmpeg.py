@@ -242,7 +242,7 @@ class FFmpegPostProcessor(PostProcessor):
                     self.executable,
                     encodeArgument('-i')]
             cmd.append(self._ffmpeg_filename_argument(path))
-            self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
+            self.write_debug(f'{self.probe_basename if self.probe_available else self.basename} command line: {shell_quote(cmd)}')
             stdout, stderr, returncode = Popen.run(
                 cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if returncode != (0 if self.probe_available else 1):

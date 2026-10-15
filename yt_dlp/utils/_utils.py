@@ -2836,6 +2836,43 @@ def js_to_json(code, vars={}, *, strict=False):
         code = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', code)
         code = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\s*\(\s*(["\'][^)]*["\'])\s*\)', r'\1', code)
 
+    FLOAT = r'(?<![\.\d])(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?'
+    FLOAT_KEY = FLOAT + r'\s*:'
+    FLOAT_VAL = r'(?<![\.\d])(?:[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|(?<![\.\d])[0-9]+[eE][+-]?[0-9]+'
+    FLOAT_BRK = r'\[-?(?:[0-9]*\.[0-9]+|[0-9]+\.)[0-9]*[eE][+-]?[0-9]+\]\s*:'
+
+    def _float_num(s):
+        f = float(s)
+        return str(int(f)) if f == int(f) else str(f)
+
+    def _float_fix(m):
+        v = m.group(0)
+        if v[0] in STRING_QUOTES or v[0] in '/*' or v.startswith('0x') or v.startswith('0X'):
+            return v
+        if v.startswith('['):
+            inner = v[1:]  # remove leading [
+            if inner.endswith(':'):
+                inner = inner[:-1].rstrip()  # remove trailing :
+            if inner.endswith(']'):
+                inner = inner[:-1]  # remove trailing ]
+            return f'"{_float_num(inner)}":'
+        if v.endswith(':'):
+            key = v[:-1].rstrip()
+            if re.fullmatch(r'0+[0-7]+', key):
+                return v
+            return f'"{_float_num(key)}":'
+        return _float_num(v)
+
+    code = re.sub(rf'''(?sx)
+        {STRING_RE}|
+        {COMMENT_RE}|
+        {FLOAT_BRK}|
+        \b0[xX][0-9a-fA-F]+\s*:|
+        (?<!\.)0+[0-7]+\s*:|
+        {FLOAT_KEY}|
+        {FLOAT_VAL}
+        ''', _float_fix, code)
+
     return re.sub(rf'''(?sx)
         {STRING_RE}|
         {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
