@@ -16,7 +16,7 @@ class ServusIE(InfoExtractor):
                     https?://
                         (?:www\.)?
                         (?:
-                            servus(?:tv)\.com/(?:(?:at|de)/p(?:age)?/?[^/]+|tv/videos)?|
+                            servus(?:tv)?\.com/(?:(?:at|de)/p(?:age)?/?[^/]+|tv/videos)?|
                             (?:servustv|pm-wissen)\.com/(?:[^/]+/)?v(?:ideos)?
                         )
                         /(?P<id>[aA]{2}-?\w+|\d+-\d+)
