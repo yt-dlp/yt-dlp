@@ -1496,10 +1496,6 @@ class DouyinIE(TikTokBaseIE):
         'passport_csrf_token',  # pass anything just works
         'ttwid',
     ]
-    _DOMAINS = [
-        '.douyin.com',
-        'www.douyin.com',
-    ]
     _AID = 6383  # aweme_general
     _CSRF = uuid.uuid4().hex
 
@@ -1523,8 +1519,7 @@ class DouyinIE(TikTokBaseIE):
                 cookie = self._CSRF
             if not cookie:
                 raise ExtractorError('Unable to generate required cookies')
-            for domain in self._DOMAINS:
-                self._set_cookie(domain, rc, cookie)
+            self._set_cookie('.douyin.com', rc, cookie)
 
     def _get_uifid(self):
         uifid_cookie_names = (
