@@ -319,7 +319,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             return
 
         content_type = view_model.get('contentType')
-        if content_type == 'LOCKUP_CONTENT_TYPE_VIDEO':
+        if content_type in ('LOCKUP_CONTENT_TYPE_VIDEO', 'LOCKUP_CONTENT_TYPE_MOVIE'):
             ie = YoutubeIE
             url = f'https://www.youtube.com/watch?v={content_id}'
             thumb_keys = (None,)
@@ -2074,6 +2074,19 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'availability': 'public',
         },
         'playlist_mincount': 5,
+    }, {
+        # Playlist with movie lockupViewModel
+        'url': 'https://www.youtube.com/playlist?list=PLfbC4wVKnuhcXH7y6Fa8lgL759HFCIPj0',
+        'info_dict': {
+            'id': 'PLfbC4wVKnuhcXH7y6Fa8lgL759HFCIPj0',
+            'title': 'Period Dramas',
+            'uploader': 'margaret gilley',
+            'uploader_id': '@margaretgilley9578',
+            'channel': 'margaret gilley',
+            'channel_id': 'UC46ghud7852GFZYhAelmpqg',
+            'channel_url': 'https://www.youtube.com/channel/UC46ghud7852GFZYhAelmpqg',
+        },
+        'playlist_mincount': 200,
     }, {
         # Releases tab, with rich entry playlistRenderers (same as Podcasts tab)
         'url': 'https://www.youtube.com/@AHimitsu/releases',
