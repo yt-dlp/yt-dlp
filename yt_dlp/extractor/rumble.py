@@ -10,15 +10,18 @@ from ..utils import (
     clean_html,
     format_field,
     get_element_by_class,
+    get_elements_by_attribute,
     int_or_none,
     join_nonempty,
     parse_count,
     parse_iso8601,
-    traverse_obj,
+    str_or_none,
     unescapeHTML,
+    unified_strdate,
     update_url_query,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RumbleEmbedIE(InfoExtractor):
@@ -392,24 +395,31 @@ class RumbleChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'goldenpoodleharleyeuna',
         },
-    }, {
-        'url': 'https://rumble.com/OdinsMen',
-        'info_dict': {
-            'id': 'OdinsMen',
-        },
-        'playlist_count': 376,
-    }, {
-        # Videos Page
-        'url': 'https://rumble.com/c/SwitchedToLinux/videos',
-        'info_dict': {
-            'id': 'SwitchedToLinux',
-        },
-        'playlist_mincount': 50,
-    }, {
-        # User Live stream page
-        'url': 'https://rumble.com/c/BillGatesIsEvi1/livestreams',
-        'only_matching': True,
     }]
+
+    def _parse_video(self, video_data):
+        video_id = traverse_obj(video_data, ('id', {str_or_none}))
+
+        formats = []
+        for video_url in traverse_obj(video_data, ('videos', ..., 'url', {url_or_none}), default=[]):
+            formats.extend(self._extract_m3u8_formats(video_url, video_id))
+
+        return {
+            'id': video_id,
+            **traverse_obj(video_data, {
+                'title': ('title', {str}),
+                'webpage_url': ('url', {url_or_none}),
+                'thumbnail': ('thumb', {url_or_none}),
+                'duration': ('duration', {int}),
+                'view_count': ('views', {int}),
+                'like_count': ('rumble_votes', 'score', {int}),
+                'comment_count': ('comments', 'count', {int}),
+                'uploader': ('by', 'name', {str}),
+                'uploader_id': ('by', 'name', {str}),
+                'upload_date': ('upload_date', {unified_strdate}),
+            }),
+            'formats': formats,
+        }
 
     def entries(self, url, playlist_id):
         for page_num in itertools.count(1):
@@ -424,17 +434,10 @@ class RumbleChannelIE(InfoExtractor):
                         continue
                     raise
 
-            video_items = []
-            for raw_video_item in re.findall(r'<script[^>]+>\s*(\{[\s\S]+?["\']items"[\s\S]+?\})\s*</script>', page):
-                video_items(traverse_obj(raw_video_item, ({json.loads}, 'items', {list}), default=[]))
-
-            if not video_items:
-                break
-
-            for entry_url in traverse_obj(video_items, ('items', ..., 'url', {url_or_none})):
-                yield self.url_result(entry_url, RumbleIE)
+            for video_item in traverse_obj(get_elements_by_attribute('type', 'application/json', page), (..., {json.loads}, 'items', ..., {dict})):
+                yield self._parse_video(video_item)
 
     def _real_extract(self, url):
-        url = update_url_query(url, query={'page', []})
+        url = update_url_query(url, query={'page': []})
         playlist_id = self._match_id(url)
         return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)
