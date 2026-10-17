@@ -5,6 +5,7 @@ import dataclasses
 import functools
 import os.path
 import sys
+import sysconfig
 
 from ._utils import _get_exe_version_output, detect_exe_version, version_tuple
 
@@ -13,6 +14,13 @@ _FALLBACK_PATHEXT = ('.COM', '.EXE', '.BAT', '.CMD')
 
 
 def _find_exe(basename: str) -> str:
+    # Check in Python "scripts" path, e.g. for pipx-installed binaries
+    binary = os.path.join(
+        sysconfig.get_path('scripts'),
+        basename + sysconfig.get_config_var('EXE'))
+    if os.access(binary, os.F_OK | os.X_OK) and not os.path.isdir(binary):
+        return binary
+
     if os.name != 'nt':
         return basename
 
@@ -33,12 +41,12 @@ def _find_exe(basename: str) -> str:
     else:
         exts = tuple(ext for ext in pathext.split(os.pathsep) if ext)
 
-    visited = []
+    visited = set()
     for path in map(os.path.realpath, paths):
         normed = os.path.normcase(path)
         if normed in visited:
             continue
-        visited.append(normed)
+        visited.add(normed)
 
         for ext in exts:
             binary = os.path.join(path, f'{basename}{ext}')
@@ -79,7 +87,7 @@ class JsRuntime(abc.ABC):
 
 
 class DenoJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (2, 0, 0)
+    MIN_SUPPORTED_VERSION = (2, 3, 0)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'deno')
@@ -94,7 +102,7 @@ class DenoJsRuntime(JsRuntime):
 
 
 class BunJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (1, 0, 31)
+    MIN_SUPPORTED_VERSION = (1, 2, 11)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'bun')
@@ -109,7 +117,7 @@ class BunJsRuntime(JsRuntime):
 
 
 class NodeJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (20, 0, 0)
+    MIN_SUPPORTED_VERSION = (22, 0, 0)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'node')

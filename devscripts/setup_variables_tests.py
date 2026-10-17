@@ -9,8 +9,10 @@ import json
 from devscripts.setup_variables import STABLE_REPOSITORY, process_inputs, setup_variables
 from devscripts.utils import calculate_version
 
+GENERATE_TEST_DATA = object()
 
-def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=None, ignore_revision=False):
+
+def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected, ignore_revision=False):
     inp = inputs.copy()
     inp.setdefault('linux_armv7l', True)
     inp.setdefault('prerelease', False)
@@ -25,7 +27,6 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
         'INPUTS': json.dumps(inp),
         'PROCESSED': json.dumps(processed),
         'REPOSITORY': github_repository,
-        'PUSH_VERSION_COMMIT': variables.get('PUSH_VERSION_COMMIT') or '',
         'PYPI_PROJECT': variables.get('PYPI_PROJECT') or '',
         'SOURCE_PYPI_PROJECT': variables.get(f'{source_repo}_PYPI_PROJECT') or '',
         'SOURCE_PYPI_SUFFIX': variables.get(f'{source_repo}_PYPI_SUFFIX') or '',
@@ -33,14 +34,18 @@ def _test(github_repository, note, repo_vars, repo_secrets, inputs, expected=Non
         'TARGET_PYPI_SUFFIX': variables.get(f'{target_repo}_PYPI_SUFFIX') or '',
         'SOURCE_ARCHIVE_REPO': variables.get(f'{source_repo}_ARCHIVE_REPO') or '',
         'TARGET_ARCHIVE_REPO': variables.get(f'{target_repo}_ARCHIVE_REPO') or '',
-        'HAS_SOURCE_ARCHIVE_REPO_TOKEN': json.dumps(bool(secrets.get(f'{source_repo}_ARCHIVE_REPO_TOKEN'))),
-        'HAS_TARGET_ARCHIVE_REPO_TOKEN': json.dumps(bool(secrets.get(f'{target_repo}_ARCHIVE_REPO_TOKEN'))),
         'HAS_ARCHIVE_REPO_TOKEN': json.dumps(bool(secrets.get('ARCHIVE_REPO_TOKEN'))),
+        'HAS_RELEASE_KEY': json.dumps(bool(secrets.get('RELEASE_KEY'))),
     }
 
     result = setup_variables(env)
-    if not expected:
+
+    if expected is GENERATE_TEST_DATA:
         print('        {\n' + '\n'.join(f'            {k!r}: {v!r},' for k, v in result.items()) + '\n        }')
+        return
+
+    if expected is None:
+        assert result is None, f'expected error/None but got dict: {github_repository} {note}'
         return
 
     exp = expected.copy()
@@ -62,11 +67,11 @@ def test_setup_variables():
         'NIGHTLY_ARCHIVE_REPO': 'yt-dlp/yt-dlp-nightly-builds',
         'NIGHTLY_PYPI_PROJECT': 'yt-dlp',
         'NIGHTLY_PYPI_SUFFIX': 'dev',
-        'PUSH_VERSION_COMMIT': '1',
         'PYPI_PROJECT': 'yt-dlp',
     }
     BASE_REPO_SECRETS = {
         'ARCHIVE_REPO_TOKEN': '1',
+        'RELEASE_KEY': '1',
     }
     FORK_REPOSITORY = 'fork/yt-dlp'
     FORK_ORG = FORK_REPOSITORY.partition('/')[0]
@@ -77,7 +82,6 @@ def test_setup_variables():
             'channel': 'stable',
             'version': DEFAULT_VERSION,
             'target_repo': STABLE_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': DEFAULT_VERSION,
             'pypi_project': 'yt-dlp',
             'pypi_suffix': None,
@@ -91,7 +95,6 @@ def test_setup_variables():
             'channel': 'nightly',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': 'yt-dlp/yt-dlp-nightly-builds',
-            'target_repo_token': 'ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': 'yt-dlp',
             'pypi_suffix': 'dev',
@@ -106,7 +109,6 @@ def test_setup_variables():
             'channel': 'nightly',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': 'yt-dlp/yt-dlp-nightly-builds',
-            'target_repo_token': 'ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': 'yt-dlp',
             'pypi_suffix': 'dev',
@@ -120,7 +122,6 @@ def test_setup_variables():
             'channel': 'master',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': 'yt-dlp/yt-dlp-master-builds',
-            'target_repo_token': 'ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
@@ -135,7 +136,6 @@ def test_setup_variables():
             'channel': 'master',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': 'yt-dlp/yt-dlp-master-builds',
-            'target_repo_token': 'ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
@@ -149,7 +149,6 @@ def test_setup_variables():
             'channel': 'stable',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': STABLE_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': 'experimental',
             'pypi_project': None,
             'pypi_suffix': None,
@@ -163,7 +162,6 @@ def test_setup_variables():
             'channel': 'stable',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': STABLE_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': 'experimental',
             'pypi_project': None,
             'pypi_suffix': None,
@@ -175,7 +173,6 @@ def test_setup_variables():
             'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
@@ -186,7 +183,6 @@ def test_setup_variables():
             'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
@@ -201,7 +197,6 @@ def test_setup_variables():
             'channel': f'{FORK_REPOSITORY}@nightly',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': 'nightly',
             'pypi_project': None,
             'pypi_suffix': None,
@@ -216,7 +211,6 @@ def test_setup_variables():
             'channel': f'{FORK_REPOSITORY}@master',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': 'master',
             'pypi_project': None,
             'pypi_suffix': None,
@@ -227,42 +221,37 @@ def test_setup_variables():
             'channel': FORK_REPOSITORY,
             'version': f'{DEFAULT_VERSION[:10]}.123',
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': f'{DEFAULT_VERSION[:10]}.123',
             'pypi_project': None,
             'pypi_suffix': None,
         })
 
     _test(
-        FORK_REPOSITORY, 'fork w/ PUSH_VERSION_COMMIT, stable',
-        {'PUSH_VERSION_COMMIT': '1'}, {}, {}, {
+        FORK_REPOSITORY, 'fork w/ RELEASE_KEY, stable',
+        {}, {'RELEASE_KEY': '1'}, {}, {
             'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': DEFAULT_VERSION,
             'pypi_project': None,
             'pypi_suffix': None,
         })
     _test(
-        FORK_REPOSITORY, 'fork w/ PUSH_VERSION_COMMIT, prerelease',
-        {'PUSH_VERSION_COMMIT': '1'}, {}, {'prerelease': True}, {
+        FORK_REPOSITORY, 'fork w/ RELEASE_KEY, prerelease',
+        {}, {'RELEASE_KEY': '1'}, {'prerelease': True}, {
             'channel': FORK_REPOSITORY,
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
 
     _test(
-        FORK_REPOSITORY, 'fork w/NIGHTLY_ARCHIVE_REPO_TOKEN, nightly', {
+        FORK_REPOSITORY, 'fork, nightly', {
             'NIGHTLY_ARCHIVE_REPO': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'PYPI_PROJECT': 'yt-dlp-test',
-        }, {
-            'NIGHTLY_ARCHIVE_REPO_TOKEN': '1',
-        }, {
+        }, BASE_REPO_SECRETS, {
             'source': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'target': 'nightly',
             'prerelease': True,
@@ -270,19 +259,16 @@ def test_setup_variables():
             'channel': f'{FORK_ORG}/yt-dlp-nightly-builds',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': f'{FORK_ORG}/yt-dlp-nightly-builds',
-            'target_repo_token': 'NIGHTLY_ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
     _test(
-        FORK_REPOSITORY, 'fork w/MASTER_ARCHIVE_REPO_TOKEN, master', {
+        FORK_REPOSITORY, 'fork, master', {
             'MASTER_ARCHIVE_REPO': f'{FORK_ORG}/yt-dlp-master-builds',
             'MASTER_PYPI_PROJECT': 'yt-dlp-test',
             'MASTER_PYPI_SUFFIX': 'dev',
-        }, {
-            'MASTER_ARCHIVE_REPO_TOKEN': '1',
-        }, {
+        }, BASE_REPO_SECRETS, {
             'source': f'{FORK_ORG}/yt-dlp-master-builds',
             'target': 'master',
             'prerelease': True,
@@ -290,7 +276,6 @@ def test_setup_variables():
             'channel': f'{FORK_ORG}/yt-dlp-master-builds',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': f'{FORK_ORG}/yt-dlp-master-builds',
-            'target_repo_token': 'MASTER_ARCHIVE_REPO_TOKEN',
             'target_tag': DEFAULT_VERSION_WITH_REVISION,
             'pypi_project': 'yt-dlp-test',
             'pypi_suffix': 'dev',
@@ -302,7 +287,6 @@ def test_setup_variables():
             'channel': f'{FORK_REPOSITORY}@experimental',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': 'experimental',
             'pypi_project': None,
             'pypi_suffix': None,
@@ -317,8 +301,15 @@ def test_setup_variables():
             'channel': 'stable',
             'version': DEFAULT_VERSION_WITH_REVISION,
             'target_repo': FORK_REPOSITORY,
-            'target_repo_token': None,
             'target_tag': 'experimental',
             'pypi_project': None,
             'pypi_suffix': None,
         }, ignore_revision=True)
+
+    _test(
+        STABLE_REPOSITORY, 'official vars but no ARCHIVE_REPO_TOKEN, nightly',
+        BASE_REPO_VARS, {}, {
+            'source': 'nightly',
+            'target': 'nightly',
+            'prerelease': True,
+        }, None)

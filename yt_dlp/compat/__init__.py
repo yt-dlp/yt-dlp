@@ -8,9 +8,8 @@ passthrough_module(__name__, '._deprecated')
 del passthrough_module
 
 
-# HTMLParseError has been deprecated in Python 3.3 and removed in
-# Python 3.5. Introducing dummy exception for Python >3.5 for compatible
-# and uniform cross-version exception handling
+# HTMLParseError was deprecated in Python 3.3 and removed in Python 3.5.
+# Keep a replacement for API compatibility and uniform exception handling.
 class compat_HTMLParseError(ValueError):
     pass
 

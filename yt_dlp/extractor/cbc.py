@@ -10,6 +10,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     js_to_json,
     jwt_decode_hs256,
     mimetype2ext,
@@ -25,6 +26,7 @@ from ..utils import (
     url_basename,
     url_or_none,
     urlencode_postdata,
+    urljoin,
 )
 from ..utils.traversal import require, traverse_obj, trim_str
 
@@ -105,7 +107,7 @@ class CBCIE(InfoExtractor):
         # multiple CBC.APP.Caffeine.initInstance(...)
         'url': 'http://www.cbc.ca/news/canada/calgary/dog-indoor-exercise-winter-1.3928238',
         'info_dict': {
-            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',  # FIXME: actual title includes " | CBC News"
+            'title': 'Keep Rover active during the deep freeze with doggie pushups and other fun indoor tasks',
             'id': 'dog-indoor-exercise-winter-1.3928238',
             'description': 'md5:c18552e41726ee95bd75210d1ca9194c',
         },
@@ -134,6 +136,13 @@ class CBCIE(InfoExtractor):
         title = (self._og_search_title(webpage, default=None)
                  or self._html_search_meta('twitter:title', webpage, 'title', default=None)
                  or self._html_extract_title(webpage))
+        title = self._search_regex(
+            r'^(?P<title>.+?)(?:\s*[|–-]\s*CBC.*)?$',
+            title, 'cleaned title', group='title', default=title)
+        data = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage,
+            'initial state', display_id, default={}, transform_source=js_to_json)
+
         entries = [
             self._extract_player_init(player_init, display_id)
             for player_init in re.findall(r'CBC\.APP\.Caffeine\.initInstance\(({.+?})\);', webpage)]
@@ -143,6 +152,11 @@ class CBCIE(InfoExtractor):
                 r'<div[^>]+\bid=["\']player-(\d+)',
                 r'guid["\']\s*:\s*["\'](\d+)'):
             media_ids.extend(re.findall(media_id_re, webpage))
+        media_ids.extend(traverse_obj(data, (
+            'detail', 'content', 'body', ..., 'content',
+            lambda _, v: v['type'] == 'polopoly_media', 'content', 'sourceId', {str})))
+        if content_id := traverse_obj(data, ('app', 'contentId', {str})):
+            media_ids.append(content_id)
         entries.extend([
             self.url_result(f'cbcplayer:{media_id}', 'CBCPlayer', media_id)
             for media_id in orderedSet(media_ids)])
@@ -268,7 +282,7 @@ class CBCPlayerIE(InfoExtractor):
             'duration': 2692.833,
             'subtitles': {
                 'en-US': [{
-                    'name': 'English Captions',
+                    'name': r're:English',
                     'url': 'https://cbchls.akamaized.net/delivery/news-shows/2024/06/17/NAT_JUN16-00-55-00/NAT_JUN16_cc.vtt',
                 }],
             },
@@ -322,6 +336,7 @@ class CBCPlayerIE(InfoExtractor):
             'categories': ['Olympics Summer Soccer', 'Summer Olympics Replays', 'Summer Olympics Soccer Replays'],
             'location': 'Canada',
         },
+        'skip': 'Video no longer available',
         'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.cbc.ca/player/play/video/9.6459530',
@@ -380,7 +395,8 @@ class CBCPlayerIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(f'https://www.cbc.ca/player/play/{video_id}', video_id)
         data = self._search_json(
-            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)['video']['currentClip']
+            r'window\.__INITIAL_STATE__\s*=', webpage,
+            'initial state', video_id, transform_source=js_to_json)['video']['currentClip']
         assets = traverse_obj(
             data, ('media', 'assets', lambda _, v: url_or_none(v['key']) and v['type']))
 
@@ -492,12 +508,14 @@ class CBCPlayerPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'news/tv shows/the national/latest broadcast',
         },
+        'skip': 'Playlist no longer available',
     }, {
         'url': 'https://www.cbc.ca/player/news/Canada/North',
         'playlist_mincount': 25,
         'info_dict': {
             'id': 'news/canada/north',
         },
+        'skip': 'Playlist no longer available',
     }]
 
     def _real_extract(self, url):
@@ -523,6 +541,32 @@ class CBCGemBaseIE(InfoExtractor):
         return self._download_json(
             f'https://services.radio-canada.ca/ott/catalog/v2/gem/show/{item_id}',
             display_id or item_id, query={'device': 'web'})
+
+    def _call_media_api(self, media_id, app_code='gem', display_id=None, headers=None):
+        media_data = self._download_json(
+            'https://services.radio-canada.ca/media/validation/v2/',
+            display_id or media_id, headers=headers, query={
+                'appCode': app_code,
+                'connectionType': 'hd',
+                'deviceType': 'ipad',
+                'multibitrate': 'true',
+                'output': 'json',
+                'tech': 'hls',
+                'manifestVersion': '2',
+                'manifestType': 'desktop',
+                'idMedia': media_id,
+            })
+
+        error_code = traverse_obj(media_data, ('errorCode', {int}))
+        if error_code == 1:
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES)
+        if error_code == 35:
+            self.raise_login_required(method='password')
+        if error_code != 0:
+            error_message = join_nonempty(error_code, media_data.get('message'), delim=' - ')
+            raise ExtractorError(f'{self.IE_NAME} said: {error_message}')
+
+        return media_data
 
     def _extract_item_info(self, item_info):
         episode_number = None
@@ -551,7 +595,7 @@ class CBCGemBaseIE(InfoExtractor):
 
 class CBCGemIE(CBCGemBaseIE):
     IE_NAME = 'gem.cbc.ca'
-    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s(?P<season>[0-9]+)[a-z][0-9]+)'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/)?(?P<id>[0-9a-z-]+/s(?P<season>[0-9]+)[a-z][0-9]{2,4})/?(?:[?#]|$)'
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
@@ -693,29 +737,10 @@ class CBCGemIE(CBCGemBaseIE):
         if claims_token := self._fetch_claims_token():
             headers['x-claims-token'] = claims_token
 
-        m3u8_info = self._download_json(
-            'https://services.radio-canada.ca/media/validation/v2/',
-            video_id, headers=headers, query={
-                'appCode': 'gem',
-                'connectionType': 'hd',
-                'deviceType': 'ipad',
-                'multibitrate': 'true',
-                'output': 'json',
-                'tech': 'hls',
-                'manifestVersion': '2',
-                'manifestType': 'desktop',
-                'idMedia': item_info['idMedia'],
-            })
-
-        if m3u8_info.get('errorCode') == 1:
-            self.raise_geo_restricted(countries=['CA'])
-        elif m3u8_info.get('errorCode') == 35:
-            self.raise_login_required(method='password')
-        elif m3u8_info.get('errorCode') != 0:
-            raise ExtractorError(f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
-
+        m3u8_url = self._call_media_api(
+            item_info['idMedia'], display_id=video_id, headers=headers)['url']
         formats = self._extract_m3u8_formats(
-            m3u8_info['url'], video_id, 'mp4', m3u8_id='hls', query={'manifestType': ''})
+            m3u8_url, video_id, 'mp4', m3u8_id='hls', query={'manifestType': ''})
         self._remove_duplicate_formats(formats)
 
         for fmt in formats:
@@ -785,7 +810,128 @@ class CBCGemPlaylistIE(CBCGemBaseIE):
             }), series=traverse_obj(show_info, ('title', {str})))
 
 
-class CBCGemLiveIE(InfoExtractor):
+class CBCGemContentIE(CBCGemBaseIE):
+    IE_NAME = 'gem.cbc.ca:content'
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?P<id>[0-9a-z-]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        # Series URL; content_type == 'Season'
+        'url': 'https://gem.cbc.ca/the-tunnel',
+        'playlist_count': 3,
+        'info_dict': {
+            'id': 'the-tunnel',
+        },
+    }, {
+        # Miniseries URL; content_type == 'Parts'
+        'url': 'https://gem.cbc.ca/summit-72',
+        'playlist_count': 1,
+        'info_dict': {
+            'id': 'summit-72',
+        },
+    }, {
+        # Olympics URL; content_type == 'Standalone'
+        'url': 'https://gem.cbc.ca/ski-jumping-nh-individual-womens-final-30086',
+        'info_dict': {
+            'id': 'ski-jumping-nh-individual-womens-final-30086',
+            'ext': 'mp4',
+            'title': 'Ski Jumping: NH Individual (Women\'s) - Final',
+            'description': 'md5:411c07c8a9a4a36344530b0c726bf8ab',
+            'duration': 12793,
+            'thumbnail': r're:https://[^.]+\.cbc\.ca/.+\.jpg',
+            'release_timestamp': 1770482100,
+            'release_date': '20260207',
+            'live_status': 'was_live',
+        },
+    }, {
+        # Movie URL; content_type == 'Standalone'; requires authentication
+        'url': 'https://gem.cbc.ca/copa-71',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
+        content_type = data['contentType']
+        self.write_debug(f'Routing for content type "{content_type}"')
+
+        if content_type == 'Standalone':
+            new_url = traverse_obj(data, (
+                'header', 'cta', 'media', 'url', {urljoin('https://gem.cbc.ca/')}))
+            if CBCGemOlympicsIE.suitable(new_url):
+                return self.url_result(new_url, CBCGemOlympicsIE)
+
+            # Manually construct non-Olympics standalone URLs to avoid returning trailer URLs
+            return self.url_result(f'https://gem.cbc.ca/{display_id}/s01e01', CBCGemIE)
+
+        # Handle series URLs (content_type == 'Season') and miniseries URLs (content_type == 'Parts')
+        def entries():
+            for playlist_url in traverse_obj(data, (
+                'content', ..., 'lineups', ..., 'url', {urljoin('https://gem.cbc.ca/')},
+                {lambda x: x if CBCGemPlaylistIE.suitable(x) else None},
+            )):
+                yield self.url_result(playlist_url, CBCGemPlaylistIE)
+
+        return self.playlist_result(entries(), display_id)
+
+
+class CBCGemOlympicsIE(CBCGemBaseIE):
+    IE_NAME = 'gem.cbc.ca:olympics'
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?P<id>(?:[0-9a-z]+-)+[0-9]{5,})/s01e(?P<media_id>[0-9]{5,})'
+    _TESTS = [{
+        'url': 'https://gem.cbc.ca/ski-jumping-nh-individual-womens-final-30086/s01e30086',
+        'info_dict': {
+            'id': 'ski-jumping-nh-individual-womens-final-30086',
+            'ext': 'mp4',
+            'title': 'Ski Jumping: NH Individual (Women\'s) - Final',
+            'description': 'md5:411c07c8a9a4a36344530b0c726bf8ab',
+            'duration': 12793,
+            'thumbnail': r're:https://[^.]+\.cbc\.ca/.+\.jpg',
+            'release_timestamp': 1770482100,
+            'release_date': '20260207',
+            'live_status': 'was_live',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id, media_id = self._match_valid_url(url).group('id', 'media_id')
+
+        video_info = self._call_show_api(video_id)
+        item_info = traverse_obj(video_info, (
+            'content', ..., 'lineups', ..., 'items',
+            lambda _, v: v['formattedIdMedia'] == media_id, any, {require('item info')}))
+
+        live_status = {
+            'LiveEvent': 'is_live',
+            'Replay': 'was_live',
+        }.get(item_info.get('type'))
+
+        release_timestamp = traverse_obj(item_info, (
+            'metadata', (('live', 'startDate'), ('replay', 'airDate')), {parse_iso8601}, any))
+
+        if live_status == 'is_live' and release_timestamp and release_timestamp > time.time():
+            formats = []
+            live_status = 'is_upcoming'
+            self.raise_no_formats('This livestream has not yet started', expected=True)
+        else:
+            m3u8_url = self._call_media_api(media_id, 'medianetlive', video_id)['url']
+            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=live_status == 'is_live')
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'live_status': live_status,
+            'release_timestamp': release_timestamp,
+            **traverse_obj(item_info, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('images', 'card', 'url', {url_or_none}),
+                'duration': ('metadata', 'replay', 'duration', {int_or_none}),
+            }),
+        }
+
+
+class CBCGemLiveIE(CBCGemBaseIE):
     IE_NAME = 'gem.cbc.ca:live'
     _VALID_URL = r'https?://gem\.cbc\.ca/live(?:-event)?/(?P<id>\d+)'
     _TESTS = [
@@ -855,7 +1001,6 @@ class CBCGemLiveIE(InfoExtractor):
             'only_matching': True,
         },
     ]
-    _GEO_COUNTRIES = ['CA']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -884,19 +1029,8 @@ class CBCGemLiveIE(InfoExtractor):
             live_status = 'is_upcoming'
             self.raise_no_formats('This livestream has not yet started', expected=True)
         else:
-            stream_data = self._download_json(
-                'https://services.radio-canada.ca/media/validation/v2/', video_id, query={
-                    'appCode': 'medianetlive',
-                    'connectionType': 'hd',
-                    'deviceType': 'ipad',
-                    'idMedia': video_stream_id,
-                    'multibitrate': 'true',
-                    'output': 'json',
-                    'tech': 'hls',
-                    'manifestType': 'desktop',
-                })
-            formats = self._extract_m3u8_formats(
-                stream_data['url'], video_id, 'mp4', live=live_status == 'is_live')
+            m3u8_url = self._call_media_api(video_stream_id, 'medianetlive', video_id)['url']
+            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', live=live_status == 'is_live')
 
         return {
             'id': video_id,
