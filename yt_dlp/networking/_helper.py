@@ -110,7 +110,10 @@ def make_ssl_context(
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = verify
     context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
-    context.keylog_filename = os.environ.get('SSLKEYLOGFILE') or None
+    try:
+        context.keylog_filename = os.environ.get('SSLKEYLOGFILE') or None
+    except OSError as e:
+        raise RequestError(f'Unable to open SSL key log file: {e}', cause=e) from e
 
     # Some servers may reject requests if ALPN extension is not sent. See:
     # https://github.com/python/cpython/issues/85140
@@ -118,7 +121,10 @@ def make_ssl_context(
     with contextlib.suppress(NotImplementedError):
         context.set_alpn_protocols(['http/1.1'])
     if verify:
-        ssl_load_certs(context, use_certifi)
+        try:
+            ssl_load_certs(context, use_certifi)
+        except OSError as e:
+            raise RequestError(f'Unable to load CA certificates: {e}', cause=e) from e
 
     if legacy_support:
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
@@ -143,13 +149,16 @@ def make_ssl_context(
 
     if client_certificate:
         try:
+            for path in (client_certificate, client_certificate_key):
+                if path is not None and '\0' in os.fsdecode(path):
+                    raise ValueError('file path contains a null byte')
             context.load_cert_chain(
                 client_certificate, keyfile=client_certificate_key,
                 password=client_certificate_password)
-        except ssl.SSLError:
-            raise RequestError('Unable to load client certificate')
+        except (OSError, ValueError) as e:
+            raise RequestError(f'Unable to load client certificate: {e}', cause=e) from e
 
-        if getattr(context, 'post_handshake_auth', None) is not None:
+        if context.post_handshake_auth is not None:
             context.post_handshake_auth = True
     return context
 
