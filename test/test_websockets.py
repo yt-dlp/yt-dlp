@@ -67,7 +67,8 @@ def process_request(self, request):
         status = http.HTTPStatus(int(request.path[5:]))
         if status.value in {300, 301, 302, 303, 307, 308}:
             return websockets.http11.Response(
-                status.value, status.phrase, websockets.datastructures.Headers([('Location', '/')]), b'')
+                status.value, status.phrase,
+                websockets.datastructures.Headers({'Location': '/', 'Content-Length': '0'}), b'')
         return self.protocol.reject(status.value, status.phrase)
     elif request.path.startswith('/get_cookie'):
         response = self.protocol.accept(request)
