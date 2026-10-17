@@ -22,3 +22,15 @@ paths:
     ignore:
       # https://github.com/rhysd/actionlint/issues/657
       - 'unexpected key "queue" for "concurrency" section.+'
+  .github/workflows/release-master.yml:
+    ignore:
+      # https://github.com/rhysd/actionlint/issues/711
+      - 'reusable workflow call .+ at "uses" is not following the format.+'
+  .github/workflows/release-nightly.yml:
+    ignore:
+      # https://github.com/rhysd/actionlint/issues/711
+      - 'reusable workflow call .+ at "uses" is not following the format.+'
+  .github/workflows/release.yml:
+    ignore:
+      # https://github.com/rhysd/actionlint/issues/711
+      - 'reusable workflow call .+ at "uses" is not following the format.+'
