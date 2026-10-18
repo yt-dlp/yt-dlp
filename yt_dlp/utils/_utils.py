@@ -1718,7 +1718,7 @@ def smuggle_url(url, data):
     """ Pass additional data in a URL for internal use. """
 
     url, idata = unsmuggle_url(url, {})
-    data.update(idata)
+    data = {**data, **idata}
     sdata = urllib.parse.urlencode(
         {'__youtubedl_smuggle': json.dumps(data)})
     return url + '#' + sdata

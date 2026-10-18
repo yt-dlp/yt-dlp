@@ -612,7 +612,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(res_data, None)
 
         smug_url = smuggle_url(url, {'a': 'b'})
-        smug_smug_url = smuggle_url(smug_url, {'c': 'd'})
+        data = {'c': 'd'}
+        smug_smug_url = smuggle_url(smug_url, data)
+        self.assertEqual(data, {'c': 'd'})
         res_url, res_data = unsmuggle_url(smug_smug_url)
         self.assertEqual(res_url, url)
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
