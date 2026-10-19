@@ -1529,6 +1529,13 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'uploader_url': 'https://twitter.com/DisneyPlusJP',
             'view_count': int,
         },
+    }, {
+        'url': 'https://x.com/i/events/2018869372748472320',
+        'info_dict': {
+            'id': '2018869372748472320',
+            'title': '#カワラボ4周年おめでとう 記念キャンペーン',
+        },
+        'playlist_count': 18,
     }]
 
     def _real_extract(self, url):
@@ -1537,8 +1544,19 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         if broadcast_type == 'events':
             timeline = self._call_api(
                 f'live_event/1/{display_id}/timeline.json', display_id)
-            broadcast_id = traverse_obj(timeline, (
-                'twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'),
+            twitter_objects = traverse_obj(timeline, ('twitter_objects', {dict}))
+            if tweet_ids := traverse_obj(twitter_objects, (
+                'tweets', ..., 'id_str', {str},
+            )):
+                event_title = traverse_obj(twitter_objects, (
+                    'live_events', display_id, 'title', {clean_html}, filter))
+
+                return self.playlist_result([self.url_result(
+                    f'https://twitter.com/i/web/status/{tweet_id}', TwitterIE,
+                ) for tweet_id in tweet_ids], display_id, event_title)
+
+            broadcast_id = traverse_obj(twitter_objects, (
+                'broadcasts', ..., ('id', 'broadcast_id'),
                 {str}, any, {require('broadcast ID')}))
         else:
             broadcast_id = display_id

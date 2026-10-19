@@ -77,7 +77,7 @@ BUNDLE_TARGETS = {
     'default': Target(
         extras=['default'],
         # PyPy bundles cffi, which is a transitive dep of brotlicffi, which is only required for PyPy
-        prune_packages=['cffi'],
+        omit_packages=['cffi'],
     ),
     'curl-cffi': Target(
         extras=['default', 'curl-cffi'],
@@ -97,7 +97,7 @@ BUNDLE_TARGETS = {
         extras=['curl-cffi'],
         # Only need curl-cffi+cffi in this requirements file; their deps are installed directly
         # XXX: Try to keep these in sync with curl-cffi's and cffi's transitive dependencies
-        prune_packages=['rich'],
+        prune_packages=['typing-extensions'],
         omit_packages=['certifi', 'pycparser'],
     ),
 }
@@ -643,7 +643,7 @@ def update_requirements(
             extras=[extra_name],
             bare=True,
             # PyPy bundles cffi, which is a transitive dep of brotlicffi, which is only required for PyPy
-            prune_packages=['cffi'] if extra_name == 'default' else [],
+            omit_packages=['cffi'] if extra_name == 'default' else [],
         ).splitlines()
 
     # Write the finalized pyproject.toml
