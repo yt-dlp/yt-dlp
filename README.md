@@ -307,7 +307,8 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
     -h, --help                      Print this help text and exit
     --version                       Print program version and exit
     -U, --update                    Update this program to the latest version
-    --no-update                     Do not check for updates (default)
+    --no-update                     Do not check for or download updates
+                                    (default is to check for)
     --update-to [CHANNEL]@[TAG]     Upgrade/downgrade to a specific version.
                                     CHANNEL can be a repository as well. CHANNEL
                                     and TAG default to "stable" and "latest"
