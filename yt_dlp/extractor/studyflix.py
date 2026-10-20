@@ -8,17 +8,18 @@ class StudyflixIE(InfoExtractor):
     _TESTS = [{
             'url': 'https://studyflix.de/ingenieurwissenschaften/arbeit-und-energie-ii-371',
             'info_dict': {
-                'id': '537751',
-                'ext': 'mp3',
+                'id': '371',
+                'ext': 'mp4',
                 'thumbnail': r're:^https?://.*\.(?:png|jpg)',
-                'title': 'No Copyright Music by SigmaMusicArt | Royalty-free Music',
+                'title': 'Arbeit und Energie Übung',
             },
         }, {
             'url': 'https://studyflix.de/ingenieurwissenschaften/winkelgeschwindigkeit-1533',
             'info_dict': {
-                'id': '245859',
-                'ext': 'mp3',
-                'title': 'Relaxing Guitar Loop V5 by IdoBerg | Royalty-free Sound Effects',
+                'id': '1533',
+                'ext': 'mp4',
+                'thumbnail': r're:^https?://.*\.(?:png|jpg)',
+                'title': 'Winkelgeschwindigkeit',
             },
         }]
 
