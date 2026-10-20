@@ -4,7 +4,7 @@ from ..utils.traversal import traverse_obj
 
 
 class StudyflixIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pixabay\.com/(?:music|sound-effects)/(?:[^/?#]+-)?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?studyflix\.de/(?:.*)/(?:[^/?#]+-)?(?P<id>\d+)'
     _TESTS = [{
             'url': 'https://studyflix.de/ingenieurwissenschaften/arbeit-und-energie-ii-371',
             'info_dict': {
