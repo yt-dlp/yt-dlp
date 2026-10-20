@@ -1553,7 +1553,7 @@ class DouyinIE(TikTokBaseIE):
         detail = traverse_obj(self._download_json(
             'https://www.douyin.com/aweme/v1/web/aweme/detail/', video_id,
             'Downloading web detail JSON', 'Failed to download web detail JSON',
-            query=self._sign_query({'aweme_id': video_id}), fatal=False), ('aweme_detail', {dict}))
+            query=self._sign_query({'aweme_id': video_id, 'aid': self._AID}), fatal=False), ('aweme_detail', {dict}))
         if not detail:
             # TODO: Run verification challenge code to generate signature cookies
             raise ExtractorError(
