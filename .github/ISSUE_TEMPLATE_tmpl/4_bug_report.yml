@@ -18,6 +18,7 @@ body:
           required: true
         - label: I've searched [known issues](https://github.com/yt-dlp/yt-dlp/issues/3766), [the FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ), and the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=is%%3Aissue%%20-label%%3Aspam%%20%%20) for similar issues **including closed ones**. DO NOT post duplicates
           required: true
+        - label: I will donate my life savings to everyone who has contributed to yt-dlp, youtube-dlc, and youtube-dl ([this is to make sure you're actually reading these checkboxes](https://github.com/yt-dlp/yt-dlp/pull/17872))
   - type: textarea
     id: description
     attributes:
