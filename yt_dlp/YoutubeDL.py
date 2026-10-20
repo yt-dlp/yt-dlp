@@ -140,7 +140,6 @@ from .utils import (
     locked_file,
     make_archive_id,
     make_parent_dirs,
-    number_of_digits,
     orderedSet,
     orderedSet_from_options,
     parse_filesize,
@@ -170,7 +169,12 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .utils._utils import _UnsafeExtensionError, _YDLLogger, _ProgressState
+from .utils._utils import (
+    _UnsafeExtensionError,
+    _YDLLogger,
+    _ProgressState,
+    _desktop_entry_localestring,
+)
 from .utils.networking import (
     HTTPHeaderDict,
     clean_headers,
@@ -480,7 +484,7 @@ class YoutubeDL:
                        geo_bypass_country
     external_downloader: A dictionary of protocol keys and the executable of the
                        external downloader to use for it. The allowed protocols
-                       are default|http|ftp|m3u8|dash|rtsp|rtmp|mms.
+                       are default|http|ftp|m3u8|dash|rtmp.
                        Set the value to 'native' to use the native downloader
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
@@ -668,7 +672,6 @@ class YoutubeDL:
         except Exception as e:
             self.write_debug(f'Failed to enable VT mode: {e}')
 
-        # hehe "immutable" namespace
         self._out_files.console = next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
 
         if self.params.get('no_color'):
@@ -1140,7 +1143,7 @@ class YoutubeDL:
             self.params['logger'].warning(message)
         elif self.params.get('no_warnings'):
             if self.params.get('verbose'):
-                self.to_stderr(f'[debug:warning] {message}', only_once=only_once)
+                self.to_stderr(f'[debug] WARNING: {message}', only_once=only_once)
         else:
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
@@ -1281,8 +1284,8 @@ class YoutubeDL:
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
-            'playlist_index': number_of_digits(info_dict.get('__last_playlist_index') or 0),
-            'playlist_autonumber': number_of_digits(info_dict.get('n_entries') or 0),
+            'playlist_index': len(str(info_dict.get('__last_playlist_index') or 0)),
+            'playlist_autonumber': len(str(info_dict.get('n_entries') or 0)),
             'autonumber': self.params.get('autonumber_size') or 5,
         }
 
@@ -2394,8 +2397,7 @@ class YoutubeDL:
             selectors = []
             current_selector = None
             for type_, string_, start, _, _ in tokens:
-                # ENCODING is only defined in Python 3.x
-                if type_ == getattr(tokenize, 'ENCODING', None):
+                if type_ == tokenize.ENCODING:
                     continue
                 elif type_ in [tokenize.NAME, tokenize.NUMBER]:
                     current_selector = FormatSelector(SINGLE, string_, [])
@@ -3406,10 +3408,13 @@ class YoutubeDL:
 
         # Write internet shortcut files
         def _write_link_file(link_type):
+            # iri_to_uri converts to ascii, percent-escapes unsafe characters & validates scheme
+            # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
             url = try_get(info_dict['webpage_url'], iri_to_uri)
             if not url:
                 self.report_warning(
-                    f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
+                    f'Cannot write internet shortcut file because the actual URL '
+                    f'of "{info_dict["webpage_url"]}" is unknown or disallowed')
                 return True
             linkfn = replace_extension(
                 self.prepare_filename(info_dict, 'link'), link_type,
@@ -3425,7 +3430,8 @@ class YoutubeDL:
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
                     if link_type == 'desktop':
-                        template_vars['filename'] = linkfn[:-(len(link_type) + 1)]
+                        # See https://github.com/yt-dlp/yt-dlp/security/advisories/GHSA-6v4j-43gg-vj32
+                        template_vars['filename'] = _desktop_entry_localestring(linkfn[:-(len(link_type) + 1)])
                     linkfile.write(LINK_TEMPLATES[link_type] % template_vars)
             except OSError:
                 self.report_error(f'Cannot write internet shortcut {linkfn}')
