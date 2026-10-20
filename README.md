@@ -1111,7 +1111,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
     introductions, etc.) from downloaded YouTube videos using the
-    [SponsorBlock API](https://sponsor.ajay.app)
+    [SponsorBlock API](https://wiki.sponsor.ajay.app/w/API_Docs)
 
     --sponsorblock-mark CATS        SponsorBlock categories to create chapters
                                     for, separated by commas. Available
