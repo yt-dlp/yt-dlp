@@ -268,6 +268,27 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'Patron-only content',
     }, {
+        # multiple attachments/embeds
+        'url': 'https://www.patreon.com/GirlMeetsTV/posts/deep-space-nine-172527548',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': '172527548',
+            'title': 'Deep Space Nine | 2x13 | Armageddon Game',
+            'description': 'md5:cad61de8679b3e10e5f7f7969b94bbde',
+            'uploader': 'Girl Meets TV',
+            'uploader_id': '198733113',
+            'uploader_url': 'https://www.patreon.com/GirlMeetsTV',
+            'channel_id': '15363363',
+            'channel_url': 'https://www.patreon.com/GirlMeetsTV',
+            'timestamp': 1792519206,
+            'upload_date': '20261020',
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https?://.+',
+            'tags': ['Deep Space Nine', 'sync reactions'],
+        },
+        'skip': 'Patron-only content',
+    }, {
         # Contains a comment reply in the 'included' section
         'url': 'https://www.patreon.com/posts/114721679',
         'info_dict': {
@@ -382,7 +403,7 @@ class PatreonIE(PatreonBaseIE):
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
                 'fields[media]': 'download_url,mimetype,size_bytes,file_name',
-                'fields[post]': 'comment_count,content,content_teaser_text,cleaned_teaser_text,embed,image,like_count,post_file,published_at,title,current_user_can_view',
+                'fields[post]': 'comment_count,content,content_json_string,content_teaser_text,cleaned_teaser_text,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
                 'fields[campaign]': 'url,name,patron_count',
@@ -500,6 +521,20 @@ class PatreonIE(PatreonBaseIE):
             if media := self._extract_from_media_api(media_id):
                 entries.append(media)
                 seen_media_ids.add(media_id)
+
+        if json_content_str := attributes.get('content_json_string'):
+            json_content = self._parse_json(json_content_str, video_id)
+
+            for media_id in traverse_obj(
+                json_content.get('content'), (lambda _, v: v.get('type') == 'video'),
+                expected_type=lambda x: str_or_none(x.get('attrs').get('media_id')),
+            ):
+                # Inlined media may be duplicates of what was extracted above
+                if media_id in seen_media_ids:
+                    continue
+                if media := self._extract_from_media_api(media_id):
+                    entries.append(media)
+                    seen_media_ids.add(media_id)
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
         comments = None
