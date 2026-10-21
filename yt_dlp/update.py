@@ -546,7 +546,12 @@ class Updater:
             self._block_restart('Automatically restarting into unverified builds is disabled for security reasons')
         elif hashlib.sha256(newcontent).hexdigest() != update_info.checksum:
             return self._report_network_error('verify the new executable', tag=update_info.tag)
-
+        else:
+            # Temporary; ref: https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2
+            self._block_restart(
+                f'Automatically restarting after update is disabled due to a security vulnerability in certifi.\n'
+                f'BEFORE running yt-dlp, visit  https://github.com/{self.requested_repo}/releases/{update_info.tag}\n'
+                f'and manually verify the SHA256 hash of the new executable:\n    {update_info.checksum}')
         try:
             with open(new_filename, 'wb') as outf:
                 outf.write(newcontent)
