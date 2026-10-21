@@ -24,7 +24,7 @@ jobs:
     permissions:
       contents: write  # May be needed to publish release
       id-token: write  # Needed for trusted publishing
-    uses: ./.github/workflows/release.yml
+    uses: $/.github/workflows/release.yml
     with:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.MASTER_ARCHIVE_REPO) || 'master' }}

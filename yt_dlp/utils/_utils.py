@@ -1959,9 +1959,7 @@ def setproctitle(title):
     except OSError:
         return
 
-    title_bytes = title.encode()
-    buf = ctypes.create_string_buffer(len(title_bytes))
-    buf.value = title_bytes
+    buf = ctypes.create_string_buffer(title.encode())
     try:
         # PR_SET_NAME = 15      Ref: /usr/include/linux/prctl.h
         libc.prctl(15, buf, 0, 0, 0)
@@ -3131,18 +3129,26 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     return 'mkv' if allow_mkv else preferences[-1]
 
 
-def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
-    getheader = url_handle.headers.get
+def disposition_filename(headers):
+    filename = None
+    for name, value in headers.get_params(header='Content-Disposition') or ():
+        if name.lower() != 'filename':
+            continue
+        filename = value
+        if isinstance(value, tuple):  # Prefer filename* over filename
+            break
 
-    if cd := getheader('Content-Disposition'):
-        if m := re.match(r'attachment;\s*filename="(?P<filename>[^"]+)"', cd):
-            if ext := determine_ext(m.group('filename'), default_ext=None):
-                return ext
+    return email.utils.collapse_rfc2231_value(filename).strip() if filename is not None else None
+
+
+def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
+    headers = url_handle.headers
 
     return (
-        determine_ext(getheader('x-amz-meta-name'), default_ext=None)
-        or getheader('x-amz-meta-file-type')
-        or mimetype2ext(getheader('Content-Type'), default=default))
+        determine_ext(disposition_filename(headers), default_ext=None)
+        or determine_ext(headers.get('x-amz-meta-name'), default_ext=None)
+        or headers.get('x-amz-meta-file-type')
+        or mimetype2ext(headers.get('Content-Type'), default=default))
 
 
 def encode_data_uri(data, mime_type):
