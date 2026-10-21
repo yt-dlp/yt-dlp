@@ -1276,6 +1276,9 @@ class InfoExtractor:
         """Returns a URL that points to a page that should be processed"""
         if ie is not None:
             kwargs['ie_key'] = ie if isinstance(ie, str) else ie.ie_key()
+        # Silence fallback warning if this is an intentional generic result
+        if kwargs.get('ie_key') == 'Generic':
+            url = smuggle_url(url, {'to_generic': True})
         if video_id is not None:
             kwargs['id'] = video_id
         if video_title is not None:
