@@ -4049,8 +4049,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pemr = get_first(
                 playability_statuses,
                 ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
-            reason = self._get_text(pemr, 'reason') or get_first(playability_statuses, 'reason')
-            subreason = clean_html(self._get_text(pemr, 'subreason') or '')
+            ivm = get_first(
+                playability_statuses,
+                ('errorScreen', 'playerInterstitialRenderer', 'content', 'interstitialViewModel', {dict})) or {}
+            reason = (
+                self._get_text(pemr, 'reason')
+                or get_first(playability_statuses, 'reason')
+                or traverse_obj(ivm, ('title', 'content', {str}))
+                or '')
+            subreason = clean_html(self._get_text(pemr, 'subreason')) or traverse_obj(ivm, ('description', 'content', {clean_html}))
             if subreason:
                 if subreason.startswith('The uploader has not made this video available in your country'):
                     countries = get_first(microformats, 'availableCountries')
@@ -4058,7 +4065,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
                     self.raise_geo_restricted(subreason, countries, metadata_available=True)
-                reason += f'. {subreason}'
+                if subreason != reason:
+                    reason += f'. {subreason}'
             if reason:
                 if 'sign in' in reason.lower():
                     reason = remove_end(reason, 'This helps protect our community. Learn more')
