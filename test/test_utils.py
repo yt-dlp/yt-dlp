@@ -21,10 +21,7 @@ import unittest.mock
 import warnings
 import xml.etree.ElementTree
 
-from yt_dlp.compat import (
-    compat_etree_fromstring,
-    compat_HTMLParseError,
-)
+from yt_dlp.compat import compat_HTMLParseError
 from yt_dlp.utils import (
     Config,
     DateRange,
@@ -528,7 +525,7 @@ class TestUtil(unittest.TestCase):
             <node x="b" y="d" />
             <node x="" />
         </root>'''
-        doc = compat_etree_fromstring(testxml)
+        doc = xml.etree.ElementTree.fromstring(testxml)
 
         self.assertEqual(find_xpath_attr(doc, './/fourohfour', 'n'), None)
         self.assertEqual(find_xpath_attr(doc, './/fourohfour', 'n', 'v'), None)
@@ -549,7 +546,7 @@ class TestUtil(unittest.TestCase):
                 <url>http://server.com/download.mp3</url>
             </media:song>
         </root>'''
-        doc = compat_etree_fromstring(testxml)
+        doc = xml.etree.ElementTree.fromstring(testxml)
         find = lambda p: doc.find(xpath_with_ns(p, {'media': 'http://example.com/'}))
         self.assertTrue(find('media:song') is not None)
         self.assertEqual(find('media:song/media:author').text, 'The Author')
@@ -578,7 +575,7 @@ class TestUtil(unittest.TestCase):
                 <p>Foo</p>
             </div>
         </root>'''
-        doc = compat_etree_fromstring(testxml)
+        doc = xml.etree.ElementTree.fromstring(testxml)
         self.assertEqual(xpath_text(doc, 'div/p'), 'Foo')
         self.assertEqual(xpath_text(doc, 'div/bar', default='default'), 'default')
         self.assertTrue(xpath_text(doc, 'div/bar') is None)
@@ -590,7 +587,7 @@ class TestUtil(unittest.TestCase):
                 <p x="a">Foo</p>
             </div>
         </root>'''
-        doc = compat_etree_fromstring(testxml)
+        doc = xml.etree.ElementTree.fromstring(testxml)
         self.assertEqual(xpath_attr(doc, 'div/p', 'x'), 'a')
         self.assertEqual(xpath_attr(doc, 'div/bar', 'x'), None)
         self.assertEqual(xpath_attr(doc, 'div/p', 'y'), None)
