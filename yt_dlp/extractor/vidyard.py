@@ -177,6 +177,7 @@ class VidyardIE(VidyardBaseIE):
     }, {
         # First video from playlist below
         'url': 'https://embed.vidyard.com/share/SyStyHtYujcBHe5PkZc5DL',
+        'skip': 'Embed 404s as of 2026-10-21',
         'info_dict': {
             'id': 'SyStyHtYujcBHe5PkZc5DL',
             'display_id': '41974005',
@@ -189,6 +190,7 @@ class VidyardIE(VidyardBaseIE):
     }, {
         # Playlist
         'url': 'https://thelink.hubs.vidyard.com/watch/pwu7pCYWSwAnPxs8nDoFrE',
+        'skip': 'Endless 302 loop with https://videos.hunterdouglas.com/ as of 2026-10-21',
         'info_dict': {
             'id': 'pwu7pCYWSwAnPxs8nDoFrE',
             'title': 'PLAYLIST - Palm Beach Shutters- Bi-Fold Track System Installation',
@@ -350,7 +352,6 @@ class VidyardIE(VidyardBaseIE):
     }, {
         # <script ... id="vidyard_embed_code_DXx2sW4WaLA6hTdGFz7ja8" src="//play.vidyard.com/DXx2sW4WaLA6hTdGFz7ja8.js?
         'url': 'http://videos.vivint.com/watch/DXx2sW4WaLA6hTdGFz7ja8',
-        'skip': 'URL certificate expired 2025-09-10. Alternative script embed test case not yet available',
         'info_dict': {
             'id': 'DXx2sW4WaLA6hTdGFz7ja8',
             'display_id': '2746529',
