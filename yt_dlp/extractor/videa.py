@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
+    clean_html,
     int_or_none,
     mimetype2ext,
     parse_codecs,
@@ -38,6 +39,9 @@ class VideaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:https?://videa\.hu/static/still/.+',
+            'uploader': 'beerlover',
+            'timestamp': 1476144000,
+            'upload_date': '20161011',
             'duration': 21,
             'age_limit': 0,
         },
@@ -49,6 +53,9 @@ class VideaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Supercars előzés',
             'thumbnail': r're:https?://videa\.hu/static/still/.+',
+            'uploader': 'ORIGO AUT\u00d3',
+            'timestamp': 1478131200,
+            'upload_date': '20161103',
             'duration': 64,
             'age_limit': 0,
         },
@@ -60,6 +67,7 @@ class VideaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Az őrült kígyász 285 kígyót enged szabadon',
             'thumbnail': r're:https?://videa\.hu/static/still/.+',
+            'uploader': 'beerlover',
             'duration': 21,
             'age_limit': 0,
         },
@@ -127,7 +135,9 @@ class VideaIE(InfoExtractor):
         if 'videa.hu/player' in url:
             player_url = url
             player_page = video_page
+            json_ld = {}
         else:
+            json_ld = self._search_json_ld(video_page, video_id, default={})
             player_url = self._search_regex(
                 r'<iframe.*?src="(/player\?[^"]+)"', video_page, 'player url')
             player_url = urljoin(url, player_url)
@@ -201,7 +211,10 @@ class VideaIE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
+            'description': clean_html(xpath_text(video, './description', default=None)),
             'thumbnail': thumbnail,
+            'uploader': xpath_text(video, './uploader_name', default=None),
+            'timestamp': json_ld.get('timestamp'),
             'duration': int_or_none(xpath_text(video, './duration')),
             'age_limit': age_limit,
             'formats': formats,
