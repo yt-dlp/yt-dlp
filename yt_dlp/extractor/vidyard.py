@@ -80,21 +80,12 @@ class VidyardBaseIE(InfoExtractor):
     def _process_video_json_thumbnails(self, json_data):
         _QUALITIES = ('small', 'normal')
         preference = qualities(_QUALITIES)
-        thumbnails = []
+        thumbnails = [{
+            'url': url_or_none(url),
+            'preference': preference(quality),
+        } for quality, url in traverse_obj(json_data, ('thumbnailUrls'), default={}).items() if preference(quality) != -1]
 
-        for quality, url in traverse_obj(json_data, ('thumbnailUrls'), default={}).items():
-            if preference(quality) != -1:
-                thumbnails.append({
-                    'url': url_or_none(url),
-                    'preference': preference(quality),
-                })
-
-        if thumbnails:
-            return {
-                'thumbnails': thumbnails,
-            }
-
-        return {}
+        return {'thumbnails': thumbnails} if thumbnails else {}
 
     def _process_video_json(self, json_data, video_id):
         formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], video_id)
