@@ -49,7 +49,7 @@ dependencies = []
 default = [
     "brotli ; implementation_name == 'cpython' and sys_platform != 'ios'",
     "brotlicffi ; implementation_name != 'cpython'",
-    "certifi",
+    "certifi>=2026.10.19",
     "mutagen",
     "pycryptodomex",
     "requests>=2.32.2,<3",
