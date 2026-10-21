@@ -158,6 +158,26 @@ def js_number_to_string(val: float, radix: int = 10):
     return bytes(ALPHABET[digit] for digit in result).decode('ascii')
 
 
+def js_string_coerce(v, in_array=False):
+    if isinstance(v, str):
+        return v
+    if v is True:
+        return 'true'
+    if v is False:
+        return 'false'
+    if v is None:
+        return '' if in_array else 'null'
+    if v is JS_Undefined:
+        return '' if in_array else 'undefined'
+    if isinstance(v, (int, float)):
+        return js_number_to_string(v)
+    if isinstance(v, list):
+        return ','.join(js_string_coerce(x, True) for x in v)
+    if isinstance(v, dict):
+        return '[object Object]'
+    return str(v)
+
+
 # Ref: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '?': None,
@@ -376,9 +396,20 @@ class JSInterpreter:
         if not _OPERATORS.get(op):
             return right_val
 
-        # TODO: This is only correct for str+str and str+number; fix for str+array, str+object, etc
-        if op == '+' and (isinstance(left_val, str) or isinstance(right_val, str)):
-            return f'{left_val}{right_val}'
+        # This is correct for str+str, str+number, str+array, str+object, str+boolean, etc.
+        if op == '+':
+            if isinstance(left_val, (str, list, dict)) or isinstance(right_val, (str, list, dict)):
+                return js_string_coerce(left_val) + js_string_coerce(right_val)
+
+            if left_val is JS_Undefined or right_val is JS_Undefined:
+                return float('nan')
+
+            if left_val is None:
+                left_val = 0
+            if right_val is None:
+                right_val = 0
+
+            return left_val + right_val
 
         try:
             return _OPERATORS[op](left_val, right_val)
@@ -389,7 +420,28 @@ class JSInterpreter:
         if idx == 'length':
             return len(obj)
         try:
-            return obj[int(idx)] if isinstance(obj, list) else obj[str(idx)]
+            if isinstance(obj, list):
+                if isinstance(idx, (int, float)):
+                    if not math.isfinite(idx):
+                        return JS_Undefined
+                    if int(idx) == idx:
+                        idx = int(idx)
+                        return obj[idx] if 0 <= idx < len(obj) else JS_Undefined
+
+                # property key coercion
+                if isinstance(idx, list):
+                    idx = ','.join(str(x) for x in idx)
+                elif isinstance(idx, dict):
+                    idx = '[object Object]'
+                elif idx is None:
+                    idx = 'null'
+                elif idx is JS_Undefined:
+                    idx = 'undefined'
+                else:
+                    idx = str(idx)
+
+                return JS_Undefined
+            return obj[str(idx)]
         except Exception as e:
             if allow_undefined:
                 return JS_Undefined
@@ -402,7 +454,7 @@ class JSInterpreter:
             return self._named_object(namespace, obj)
 
     @Debugger.wrap_interpreter
-    def interpret_statement(self, stmt, local_vars, allow_recursion=100, _is_var_declaration=False):
+    def interpret_statement(self, stmt, local_vars, allow_recursion=100, _is_var_declaration=False, _is_expression=False):
         if allow_recursion < 0:
             raise self.Exception('Recursion limit reached')
         allow_recursion -= 1
@@ -423,6 +475,8 @@ class JSInterpreter:
                 raise JS_Throw(self.interpret_expression(expr, local_vars, allow_recursion))
             should_return = not m.group('var')
             _is_var_declaration = _is_var_declaration or bool(m.group('var'))
+            if should_return:
+                _is_expression = True
         if not expr:
             return None, should_return
 
@@ -458,22 +512,27 @@ class JSInterpreter:
 
         if expr.startswith('{'):
             inner, outer = self._separate_at_paren(expr)
-            # try for object expression (Map)
+
+            def dict_item(key, val):
+                val = self.interpret_expression(val, local_vars, allow_recursion)
+                if re.match(_NAME_RE, key):
+                    return key, val
+                return self.interpret_expression(key, local_vars, allow_recursion), val
             sub_expressions = [list(self._separate(sub_expr.strip(), ':', 1)) for sub_expr in self._separate(inner)]
-            if all(len(sub_expr) == 2 for sub_expr in sub_expressions):
-                def dict_item(key, val):
-                    val = self.interpret_expression(val, local_vars, allow_recursion)
-                    if re.match(_NAME_RE, key):
-                        return key, val
-                    return self.interpret_expression(key, local_vars, allow_recursion), val
 
-                return dict(dict_item(k, v) for k, v in sub_expressions), should_return
-
-            inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
-            if not outer or should_abort:
-                return inner, should_abort or should_return
+            if _is_expression:
+                obj = dict(dict_item(k, v) for k, v in sub_expressions)
+                if not outer:
+                    return obj, should_return
+                expr = self._named_object(local_vars, obj) + outer
             else:
-                expr = self._dump(inner, local_vars) + outer
+                if all(len(sub_expr) == 2 for sub_expr in sub_expressions):
+                    return dict(dict_item(k, v) for k, v in sub_expressions), should_return
+                inner, should_abort = self.interpret_statement(inner, local_vars, allow_recursion)
+                if not outer or should_abort:
+                    return inner, should_abort or should_return
+                else:
+                    expr = self._dump(inner, local_vars) + outer
 
         if expr.startswith('('):
             inner, outer = self._separate_at_paren(expr)
@@ -677,6 +736,8 @@ class JSInterpreter:
             raise JS_Continue
         elif expr == 'undefined':
             return JS_Undefined, should_return
+        elif expr == 'Infinity':
+            return float('inf'), should_return
         elif expr == 'NaN':
             return float('NaN'), should_return
 
@@ -886,7 +947,7 @@ class JSInterpreter:
             f'Unsupported JS expression {truncate_string(expr, 20, 20) if expr != stmt else ""}', stmt)
 
     def interpret_expression(self, expr, local_vars, allow_recursion):
-        ret, should_return = self.interpret_statement(expr, local_vars, allow_recursion)
+        ret, should_return = self.interpret_statement(expr, local_vars, allow_recursion, _is_expression=True)
         if should_return:
             raise self.Exception('Cannot return from an expression', expr)
         return ret
