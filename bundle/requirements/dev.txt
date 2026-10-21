@@ -23,9 +23,9 @@ filelock==4.1.0 ; python_full_version < '3.11' \
     # via
     #   python-discovery
     #   virtualenv
-filelock==4.1.1 ; python_full_version >= '3.11' \
-    --hash=sha256:3f4a557945a7b0f95efeb1f432267affe5d45ac8ddde2aed1b97ebb62382c089 \
-    --hash=sha256:7ba0927482c5a814b0a7f391d029ccdb8010f576f0a74c0dcde1811e8bc4c1b6
+filelock==4.1.2 ; python_full_version >= '3.11' \
+    --hash=sha256:4d5dc2a1d64d6b48a5f0540814000986fd62ebd3ac9ccbb1d07d669e075db9bb \
+    --hash=sha256:c541dd91878706be3ff20e934a0b913972d4eff7a20ddfc17defd2b7328d006c
     # via
     #   python-discovery
     #   virtualenv
