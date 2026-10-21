@@ -12,7 +12,7 @@ from pathlib import Path
 def parse_args():
     parser = argparse.ArgumentParser(description='Install dependencies for yt-dlp')
     parser.add_argument(
-        'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
+        'input', nargs='?', type=Path, metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
         help='input file (default: %(default)s)')
     parser.add_argument(
         '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
