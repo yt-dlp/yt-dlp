@@ -2,10 +2,8 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_etree_fromstring
-from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    float_or_none,
     int_or_none,
     qualities,
     smuggle_url,
@@ -21,7 +19,7 @@ from ..utils.traversal import find_element, traverse_obj
 class OdnoklassnikiIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                 https?://
-                    (?:(?:www|m|mobile)\.)?
+                    (?:www\.)?
                     (?:odnoklassniki|ok)\.ru/
                     (?:
                         video(?P<embed>embed)?/|
@@ -34,21 +32,21 @@ class OdnoklassnikiIE(InfoExtractor):
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:odnoklassniki|ok)\.ru/videoembed/.+?)\1']
     _TESTS = [{
         'note': 'Coub embedded',
-        'url': 'http://ok.ru/video/1484130554189',
+        'url': 'https://ok.ru/video/1484130554189',
         'info_dict': {
             'id': '1keok9',
             'ext': 'mp4',
-            'timestamp': 1545580896,
-            'view_count': int,
-            'thumbnail': r're:^https?://.*\.jpg$',
             'title': 'Народная забава',
             'uploader': 'Nevata',
-            'upload_date': '20181223',
-            'age_limit': 0,
             'uploader_id': 'nevata.s',
+            'view_count': int,
             'like_count': int,
-            'duration': 8.08,
             'repost_count': int,
+            'age_limit': 0,
+            'duration': 8.08,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'timestamp': 1545580896,
+            'upload_date': '20181223',
         },
     }, {
         'note': 'vk.com embedded',
@@ -66,28 +64,25 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'skip': 'vk extractor error',
     }, {
-        # metadata in JSON, webm_dash with Firefox UA
-        'url': 'http://ok.ru/video/20079905452',
+        # metadataWebmUrl
+        'url': 'https://ok.ru/video/20079905452',
         'md5': '8f477d8931c531374a3e36daec617b2c',
         'info_dict': {
             'id': '20079905452',
             'ext': 'webm',
             'title': 'Культура меняет нас (прекрасный ролик!))',
-            'thumbnail': str,
-            'duration': 100,
-            'upload_date': '20141207',
-            'uploader_id': '330537914540',
-            'uploader': 'Виталий Добровольский',
             'like_count': int,
             'age_limit': 0,
+            'duration': 100,
+            'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=50132290220&type=37&idx=13&tkn=pYXx7IXsAq2kUf1W0PpYHMMAnF8&fn=external_8',
+            'upload_date': '20141207',
         },
         'params': {
             'format': 'bv[ext=webm]',
-            'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0'},
         },
     }, {
         # metadataUrl
-        'url': 'http://ok.ru/video/63567059965189-0?fromTime=5',
+        'url': 'https://ok.ru/video/63567059965189-0?fromTime=5',
         'md5': '2bae2f58eefe1b3d26f3926c4a64d2f3',
         'info_dict': {
             'id': '63567059965189-0',
@@ -103,6 +98,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'start_time': 5,
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'Redirects to homepage',
     }, {
         # YouTube embed (metadataUrl, provider == USER_YOUTUBE)
         'url': 'https://ok.ru/video/3952212382174',
@@ -132,9 +128,10 @@ class OdnoklassnikiIE(InfoExtractor):
             'playable_in_embed': True,
             'channel': 'BornToReact',
         },
+        'skip': 'This video has been removed for violating YouTube\'s Community Guidelines',
     }, {
         # YouTube embed (metadata, provider == USER_YOUTUBE, no metadata.movie.title field)
-        'url': 'http://ok.ru/video/62036049272859-0',
+        'url': 'https://ok.ru/video/62036049272859-0',
         'info_dict': {
             'id': '62036049272859-0',
             'ext': 'mp4',
@@ -149,16 +146,6 @@ class OdnoklassnikiIE(InfoExtractor):
             'skip_download': True,
         },
         'skip': 'Video has not been found',
-    }, {
-        'note': 'Only available in mobile webpage',
-        'url': 'https://m.ok.ru/video/2361249957145',
-        'info_dict': {
-            'id': '2361249957145',
-            'ext': 'mp4',
-            'title': 'Быковское крещение',
-            'duration': 3038.181,
-            'thumbnail': r're:^https?://i\.mycdn\.me/videoPreview\?.+',
-        },
     }, {
         'note': 'subtitles',
         'url': 'https://ok.ru/video/4249587550747',
@@ -178,56 +165,47 @@ class OdnoklassnikiIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Video has not been found',
     }, {
-        'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
+        'url': 'https://ok.ru/videoembed/9178551814752',
+        'md5': 'cf97450124817f122136ba09819a60c3',
+        'info_dict': {
+            'id': '9178551814752',
+            'ext': 'mp4',
+            'title': 'В ПАРКЕ ЧАИР - РЕТРО ХИТЫ - СОВЕТСКИЕ ПЕСНИ',
+            'like_count': int,
+            'duration': 3260,
+            'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=8382455220832&type=32&idx=12&tkn=FpC95WqL8aCthA4GNKSHpoEMgg4&fn=external_8',
+        },
+    }, {
+        'url': 'https://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
     }, {
-        'url': 'http://www.ok.ru/video/20648036891',
+        'url': 'https://www.ok.ru/video/20648036891',
         'only_matching': True,
     }, {
-        'url': 'http://www.ok.ru/videoembed/20648036891',
-        'only_matching': True,
-    }, {
-        'url': 'http://m.ok.ru/video/20079905452',
-        'only_matching': True,
-    }, {
-        'url': 'http://mobile.ok.ru/video/20079905452',
+        'url': 'https://www.ok.ru/videoembed/20648036891',
         'only_matching': True,
     }, {
         'url': 'https://www.ok.ru/live/484531969818',
         'only_matching': True,
     }, {
-        'url': 'https://m.ok.ru/dk?st.cmd=movieLayer&st.discId=863789452017&st.retLoc=friend&st.rtu=%2Fdk%3Fst.cmd%3DfriendMovies%26st.mode%3Down%26st.mrkId%3D%257B%2522uploadedMovieMarker%2522%253A%257B%2522marker%2522%253A%25221519410114503%2522%252C%2522hasMore%2522%253Atrue%257D%252C%2522sharedMovieMarker%2522%253A%257B%2522marker%2522%253Anull%252C%2522hasMore%2522%253Afalse%257D%257D%26st.friendId%3D561722190321%26st.frwd%3Don%26_prevCmd%3DfriendMovies%26tkn%3D7257&st.discType=MOVIE&st.mvId=863789452017&_prevCmd=friendMovies&tkn=3648#lst#',
-        'only_matching': True,
-    }, {
         # Paid video
         'url': 'https://ok.ru/video/954886983203',
         'only_matching': True,
-    }, {
-        'url': 'https://ok.ru/videoembed/2932705602075',
-        'info_dict': {
-            'id': '2932705602075',
-            'ext': 'mp4',
-            'thumbnail': 'https://i.mycdn.me/videoPreview?id=1369902483995&type=37&idx=2&tkn=fqlnoQD_xwq5ovIlKfgNyU08qmM&fn=external_8',
-            'title': 'Boosty для тебя!',
-            'uploader_id': '597811038747',
-            'like_count': 0,
-            'duration': 35,
-        },
     }]
 
     _WEBPAGE_TESTS = [{
-        'url': 'https://boosty.to/ikakprosto/posts/56cedaca-b56a-4dfd-b3ed-98c79cfa0167',
+        'url': 'https://www.liveinternet.ru/users/5932706/post515277341/',
+        'md5': 'cf97450124817f122136ba09819a60c3',
         'info_dict': {
-            'id': '3950343629563',
+            'id': '9178551814752',
             'ext': 'mp4',
-            'thumbnail': 'https://i.mycdn.me/videoPreview?id=2776238394107&type=37&idx=11&tkn=F3ejkUFcpuI4DnMRxrDGcH5YcmM&fn=external_8',
-            'title': 'Заяц Бусти.mp4',
-            'uploader_id': '571368965883',
-            'like_count': 0,
-            'duration': 10444,
+            'title': 'В ПАРКЕ ЧАИР - РЕТРО ХИТЫ - СОВЕТСКИЕ ПЕСНИ',
+            'like_count': int,
+            'duration': 3260,
+            'thumbnail': 'https://iv.okcdn.ru/videoPreview?id=8382455220832&type=32&idx=12&tkn=FpC95WqL8aCthA4GNKSHpoEMgg4&fn=external_8',
         },
-        'skip': 'Site no longer embeds',
     }]
 
     def _clear_cookies(self, cdn_url):
@@ -242,16 +220,6 @@ class OdnoklassnikiIE(InfoExtractor):
             yield smuggle_url(x, {'referrer': url})
 
     def _real_extract(self, url):
-        try:
-            return self._extract_desktop(url)
-        except ExtractorError as e:
-            try:
-                return self._extract_mobile(url)
-            except ExtractorError:
-                # error message of desktop webpage is in English
-                raise e
-
-    def _extract_desktop(self, url):
         start_time = int_or_none(urllib.parse.parse_qs(
             urllib.parse.urlparse(url).query).get('fromTime', [None])[0])
 
@@ -261,7 +229,6 @@ class OdnoklassnikiIE(InfoExtractor):
 
         webpage = self._download_webpage(
             f'https://ok.ru/{mode}/{video_id}', video_id,
-            note='Downloading desktop webpage',
             headers={'Referer': smuggled['referrer']} if smuggled.get('referrer') else {})
 
         error = traverse_obj(webpage, {find_element(cls='vp_video_stub_txt')})
@@ -287,9 +254,7 @@ class OdnoklassnikiIE(InfoExtractor):
         flashvars = player['flashvars']
 
         metadata = flashvars.get('metadata')
-        if metadata:
-            metadata = self._parse_json(metadata, video_id)
-        else:
+        if not metadata:
             data = {}
             st_location = flashvars.get('location')
             if st_location:
@@ -302,7 +267,7 @@ class OdnoklassnikiIE(InfoExtractor):
         movie = metadata['movie']
 
         # Some embedded videos may not contain title in movie dict (e.g.
-        # http://ok.ru/video/62036049272859-0) thus we allow missing title
+        # https://ok.ru/video/62036049272859-0) thus we allow missing title
         # here and it's going to be extracted later by an extractor that
         # will process the actual embed.
         provider = metadata.get('provider')
@@ -416,36 +381,3 @@ class OdnoklassnikiIE(InfoExtractor):
 
         info['formats'] = formats
         return info
-
-    def _extract_mobile(self, url):
-        video_id = self._match_id(url)
-
-        webpage = self._download_webpage(
-            f'https://m.ok.ru/video/{video_id}', video_id,
-            note='Downloading mobile webpage')
-
-        error = self._search_regex(
-            r'видео</a>\s*<div\s+class="empty">(.+?)</div>',
-            webpage, 'error', default=None)
-        if error:
-            raise ExtractorError(error, expected=True)
-
-        json_data = self._search_regex(
-            r'data-video="(.+?)"', webpage, 'json data')
-        json_data = self._parse_json(unescapeHTML(json_data), video_id) or {}
-
-        redirect_url = self._request_webpage(HEADRequest(
-            json_data['videoSrc']), video_id, 'Requesting download URL').url
-        self._clear_cookies(redirect_url)
-
-        return {
-            'id': video_id,
-            'title': json_data.get('videoName'),
-            'duration': float_or_none(json_data.get('videoDuration'), scale=1000),
-            'thumbnail': json_data.get('videoPosterSrc'),
-            'formats': [{
-                'format_id': 'mobile',
-                'url': redirect_url,
-                'ext': 'mp4',
-            }],
-        }

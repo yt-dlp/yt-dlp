@@ -13,8 +13,6 @@ import hashlib
 import json
 
 from test.helper import (
-    assertGreaterEqual,
-    assertLessEqual,
     expect_info_dict,
     expect_warnings,
     get_params,
@@ -201,8 +199,8 @@ def generator(test_case, tname):
             num_entries = len(res_dict.get('entries', []))
             if 'playlist_mincount' in test_case:
                 mincount = test_case['playlist_mincount']
-                assertGreaterEqual(
-                    self, num_entries, mincount,
+                self.assertGreaterEqual(
+                    num_entries, mincount,
                     f'Expected at least {mincount} entries in playlist {test_url}, but got only {num_entries}')
             if 'playlist_count' in test_case:
                 count = test_case['playlist_count']
@@ -212,8 +210,8 @@ def generator(test_case, tname):
                     f'Expected exactly {count} entries in playlist {test_url}, but got {got}')
             if 'playlist_maxcount' in test_case:
                 maxcount = test_case['playlist_maxcount']
-                assertLessEqual(
-                    self, num_entries, maxcount,
+                self.assertLessEqual(
+                    num_entries, maxcount,
                     f'Expected at most {maxcount} entries in playlist {test_url}, but got more')
             if 'playlist_duration_sum' in test_case:
                 got_duration = sum(e['duration'] for e in res_dict['entries'])
@@ -241,8 +239,8 @@ def generator(test_case, tname):
                         if params.get('test'):
                             expected_minsize = max(expected_minsize, 10000)
                         got_fsize = os.path.getsize(tc_filename)
-                        assertGreaterEqual(
-                            self, got_fsize, expected_minsize,
+                        self.assertGreaterEqual(
+                            got_fsize, expected_minsize,
                             f'Expected {tc_filename} to be at least {format_bytes(expected_minsize)}, '
                             f'but it\'s only {format_bytes(got_fsize)} ')
                     if 'md5' in tc:
