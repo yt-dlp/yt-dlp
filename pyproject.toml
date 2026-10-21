@@ -98,7 +98,7 @@ pin-secretstorage = [
     "typing-extensions==4.16.0 ; python_full_version < '3.11'",
 ]
 pin-deno = [
-    "deno==2.9.7",
+    "deno==2.9.8",
 ]
 
 [dependency-groups]
