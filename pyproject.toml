@@ -253,6 +253,7 @@ exclude-newer = "7 days"
 
 [tool.uv.exclude-newer-package]
 certifi = false
+deno = false
 pip = false
 protobug = false
 pyinstaller = false
