@@ -2,7 +2,9 @@ import argparse
 import datetime as dt
 import functools
 import re
+import shlex
 import subprocess
+from dataclasses import dataclass
 
 
 def read_file(fname):
@@ -64,3 +66,36 @@ def run_process(*args, **kwargs):
         kwargs.setdefault('encoding', 'utf-8')
         kwargs.setdefault('errors', 'replace')
     return subprocess.run(args, **kwargs)
+
+
+@dataclass
+class YtDlpCompletionOpts:
+    opts: tuple[str, ...]
+    file_opts: tuple[str, ...]
+    dir_opts: tuple[str, ...]
+
+
+def gather_completion_opts(yt_dlp_opt_parser):
+    opts, long_opts = [], []
+    file_opts, dir_opts = [], []
+
+    for opt in yt_dlp_opt_parser._get_all_options():
+        opts.extend(opt._short_opts)
+        long_opts.extend(opt._long_opts)
+        if opt.metavar in {'FILE', 'PATH', 'CERTFILE', 'KEYFILE'}:
+            file_opts.extend(opt._short_opts)
+            file_opts.extend(opt._long_opts)
+        elif opt.metavar == 'DIR':
+            dir_opts.extend(opt._short_opts)
+            dir_opts.extend(opt._long_opts)
+
+    opts.sort()
+    long_opts.sort()
+    opts.extend(long_opts)
+
+    # Escape after sorting.
+    return YtDlpCompletionOpts(
+        tuple(shlex.quote(o) for o in opts),
+        tuple(shlex.quote(o) for o in file_opts),
+        tuple(shlex.quote(o) for o in dir_opts),
+    )
