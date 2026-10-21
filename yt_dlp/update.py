@@ -551,7 +551,8 @@ class Updater:
             self._block_restart(
                 f'Automatically restarting after update is disabled due to a security vulnerability in certifi.\n'
                 f'BEFORE running yt-dlp, visit  https://github.com/{self.requested_repo}/releases/{update_info.tag}\n'
-                f'and manually verify the SHA256 hash of the new executable:\n    {update_info.checksum}')
+                f'and manually verify the SHA256 hash of the new executable:\n    {update_info.checksum}\n'
+                f'DO NOT SKIP THIS MANUAL VERIFICATION')
         try:
             with open(new_filename, 'wb') as outf:
                 outf.write(newcontent)
