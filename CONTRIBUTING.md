@@ -64,7 +64,7 @@ $ yt-dlp -vU <your command line>
 [debug] Command-line config: ['-vU', 'https://www.example.com/']
 [debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
 [debug] yt-dlp version nightly@... from yt-dlp/yt-dlp-nightly-builds [1a176d874] (win_exe)
-[debug] Python 3.14.x (CPython AMD64 64bit) - Windows-10-... (OpenSSL 3.x ...)
+[debug] Python 3.14.x (CPython AMD64 64bit) - Windows-10-... (OpenSSL 3.y ...)
 [debug] exe versions: ffmpeg 7.0.2 (setts), ffprobe 7.0.2
 [debug] Optional libraries: Cryptodome-3.21.0, brotli-1.1.0, certifi-2024.08.30, curl_cffi-0.5.10, mutagen-1.47.0, requests-2.32.3, sqlite3-3.40.1, urllib3-2.2.3, websockets-13.1
 [debug] Proxy map: {}
