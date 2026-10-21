@@ -65,7 +65,7 @@ secretstorage = [
     "secretstorage",
 ]
 deno = [
-    "deno>=2.6.6",
+    "deno>=2.9.8",
 ]
 pin = [
     "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
@@ -98,7 +98,7 @@ pin-secretstorage = [
     "typing-extensions==4.16.0 ; python_full_version < '3.11'",
 ]
 pin-deno = [
-    "deno==2.9.7",
+    "deno==2.9.8",
 ]
 
 [dependency-groups]
