@@ -253,8 +253,10 @@ exclude-newer = "7 days"
 
 [tool.uv.exclude-newer-package]
 certifi = false
+pip = false
 protobug = false
 pyinstaller = false
+uv = false
 yt-dlp-ejs = false
 
 [tool.ruff]
