@@ -16,6 +16,7 @@ from ...utils import (
     ExtractorError,
     bug_reports_message,
     datetime_from_str,
+    ReExtractInfo,
     filter_dict,
     get_first,
     int_or_none,
@@ -837,6 +838,18 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         # Check that we are still logged-in and cookies have not rotated after every request
         if getattr(self, '_passed_auth_cookies', None) and not self._has_auth_cookies:
+            # Try reloading cookies if t
+            if self._downloader.reload_cookies() and self._has_auth_cookies:
+                raise ReExtractInfo('Cookies reloaded', expected=True)
+
+            # If we already tried reloading and it still didn't work, abort so we don't spam the server
+            if getattr(self._downloader, '_cookie_reload_trial', False):
+                raise ExtractorError(
+                    'The provided YouTube account cookies are no longer valid and automatic '
+                    'cookie reloading did not fix it. Aborting to protect your account.',
+                    expected=True
+                )
+
             self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
                 'They have likely been rotated in the browser as a security measure. '
