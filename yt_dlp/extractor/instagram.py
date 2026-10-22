@@ -725,7 +725,7 @@ class InstagramStoryIE(InstagramBaseIE):
     def _get_user_id(self, webpage):
         user_id = traverse_obj(re.findall(r'"user":\s*({.+?},(?:.+?}))?,?', webpage), (..., {json.loads}, ('user_id', 'instagram_pk'), {str}, any))
         if not user_id:
-            user_id = self._search_regex(r'"reel_ids_arr"\s*:\s*\[\s*"(\d+)"')
+            user_id = self._search_regex(r'"reel_ids_arr"\s*:\s*\[\s*"(\d+)"', None, 'User id', default=None)
         return user_id
 
     def _real_extract(self, url):
@@ -734,10 +734,6 @@ class InstagramStoryIE(InstagramBaseIE):
             raise ExtractorError('Input URL is missing a highlight ID', expected=True)
         display_id = story_id or username
         story_webpage = self._download_webpage(url, display_id, impersonate=self._can_impersonate and self._is_web_app)
-
-        # TODO: Not a valid patch to resolve 500 Error
-        for domain in self._COOKIE_DOMAINS:
-            self._set_cookie(domain, 'ds_user_id', ' ')
 
         user_id = self._get_user_id(story_webpage)
         if username == 'highlights':
