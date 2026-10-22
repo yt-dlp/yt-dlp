@@ -369,7 +369,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:en/)?(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -417,28 +417,38 @@ class BiliBiliIE(BilibiliBaseIE):
         'info_dict': {
             'id': 'BV1bK411W797',
             'title': '物语中的人物是如何吐槽自己的OP的',
+            'description': 'md5:8d2739b7d216987a53c88bbb18200e0d',
+            'uploader': '打牌还是打桩',
+            'uploader_id': '150259984',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': 'http://i0.hdslb.com/bfs/archive/8fa400caf18b5aa2a399ea5d59037fa9816d4c97.png',
+            'tags': 'count:10',
+            'timestamp': 1589601697,
+            'upload_date': '20200516',
         },
-        'playlist_count': 23,
+        'playlist_count': 2,
         'playlist': [{
             'info_dict': {
-                'id': 'BV1bK411W797_p1',
+                'id': 'BV1bK411W797_p22',
                 'ext': 'mp4',
-                'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
-                'tags': 'count:10',
-                'timestamp': 1589601697,
-                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'title': '物语中的人物是如何吐槽自己的OP的 p22 caramel ribbon cursetard//月火+斧乃木',
+                'description': 'md5:8d2739b7d216987a53c88bbb18200e0d',
                 'uploader': '打牌还是打桩',
                 'uploader_id': '150259984',
-                'like_count': int,
                 'comment_count': int,
-                'upload_date': '20200516',
                 'view_count': int,
-                'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
-                'duration': 90.314,
-                '_old_archive_ids': ['bilibili 498159642_part1'],
+                'like_count': int,
+                'duration': 89.77,
+                'thumbnail': 'http://i0.hdslb.com/bfs/archive/8fa400caf18b5aa2a399ea5d59037fa9816d4c97.png',
+                'tags': 'count:10',
+                'timestamp': 1589601697,
+                'upload_date': '20200516',
+                '_old_archive_ids': ['bilibili 498159642_part22'],
             },
         }],
-        'params': {'playlist_items': '2'},
+        'params': {'playlist_items': '22:23'},
     }, {
         'note': 'Specific page of Anthology',
         'url': 'https://www.bilibili.com/video/BV1bK411W797?p=1',
@@ -455,7 +465,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': int,
             'upload_date': '20200516',
             'view_count': int,
-            'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
+            'description': 'md5:8d2739b7d216987a53c88bbb18200e0d',
             'duration': 90.314,
             '_old_archive_ids': ['bilibili 498159642_part1'],
         },
@@ -513,9 +523,11 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': 1643947497,
             'upload_date': '20220204',
             'description': 'md5:8681a0d4d2c06b4ae27e59c8080a7fe6',
+            'tags': 'count:10',
             'uploader': '叨叨冯聊音乐',
             'duration': 246.719,
             'uploader_id': '528182630',
+            'comment_count': int,
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
@@ -691,6 +703,25 @@ class BiliBiliIE(BilibiliBaseIE):
         'params': {'listsubtitles': True},
         'skip': 'login required for subtitle',
     }, {
+        'url': 'https://www.bilibili.com/en/video/BV1PHpX6EEEF',
+        'info_dict': {
+            'id': 'BV1PHpX6EEEF',
+            'ext': 'mp4',
+            'title': 'md5:8e6ff67240d678942dc2f9d621da5d3b',
+            'description': 'md5:3d9c5c1bf879f9b9cc625ea1589d8dfe',
+            'uploader': '红楼原语著',
+            'uploader_id': '3747566497827606',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'duration': 1580.453,
+            'thumbnail': 'http://i0.hdslb.com/bfs/archive/4250802059a1c190b17f0cb35340f5f10c6b5ef4.jpg',
+            'tags': ['Bilibili AI Film and TV Set', 'Lin Daiyu', 'Reading', 'Dream of the Red Chamber', 'The Second Chapter of Dream of the Red Chamber', 'Jia Family Character Relationships', 'AI Film & TV', 'The Story of the Stone', 'Jia Yucun', 'Zhen Baoyu'],
+            'timestamp': 1791775129,
+            'upload_date': '20261012',
+            '_old_archive_ids': ['bilibili 117425764829567_part1'],
+        },
+    }, {
         'url': 'https://www.bilibili.com/video/BV1jL41167ZG/',
         'info_dict': {
             'id': 'BV1jL41167ZG',
@@ -732,6 +763,8 @@ class BiliBiliIE(BilibiliBaseIE):
             'Origin': 'https://www.bilibili.com',
         })
 
+        is_festival = False
+        metainfo = {'http_headers': self._HEADERS}
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id, default=None)
         if not initial_state:
             if self._search_json(r'\bwindow\._riskdata_\s*=', webpage, 'risk', video_id, default={}).get('v_voucher'):
@@ -742,52 +775,35 @@ class BiliBiliIE(BilibiliBaseIE):
                 query['bvid'] = prefix + video_id
             elif prefix == 'AV':
                 query['aid'] = video_id
-            detail = self._download_json(
+            detail = traverse_obj(self._download_json(
                 'https://api.bilibili.com/x/web-interface/wbi/view/detail', video_id,
-                note='Downloading redirection URL', errnote='Failed to download redirection URL',
-                query=self._sign_wbi(query, video_id), headers=headers)
-            new_url = traverse_obj(detail, ('data', 'View', 'redirect_url', {url_or_none}))
-            if new_url and BiliBiliBangumiIE.suitable(new_url):
-                return self.url_result(new_url, BiliBiliBangumiIE)
-            raise ExtractorError('Unable to extract initial state')
+                note='Downloading video details', errnote='Failed to download video details',
+                query=self._sign_wbi(query, video_id), headers=headers), 'data', expected_type=dict)
+            if detail is None:
+                raise ExtractorError('Unable to extract video data')
 
-        if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
-            self.raise_login_required()
-        if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
-            raise ExtractorError(
-                'This video may be deleted or geo-restricted. '
-                'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
-
-        is_festival = 'videoData' not in initial_state
-        if is_festival:
-            video_data = initial_state['videoInfo']
+            video_data = detail['View']
+            if tags := traverse_obj(detail, ('Tags', ..., 'tag_name')):
+                metainfo['tags'] = tags
         else:
-            video_data = initial_state['videoData']
+            if traverse_obj(initial_state, ('error', 'trueCode')) == -403:
+                self.raise_login_required()
+            if traverse_obj(initial_state, ('error', 'trueCode')) == -404:
+                raise ExtractorError(
+                    'This video may be deleted or geo-restricted. '
+                    'You might want to try a VPN or a proxy server (with --proxy)', expected=True)
+
+            if 'videoData' in initial_state:
+                video_data = initial_state['videoData']
+            else:
+                video_data = initial_state['videoInfo']
+                is_festival = True
+
+        new_url = traverse_obj(video_data, ('redirect_url', {url_or_none}))
+        if new_url and BiliBiliBangumiIE.suitable(new_url):
+            return self.url_result(new_url, BiliBiliBangumiIE)
 
         video_id, title = video_data['bvid'], video_data.get('title')
-
-        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        page_list_json = (not is_festival and traverse_obj(
-            self._download_json(
-                'https://api.bilibili.com/x/player/pagelist', video_id,
-                fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
-                note='Extracting videos in anthology', headers=headers),
-            'data', expected_type=list)) or []
-        is_anthology = len(page_list_json) > 1
-
-        part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
-        if is_anthology and not part_id and self._yes_playlist(video_id, video_id):
-            return self.playlist_from_matches(
-                page_list_json, video_id, title, ie=BiliBiliIE,
-                getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
-
-        if is_anthology:
-            part_id = part_id or 1
-            title += f' p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
-
-        aid = video_data.get('aid')
-        old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
-        cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
 
         festival_info = {}
         if is_festival:
@@ -798,13 +814,33 @@ class BiliBiliIE(BilibiliBaseIE):
                 'thumbnail': ('sectionEpisodes', lambda _, v: v['bvid'] == video_id, 'cover'),
             }, get_all=False)
 
+            is_anthology = False
+        else:
+            page_list = video_data.get('pages')
+            if page_list is None:
+                page_list = traverse_obj(
+                    self._download_json(
+                        'https://api.bilibili.com/x/player/pagelist', video_id,
+                        query={'bvid': video_id, 'jsonp': 'jsonp'},
+                        note='Extracting videos in anthology', headers=headers),
+                    'data', expected_type=list)
+                is_anthology = page_list is not None and len(page_list) > 1
+            else:
+                is_anthology = len(page_list) > 1
+
         metainfo = {
+            'title': title,
+            **metainfo,
             **traverse_obj(initial_state, {
                 'uploader': ('upData', 'name'),
                 'uploader_id': ('upData', 'mid', {str_or_none}),
-                'like_count': ('videoData', 'stat', 'like', {int_or_none}),
                 'tags': ('tags', ..., 'tag_name'),
-                'thumbnail': ('videoData', 'pic', {url_or_none}),
+            }),
+            **traverse_obj(video_data, {
+                'uploader': ('owner', 'name'),
+                'uploader_id': ('owner', 'mid', {str_or_none}),
+                'like_count': ('stat', 'like', {int_or_none}),
+                'thumbnail': ('pic', {url_or_none}),
             }),
             **festival_info,
             **traverse_obj(video_data, {
@@ -813,17 +849,56 @@ class BiliBiliIE(BilibiliBaseIE):
                 'view_count': (('viewCount', ('stat', 'view')), {int_or_none}),
                 'comment_count': ('stat', 'reply', {int_or_none}),
             }, get_all=False),
+        }
+
+        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
+        part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
+        part_info = None
+        if is_anthology:
+            if part_id is None:
+                if self._yes_playlist(video_id, video_id):
+                    def gen_entry(idx):
+                        info = page_list[idx]
+                        p = idx + 1
+                        return (self._extract_part(
+                            initial_state, video_data, video_id, metainfo,
+                            webpage=webpage if p == part_id else None, headers=headers,
+                            part_id=p, part_info=info),)
+
+                    return self.playlist_result(
+                        InAdvancePagedList(gen_entry, len(page_list), 1),
+                        video_id, title, **metainfo)
+                part_id = 1
+
+            part_info = page_list[part_id - 1]
+
+        return self._extract_part(
+            initial_state, video_data, video_id, metainfo,
+            webpage=webpage, headers=headers, part_id=part_id, part_info=part_info)
+
+    def _extract_part(self, initial_state, video_data, video_id, metainfo, webpage=None, headers=None, part_id=None, part_info=None):
+        title = metainfo['title']
+        if part_info is not None:
+            title += f' p{part_id:02d} {traverse_obj(part_info, "part") or ""}'
+            cid = part_info['cid']
+        else:
+            cid = video_data['cid']
+
+        aid = video_data.get('aid')
+        old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
+
+        metainfo = {
+            **metainfo,
+            'title': title,
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
-            'title': title,
-            'http_headers': {'Referer': url},
         }
 
         is_interactive = traverse_obj(video_data, ('rights', 'is_stein_gate'))
         if is_interactive:
             return self.playlist_result(
                 self._get_interactive_entries(video_id, cid, metainfo, headers=headers), **metainfo,
-                duration=traverse_obj(initial_state, ('videoData', 'duration', {int_or_none})),
+                duration=traverse_obj(video_data, ('duration', {int_or_none})),
                 __post_extractor=self.extract_comments(aid))
 
         play_info = traverse_obj(
