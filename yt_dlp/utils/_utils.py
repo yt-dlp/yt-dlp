@@ -1860,6 +1860,10 @@ def parse_count(s):
         'KK': 1000 ** 2,
         'b': 1000 ** 3,
         'B': 1000 ** 3,
+        'thousand': 1000, 'Thousand': 1000,
+        'million': 1000 ** 2, 'Million': 1000 ** 2,
+        'billion': 1000 ** 3, 'Billion': 1000 ** 3,
+        'trillion': 1000 ** 4, 'Trillion': 1000 ** 4,
     }
 
     ret = lookup_unit_table(_UNIT_TABLE, s)
@@ -1911,9 +1915,9 @@ def parse_resolution(s, *, lenient=False, parse_fps=False):
 def parse_bitrate(s):
     if not isinstance(s, str):
         return
-    mobj = re.search(r'\b(\d+)\s*kbps', s)
+    mobj = re.search(r'\b(\d+(?:[.,]\d+)?(?:[ \u00a0]\d{3})*)\s*kbps', s)
     if mobj:
-        return int(mobj.group(1))
+        return float(mobj.group(1).replace(' ', '').replace('\u00a0', '').replace(',', '.'))
 
 
 def month_by_name(name, lang='en'):
