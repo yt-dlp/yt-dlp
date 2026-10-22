@@ -1860,6 +1860,14 @@ def parse_count(s):
         'KK': 1000 ** 2,
         'b': 1000 ** 3,
         'B': 1000 ** 3,
+        'thousand': 1000,
+        'Thousand': 1000,
+        'million': 1000 ** 2,
+        'Million': 1000 ** 2,
+        'billion': 1000 ** 3,
+        'Billion': 1000 ** 3,
+        'trillion': 1000 ** 4,
+        'Trillion': 1000 ** 4,
     }
 
     ret = lookup_unit_table(_UNIT_TABLE, s)
@@ -1911,9 +1919,9 @@ def parse_resolution(s, *, lenient=False, parse_fps=False):
 def parse_bitrate(s):
     if not isinstance(s, str):
         return
-    mobj = re.search(r'\b(\d+)\s*kbps', s)
+    mobj = re.search(r'\b(\d+(?:[.,]\d+)?(?:[ \u00a0]\d{3})*)\s*kbps', s)
     if mobj:
-        return int(mobj.group(1))
+        return float(mobj.group(1).replace(' ', '').replace('\u00a0', '').replace(',', '.'))
 
 
 def month_by_name(name, lang='en'):
@@ -2805,6 +2813,18 @@ def js_to_json(code, vars={}, *, strict=False):
             escaped = re.sub(r'(?s)(")|\\(.)', process_escape, v)
             return f'"{escaped}"'
 
+        # Normalize JS number literals that are not valid JSON (`1.`, `.5`, `-.5`, `1.e3`)
+        if v.startswith('.') and len(v) > 1 and v[1].isdigit():
+            try:
+                return str(float('0' + v))
+            except ValueError:
+                pass
+        elif v.endswith('.') and v[:-1].isdigit():
+            try:
+                return str(int(v[:-1]))
+            except ValueError:
+                pass
+
         for regex, base in INTEGER_TABLE:
             im = re.match(regex, v)
             if im:
@@ -2842,6 +2862,8 @@ def js_to_json(code, vars={}, *, strict=False):
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
         \b(?:0[xX][0-9a-fA-F]+|(?<!\.)0+[0-7]+)(?:{SKIP_RE}:)?|
         [0-9]+(?={SKIP_RE}:)|
+        (?<![\d.])\.\d[\d.eE+-]*|
+        \d+\.(?!\d)[\d.eE+-]*|
         !+
         ''', fix_kv, code)
 
