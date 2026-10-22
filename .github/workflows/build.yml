@@ -443,6 +443,7 @@ jobs:
         with:
           python-version: '3.14'
           architecture: ${{ matrix.arch }}
+          check-latest: true
 
       - name: Install Requirements
         env:
