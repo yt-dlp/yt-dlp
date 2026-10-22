@@ -14,9 +14,9 @@ from ..common import InfoExtractor
 from ...networking.exceptions import HTTPError, network_exceptions
 from ...utils import (
     ExtractorError,
+    ReExtractInfo,
     bug_reports_message,
     datetime_from_str,
-    ReExtractInfo,
     filter_dict,
     get_first,
     int_or_none,
@@ -847,8 +847,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 raise ExtractorError(
                     'The provided YouTube account cookies are no longer valid and automatic '
                     'cookie reloading did not fix it. Aborting to protect your account.',
-                    expected=True
-                )
+                    expected=True)
 
             self.report_warning(
                 'The provided YouTube account cookies are no longer valid. '
