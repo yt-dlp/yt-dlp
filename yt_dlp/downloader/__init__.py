@@ -32,7 +32,6 @@ from .ism import IsmFD
 from .mhtml import MhtmlFD
 from .niconico import NiconicoLiveFD
 from .rtmp import RtmpFD
-from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
 from .bunnycdn import BunnyCdnFD
@@ -44,8 +43,6 @@ PROTOCOL_MAP = {
     'rtmp_ffmpeg': FFmpegFD,
     'm3u8_native': HlsFD,
     'm3u8': FFmpegFD,
-    'mms': RtspFD,
-    'rtsp': RtspFD,
     'f4m': F4mFD,
     'http_dash_segments': DashSegmentsFD,
     'http_dash_segments_generator': DashSegmentsFD,

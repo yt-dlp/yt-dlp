@@ -360,12 +360,12 @@ def subs_list_to_dict(subs: list[dict] | None = None, /, *, lang='und', ext=None
         if not url_or_none(sub.get('url')) and not sub.get('data'):
             continue
         sub_id = sub.pop('id', None)
-        if not isinstance(sub_id, str):
+        if not isinstance(sub_id, str) or not sub_id:
             if not lang:
                 continue
             sub_id = lang
         sub_ext = sub.get('ext')
-        if not isinstance(sub_ext, str):
+        if not isinstance(sub_ext, str) or not sub_ext:
             if not ext:
                 sub.pop('ext', None)
             else:

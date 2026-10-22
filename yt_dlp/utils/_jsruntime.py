@@ -87,7 +87,7 @@ class JsRuntime(abc.ABC):
 
 
 class DenoJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (2, 0, 0)
+    MIN_SUPPORTED_VERSION = (2, 3, 0)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'deno')
@@ -102,7 +102,7 @@ class DenoJsRuntime(JsRuntime):
 
 
 class BunJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (1, 0, 31)
+    MIN_SUPPORTED_VERSION = (1, 2, 11)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'bun')
@@ -117,7 +117,7 @@ class BunJsRuntime(JsRuntime):
 
 
 class NodeJsRuntime(JsRuntime):
-    MIN_SUPPORTED_VERSION = (20, 0, 0)
+    MIN_SUPPORTED_VERSION = (22, 0, 0)
 
     def _info(self):
         path = _determine_runtime_path(self._path, 'node')

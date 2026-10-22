@@ -64,9 +64,9 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.DEBUG:
             self.__ie.write_debug(self._format_msg(message), only_once=once)
 
-    def info(self, message: str):
+    def info(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.INFO:
-            self.__ie.to_screen(self._format_msg(message))
+            self.__ie.to_screen(self._format_msg(message), only_once=once)
 
     def warning(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.WARNING:
@@ -76,7 +76,7 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.ERROR:
             self.__ie._downloader.report_error(
                 self._format_msg(message), is_error=False,
-                tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)) if cause else None)
+                tb=''.join(traceback.format_exception(cause)) if cause else None)
 
 
 class PoTokenCache:
@@ -219,7 +219,7 @@ class PoTokenCache:
         cache_key = self._generate_key(self._generate_key_bindings(spec))
         self.logger.trace(f'Attempting to access PO Token cache using key: {cache_key}')
 
-        default_expires_at = int(dt.datetime.now(dt.timezone.utc).timestamp()) + spec.default_ttl
+        default_expires_at = int(dt.datetime.now(dt.UTC).timestamp()) + spec.default_ttl
         cache_response = dataclasses.replace(response, expires_at=response.expires_at or default_expires_at)
 
         write_policy = write_policy or spec.write_policy
@@ -438,9 +438,11 @@ def clean_pot(po_token: str):
     if not mobj:
         raise ValueError('Invalid PO Token')
 
+    # compat: <=py3.14: padded was added in 3.15 and the default for urlsafe is false
+    data = mobj.group(1).translate(str.maketrans('-_', '+/'))
     try:
         return base64.urlsafe_b64encode(
-            base64.urlsafe_b64decode(mobj.group(1))).decode()
+            base64.b64decode(data)).decode()
     except (binascii.Error, ValueError):
         raise ValueError('Invalid PO Token')
 
@@ -461,7 +463,7 @@ def validate_response(response: PoTokenResponse | None):
     if not isinstance(response.expires_at, int):
         return response.expires_at is None
 
-    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.timezone.utc).timestamp())
+    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.UTC).timestamp())
 
 
 def validate_cache_spec(spec: PoTokenCacheSpec):

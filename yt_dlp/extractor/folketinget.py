@@ -10,6 +10,7 @@ from ..utils import (
 
 
 class FolketingetIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'Folketinget (ft.dk; Danish parliament)'
     _VALID_URL = r'https?://(?:www\.)?ft\.dk/webtv/video/[^?#]*?\.(?P<id>[0-9]+)\.aspx'
     _TEST = {
