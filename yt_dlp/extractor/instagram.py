@@ -723,9 +723,11 @@ class InstagramStoryIE(InstagramBaseIE):
             yield self._parse_json(relay, video_id, fatal=False)
 
     def _get_user_id(self, webpage):
-        user_id = traverse_obj(re.findall(r'"user":\s*({.+?},(?:.+?}))?,?', webpage), (..., {json.loads}, ('user_id', 'instagram_pk'), {str}, any))
+        user_id = traverse_obj(
+            re.findall(r'"user":\s*({.+?},(?:.+?}))?,?', webpage),
+            (..., {json.loads}, ('user_id', 'instagram_pk'), {str}, any))
         if not user_id:
-            user_id = self._search_regex(r'"reel_ids_arr"\s*:\s*\[\s*"(\d+)"', None, 'User id', default=None)
+            user_id = self._search_regex(r'"reel_ids_arr"\s*:\s*\[\s*"(\d+)"', None, 'user ID', default=None)
         return user_id
 
     def _real_extract(self, url):
