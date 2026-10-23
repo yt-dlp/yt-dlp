@@ -780,7 +780,7 @@ class InfoExtractor:
         except ExtractorError as e:
             e.video_id = e.video_id or self.get_temp_id(url)
             e.ie = e.ie or self.IE_NAME
-            e.traceback = e.traceback or sys.exc_info()[2]
+            e.traceback = e.traceback or e.__traceback__
             raise
         except IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
@@ -1194,10 +1194,10 @@ class InfoExtractor:
         while True:
             try:
                 return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
-            except IncompleteRead as e:
+            except IncompleteRead:
                 try_count += 1
                 if try_count >= tries:
-                    raise e
+                    raise
                 self._sleep(timeout, video_id)
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
