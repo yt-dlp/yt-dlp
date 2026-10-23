@@ -59,6 +59,7 @@ class PinterestBaseIE(InfoExtractor):
 
         urls = []
         formats = []
+        subtitles = {}
         duration = None
         domain = data.get('domain', '')
         if domain.lower() != 'uploaded by user' and traverse_obj(data, ('embed', 'src')):
@@ -78,6 +79,10 @@ class PinterestBaseIE(InfoExtractor):
             for format_id, format_dict in video_list.items():
                 if not isinstance(format_dict, dict):
                     continue
+                for lang, caption_url in traverse_obj(format_dict, ('captions_urls', {dict}), default={}).items():
+                    subtitle = {'url': caption_url}
+                    if subtitle not in subtitles.setdefault(lang, []):
+                        subtitles[lang].append(subtitle)
                 format_url = url_or_none(format_dict.get('url'))
                 if not format_url or format_url in urls:
                     continue
@@ -100,6 +105,7 @@ class PinterestBaseIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
             'duration': duration,
             'webpage_url': f'https://www.pinterest.com/pin/{video_id}/',
             'extractor_key': PinterestIE.ie_key(),
