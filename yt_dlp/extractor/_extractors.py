@@ -1720,12 +1720,12 @@ from .shahid import (
 )
 from .sharepoint import SharePointIE
 from .shemaroome import ShemarooMeIE
+from .shiey import ShieyIE
 from .shouttv import (
     ShoutTVIE,
     ShoutTVSeasonIE,
     ShoutTVSeriesIE,
 )
-from .shiey import ShieyIE
 from .showroomlive import (
     ShowRoomLiveIE,
     ShowRoomVodIE,
