@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..networking import HEADRequest
 from ..utils import (
     ExtractorError,
-    GeoRestrictedError,
     clean_html,
     determine_ext,
     filter_dict,
@@ -251,9 +250,10 @@ class RaiBaseIE(InfoExtractor):
 
 class RaiPlayIE(RaiBaseIE):
     _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
+    _EMBED_REGEX = [rf'<iframe [^>]*\bsrc=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
-        'md5': '8970abf8caf8aef4696e7b1f2adfc696',
+        'md5': 'c064c0b2d09c278fb293116ef5d0a32d',
         'info_dict': {
             'id': 'cb27157f-9dd0-4aee-b788-b1f67643a391',
             'ext': 'mp4',
@@ -267,13 +267,13 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'season': '2013/14',
             'subtitles': {'it': 'count:4'},
-            'release_year': 2024,
+            'release_year': int,
             'episode': 'Espresso nel caffè - 07/04/2014',
             'timestamp': 1396919880,
             'upload_date': '20140408',
             'formats': 'count:4',
+            'creators': ['Rai 3'],
         },
-        'params': {'skip_download': True},
     }, {
         # 1080p
         'url': 'https://www.raiplay.it/video/2021/11/Blanca-S1E1-Senza-occhi-b1255a4a-8e72-4a2f-b9f3-fc1308e00736.html',
@@ -297,6 +297,7 @@ class RaiPlayIE(RaiBaseIE):
             'timestamp': 1637318940,
             'upload_date': '20211119',
             'formats': 'count:7',
+            'creators': ['Rai Fiction'],
         },
         'params': {'skip_download': True},
         'expected_warnings': ['Video not available. Likely due to geo-restriction.'],
@@ -340,7 +341,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': 'Ad ogni costo',
             'timestamp': 1665507240,
             'upload_date': '20221011',
-            'release_year': 2025,
+            'release_year': int,
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
@@ -354,10 +355,32 @@ class RaiPlayIE(RaiBaseIE):
         'url': 'https://www.raiplay.it/video/2021/06/Lo-straordinario-mondo-di-Zoey-S2E1-Lo-straordinario-ritorno-di-Zoey-3ba992de-2332-41ad-9214-73e32ab209f4.html',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.rai.it/programmi/report/inchieste/Questione-di-lobby-9fbdb9dc-3765-4377-823e-58db0561a4f2.html',
+        'md5': '870422055ba90cf0312888654cc9ee34',
+        'info_dict': {
+            'id': 'f12422bb-0d3f-49a1-aa20-fb5bdacdc6d7',
+            'ext': 'mp4',
+            'upload_date': '20250112',
+            'timestamp': 1736718900,
+            'uploader': 'Rai 3',
+            'title': 'Questione di lobby - Report 12/01/2025',
+            'season': '2024/25',
+            'episode': 'Questione di lobby',
+            'duration': 2089,
+            'alt_title': 'St 2024/25 - Report - Questione di lobby',
+            'creators': ['Rai 3'],
+            'series': 'Report',
+            'thumbnail': 'https://www.raiplay.it/dl/img/2025/01/25265735.png',
+            'description': 'md5:df05db433304fe5881af142cca73d74a',
+            'release_year': 2025,
+        },
+    }]
 
     def _real_extract(self, url):
         base, video_id = self._match_valid_url(url).groups()
 
+        base = base.replace('/iframe/', '/')
         media = self._download_json(
             f'{base}.json', video_id, 'Downloading video JSON')
 
@@ -414,6 +437,7 @@ class RaiPlayLiveIE(RaiPlayIE):  # XXX: Do not subclass from concrete IE
             'upload_date': '20090502',
             'timestamp': 1241276220,
             'formats': 'count:3',
+            'creators': ['Rai News 24'],
         },
         'params': {'skip_download': True},
     }]
@@ -501,6 +525,7 @@ class RaiPlaySoundIE(RaiBaseIE):
             'creator': 'rai radio 2',
             'timestamp': 1638346620,
             'upload_date': '20211201',
+            'creators': ['rai radio 2'],
         },
         'params': {'skip_download': True},
     }, {
@@ -578,6 +603,7 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):  # XXX: Do not subclass from concrete 
             'creator': 'raiplaysound',
             'is_live': True,
             'live_status': 'is_live',
+            'creators': ['raiplaysound'],
         },
         'params': {'skip_download': True},
     }]
@@ -625,8 +651,8 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
                                     traverse_obj(program, ('podcast_info', 'description')))
 
 
-class RaiIE(RaiBaseIE):
-    _VALID_URL = rf'https?://[^/]+\.(?:rai\.(?:it|tv))/.+?-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
+class RaiArchiveIE(RaiBaseIE):
+    _VALID_URL = rf'https?://[^/]+\.(?:rai(?:news)?\.(?:it|tv))/dl/.+?-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
     _TESTS = [{
         'url': 'https://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html',
         'info_dict': {
@@ -651,6 +677,19 @@ class RaiIE(RaiBaseIE):
             'upload_date': '20161103',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
+        'md5': '61c183eb1f13969b5e43ac570e074673',
+        'info_dict': {
+            'id': '1632c009-c843-4836-bb65-80c33084a64b',
+            'ext': 'mp4',
+            'title': 'Weekend al cinema, da Hollywood arriva il thriller di Tate Taylor "La ragazza del treno"',
+            'description': 'I film in uscita questa settimana.',
+            'thumbnail': r're:^https?://.*\.png$',
+            'duration': 833,
+            'upload_date': '20161103',
+            'formats': 'count:8',
+        },
     }, {
         # Direct MMS: Media URL no longer works.
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-b63a4089-ac28-48cf-bca5-9f5b5bc46df5.html',
@@ -698,92 +737,91 @@ class RaiIE(RaiBaseIE):
         }
 
 
-class RaiNewsIE(RaiBaseIE):
-    _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
-    _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
-    _TESTS = [{
+class RaiEmbedIE(RaiBaseIE):
+    _VALID_URL = False
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.raiscuola.rai.it/italianoperstranieri/articoli/2021/06/Le-parole-dellitaliano-i-saluti-e-il-verbo-essere-be0d9ec7-9e27-4684-89e0-48d42888ba29.html',
+        'md5': '6809373c5325579cc5b5f00ffaaeef85',
+        'info_dict': {
+            'id': 'be0d9ec7-9e27-4684-89e0-48d42888ba29',
+            'ext': 'mp4',
+            'title': 'Le parole dell\'italiano: i saluti e il verbo essere',
+            'description': 'Le parole dell\'italiano: i saluti e il verbo essere - Unità 1 - Livello A1',
+            'channel': 'rai_digital',
+            'duration': 349.0,
+            'thumbnail': 'https://www.raiscuola.rai.it/dl/img/2021/06/11/1623410922883_Le%20parole%20dellitaliano.jpg',
+            'genres': ['italiano per stranieri'],
+            'series': 'docenti - istruzione degli adulti',
+            'episode': 'Le parole dell\'italiano: i saluti e il verbo essere',
+            'timestamp': 1710240013,
+            'upload_date': '20240312',
+            'release_date': '20210609',
+        },
+    }, {
         # new rainews player (#3911)
         'url': 'https://www.rainews.it/video/2024/02/membri-della-croce-rossa-evacuano-gli-abitanti-di-un-villaggio-nella-regione-ucraina-di-kharkiv-il-filmato-dallucraina--31e8017c-845c-43f5-9c48-245b43c3a079.html',
+        'md5': '13c1787f41ab4791af2a9f1b405677a5',
         'info_dict': {
             'id': '31e8017c-845c-43f5-9c48-245b43c3a079',
             'ext': 'mp4',
             'title': 'md5:1e81364b09de4a149042bac3c7d36f0b',
             'duration': 196,
-            'upload_date': '20240225',
-            'uploader': 'rainews',
+            'upload_date': '20251104',
             'formats': 'count:2',
+            'description': 'md5:d1cd298af638d70bfdf8ef9732063efd',
+            'channel': 'rainews digital',
+            'thumbnail': 'https://www.rainews.it/cropgd/1200x630/dl/img/2024/02/25/1708853131583_Immagine__.png',
+            'genres': ['esteri|guerreeconflitti'],
+            'series': 'rainews',
+            'episode': 'Il dolore, la sofferenza: abitanti di un villaggio di Kharkiv lasciano le loro case: il video',
+            'timestamp': 1762278607,
+            'release_date': '20240225',
         },
-        'params': {'skip_download': True},
     }, {
-        # old content with fallback method to extract media urls
-        'url': 'https://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
-        'info_dict': {
-            'id': '1632c009-c843-4836-bb65-80c33084a64b',
-            'ext': 'mp4',
-            'title': 'Weekend al cinema, da Hollywood arriva il thriller di Tate Taylor "La ragazza del treno"',
-            'description': 'I film in uscita questa settimana.',
-            'thumbnail': r're:^https?://.*\.png$',
-            'duration': 833,
-            'upload_date': '20161103',
-            'formats': 'count:8',
-        },
-        'params': {'skip_download': True},
-        'expected_warnings': ['unable to extract player_data'],
-    }, {
-        # iframe + drm
-        'url': 'https://www.rainews.it/iframe/video/2022/07/euro2022-europei-calcio-femminile-italia-belgio-gol-0-1-video-4de06a69-de75-4e32-a657-02f0885f8118.html',
-        'only_matching': True,
-    }]
-    _PLAYER_TAG = 'news'
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, video_id)
-
-        player_data = self._search_json(
-            rf'<rai{self._PLAYER_TAG}-player\s*data=\'', webpage, 'player_data', video_id,
-            transform_source=clean_html, default={})
-        track_info = player_data.get('track_info')
-        relinker_url = traverse_obj(player_data, 'mediapolis', 'content_url')
-
-        if not relinker_url:
-            # fallback on old implementation for some old content
-            try:
-                return RaiIE._real_extract(self, url)
-            except GeoRestrictedError:
-                raise
-            except ExtractorError as e:
-                raise ExtractorError('Relinker URL not found', cause=e)
-
-        relinker_info = self._extract_relinker_info(urljoin(url, relinker_url), video_id)
-
-        return {
-            'id': video_id,
-            'title': player_data.get('title') or track_info.get('title') or self._og_search_title(webpage),
-            'upload_date': unified_strdate(track_info.get('date')),
-            'uploader': strip_or_none(track_info.get('editor') or None),
-            **relinker_info,
-        }
-
-
-class RaiCulturaIE(RaiNewsIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = rf'https?://(www\.)?raicultura\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
-    _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
-    _TESTS = [{
         'url': 'https://www.raicultura.it/letteratura/articoli/2018/12/Alberto-Asor-Rosa-Letteratura-e-potere-05ba8775-82b5-45c5-a89d-dd955fbde1fb.html',
+        'md5': '9edd82860fc62aecd857051f33115479',
         'info_dict': {
             'id': '05ba8775-82b5-45c5-a89d-dd955fbde1fb',
             'ext': 'mp4',
             'title': 'Alberto Asor Rosa: Letteratura e potere',
             'duration': 1756,
-            'upload_date': '20181206',
-            'uploader': 'raicultura',
+            'upload_date': '20250504',
             'formats': 'count:2',
+            'description': 'Da Dante agli scrittori di ultima generazione',
+            'channel': 'rai_digital',
+            'thumbnail': 'https://www.raicultura.it/dl/img/2019/01/154651777328916772.jpg',
+            'genres': ['letteratura'],
+            'series': '',
+            'episode': 'Alberto Asor Rosa: Letteratura e potere',
+            'timestamp': 1746330174,
+            'release_date': '20181206',
         },
-        'params': {'skip_download': True},
     }]
-    _PLAYER_TAG = 'cultura'
+
+    def _extract_from_webpage(self, url, webpage):
+        embeds = re.finditer(r'''(?x)
+            <rai[a-z0-9]+-player[^>]+?
+                \s*data=["\']([^"\']+?)["\']
+            >''', webpage)
+        for match in embeds:
+            video = self._parse_json(match.group(1), url, clean_html)
+            video_id = video['track_info']['id']
+            video_id = remove_start(video_id, 'ContentItem-') or video_id
+
+            yield {
+                'id': video_id,
+                'title': video.get('title') or video['track_info'].get('title'),
+                **traverse_obj(video, {
+                    'channel': ('track_info', 'channel'),
+                    'episode_number': ('track_info', 'episode_number', {int_or_none}),
+                    'episode': ('track_info', 'episode_title'),
+                    'genres': ('track_info', 'genres'),
+                    'is_live': ('live'),
+                    'release_date': ('track_info', 'date', {lambda x: x.replace('-', '')}),
+                    'series': ('track_info', 'program_title'),
+                }),
+                **self._extract_relinker_info(video['content_url'], video_id, video.get('audio')),
+            }
 
 
 class RaiSudtirolIE(RaiBaseIE):
