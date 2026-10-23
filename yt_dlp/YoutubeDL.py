@@ -656,6 +656,7 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
         self.__header_cookies = []
+        self._cookie_reload_trial = False
 
         # compat for API: load plugins if they have not already
         if not all_plugins_loaded.value:
@@ -1881,9 +1882,31 @@ class YoutubeDL:
         self.add_default_extra_info(ie_result, ie, url)
         if process:
             self._wait_for_video(ie_result)
+            # Clear cookie reload warning
+            self._cookie_reload_trial = False
             return self.process_ie_result(ie_result, download, extra_info)
         else:
+            self._cookie_reload_trial = False
             return ie_result
+
+    def reload_cookies(self):
+        if self._cookie_reload_trial:
+            self.write_debug('Automatic cookie reloading failed to obtain working cookies')
+            return False
+        if not self.params.get('cookiesfrombrowser') and not self.params.get('cookiefile'):
+            return False
+        try:
+            self.write_debug('Reloading cookies from source...')
+            new_jar = load_cookies(
+                self.params.get('cookiefile'), self.params.get('cookiesfrombrowser'), self)
+            self.cookiejar.clear()
+            for cookie in new_jar:
+                self.cookiejar.set_cookie(cookie)
+            self._cookie_reload_trial = True
+            return True
+        except Exception as e:
+            self.write_debug(f'Failed to reload cookies: {e}')
+            return False
 
     def add_default_extra_info(self, ie_result, ie, url):
         if url is not None:
@@ -4474,7 +4497,7 @@ class YoutubeDL:
                 try:
                     # Use newline='' to prevent conversion of newline characters
                     # See https://github.com/ytdl-org/youtube-dl/issues/10268
-                    with open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
+                    with open(sub_filename, 'w', encoding='utf-8', newline='', buffering=1048576) as subfile:
                         subfile.write(sub_info['data'])
                     sub_info['filepath'] = sub_filename
                     ret.append((sub_filename, sub_filename_final))
@@ -4537,7 +4560,7 @@ class YoutubeDL:
                 try:
                     uf = self.urlopen(Request(t['url'], headers=t.get('http_headers', {})))
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
-                    with open(thumb_filename, 'wb') as thumbf:
+                    with open(thumb_filename, 'wb', buffering=1048576) as thumbf:
                         shutil.copyfileobj(uf, thumbf)
                     ret.append((thumb_filename, thumb_filename_final))
                     t['filepath'] = thumb_filename
