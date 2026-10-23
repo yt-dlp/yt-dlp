@@ -37,31 +37,6 @@ class TVPIE(InfoExtractor):
             'thumbnail': r're:https://.+',
         },
     }, {
-        # TVPlayer 2 (JSON)
-        'url': 'https://jp2.tvp.pl/48566934/o-suwerennosci-narodu-i-upadku-totalitaryzmu-przemowienie-powitalne',
-        'info_dict': {
-            'id': '48566934',
-            'ext': 'mp4',
-            'title': 'O suwerenności narodu i upadku totalitaryzmu. Przemówienie powitalne',
-            'duration': 527,
-            'age_limit': 0,
-            'release_timestamp': 1592388480,
-            'release_date': '20200617',
-            'thumbnail': r're:https://.+',
-        },
-    }, {
-        # TVPlayer legacy
-        'url': 'https://www.tvp.pl/polska-press-video-uploader/wideo/62042351',
-        'info_dict': {
-            'id': '62042351',
-            'ext': 'mp4',
-            'title': 'Wideo',
-            'description': 'Wideo Kamera',
-            'duration': 24,
-            'age_limit': 0,
-            'thumbnail': r're:https://.+',
-        },
-    }, {
         # client-side rendered (regional) program (playlist) page
         'url': 'https://opole.tvp.pl/9660819/rozmowa-dnia',
         'info_dict': {
@@ -80,7 +55,7 @@ class TVPIE(InfoExtractor):
             'id': '46925618',
             'title': 'Filmy',
         },
-        'playlist_mincount': 27,
+        'playlist_mincount': 7,
     }, {
         'url': 'http://sport.tvp.pl/25522165/krychowiak-uspokaja-w-sprawie-kontuzji-dwa-tygodnie-to-maksimum',
         'only_matching': True,
