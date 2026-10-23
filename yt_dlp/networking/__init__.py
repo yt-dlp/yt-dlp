@@ -3,6 +3,7 @@ import warnings
 
 from .common import (
     HEADRequest,
+    PATCHRequest,
     PUTRequest,
     Request,
     RequestDirector,

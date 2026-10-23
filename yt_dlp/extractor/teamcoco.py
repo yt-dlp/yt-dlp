@@ -156,6 +156,7 @@ class TeamcocoIE(TeamcocoBaseIE):
 
 
 class ConanClassicIE(TeamcocoBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://(?:(?:www\.)?conanclassic|conan25\.teamcoco)\.com/(?P<id>([^/]+/)*[^/?#]+)'
     _TESTS = [{
         'url': 'https://conanclassic.com/video/ice-cube-kevin-hart-conan-share-lyft',
@@ -263,7 +264,7 @@ class ConanClassicIE(TeamcocoBaseIE):
             info.update(self._extract_ngtv_info(media_id, {
                 'accessToken': token,
                 'accessTokenType': 'jws',
-            }))
+            }, None))  # TODO: the None arg needs to be the AdobePass software_statement
         else:
             formats, subtitles = self._get_formats_and_subtitles(
                 traverse_obj(response, ('data', 'findRecordVideoMetadata')), video_id)

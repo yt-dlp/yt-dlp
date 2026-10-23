@@ -191,12 +191,12 @@ class TapTapAppIE(TapTapBaseIE):
     }]
 
 
-class TapTapIntlBase(TapTapBaseIE):
+class TapTapIntlBaseIE(TapTapBaseIE):
     _X_UA = 'V=1&PN=WebAppIntl2&LANG=zh_TW&VN_CODE=115&VN=0.1.0&LOC=CN&PLT=PC&DS=Android&UID={uuid}&CURR=&DT=PC&OS=Windows&OSV=NT%208.0.0'
     _VIDEO_API = 'https://www.taptap.io/webapiv2/video-resource/v1/multi-get'
 
 
-class TapTapAppIntlIE(TapTapIntlBase):
+class TapTapAppIntlIE(TapTapIntlBaseIE):
     _VALID_URL = r'https?://www\.taptap\.io/app/(?P<id>\d+)'
     _INFO_API = 'https://www.taptap.io/webapiv2/i/app/v5/detail'
     _DATA_PATH = 'app'
@@ -227,7 +227,7 @@ class TapTapAppIntlIE(TapTapIntlBase):
     }]
 
 
-class TapTapPostIntlIE(TapTapIntlBase):
+class TapTapPostIntlIE(TapTapIntlBaseIE):
     _VALID_URL = r'https?://www\.taptap\.io/post/(?P<id>\d+)'
     _INFO_API = 'https://www.taptap.io/webapiv2/creation/post/v1/detail'
     _INFO_QUERY_KEY = 'id_str'

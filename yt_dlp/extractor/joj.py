@@ -22,18 +22,17 @@ class JojIE(InfoExtractor):
             'id': 'a388ec4c-6019-4a4a-9312-b1bee194e932',
             'ext': 'mp4',
             'title': 'NOVÉ BÝVANIE',
-            'thumbnail': r're:^https?://.*?$',
             'duration': 3118,
+            'thumbnail': r're:https?://img\.joj\.sk/.+',
         },
     }, {
         'url': 'https://media.joj.sk/embed/CSM0Na0l0p1',
         'info_dict': {
             'id': 'CSM0Na0l0p1',
             'ext': 'mp4',
-            'height': 576,
             'title': 'Extrémne rodiny 2 - POKRAČOVANIE (2012/04/09 21:30:00)',
             'duration': 3937,
-            'thumbnail': r're:^https?://.*?$',
+            'thumbnail': r're:https?://img\.joj\.sk/.+',
         },
     }, {
         'url': 'https://media.joj.sk/embed/9i1cxv',
@@ -44,6 +43,15 @@ class JojIE(InfoExtractor):
     }, {
         'url': 'joj:9i1cxv',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+        'info_dict': {
+            'id': '238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+            'title': 'Slovenskom sa prehnala vlna silných búrok',
+        },
+        'playlist_mincount': 5,
     }]
 
     def _real_extract(self, url):

@@ -302,7 +302,7 @@ class FragmentFD(FileDownloader):
         elif to_file:
             self.try_rename(ctx['tmpfilename'], ctx['filename'])
             filetime = ctx.get('fragment_filetime')
-            if self.params.get('updatetime', True) and filetime:
+            if self.params.get('updatetime') and filetime:
                 with contextlib.suppress(Exception):
                     os.utime(ctx['filename'], (time.time(), filetime))
 
@@ -396,7 +396,7 @@ class FragmentFD(FileDownloader):
                         return future.result(0.1)
                     except KeyboardInterrupt:
                         raise
-                    except concurrent.futures.TimeoutError:
+                    except TimeoutError:
                         continue
         else:
             def future_result(future):

@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class ViddlerIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?viddler\.com/(?:v|embed|player)/(?P<id>[a-z0-9]+)(?:.+?\bsecret=(\d+))?'
     _EMBED_REGEX = [r'<(?:iframe[^>]+?src|param[^>]+?value)=(["\'])(?P<url>(?:https?:)?//(?:www\.)?viddler\.com/(?:embed|player)/.+?)\1']
 
@@ -21,11 +22,12 @@ class ViddlerIE(InfoExtractor):
             'timestamp': 1335371429,
             'upload_date': '20120425',
             'duration': 100.89,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
             'view_count': int,
             'comment_count': int,
             'categories': ['video content', 'high quality video', 'video made easy', 'how to produce video with limited resources', 'viddler'],
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'http://www.viddler.com/v/4d03aad9/',
         'md5': 'f12c5a7fa839c47a79363bfdf69404fb',
@@ -53,6 +55,7 @@ class ViddlerIE(InfoExtractor):
             'view_count': int,
             'comment_count': int,
         },
+        'skip': 'Invalid URL',
     }, {
         # secret protected
         'url': 'http://www.viddler.com/v/890c0985?secret=34051570',
@@ -70,6 +73,15 @@ class ViddlerIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://deadspin.com/i-cant-stop-watching-john-wall-chop-the-nuggets-with-th-1681801597/',
+        'info_dict': {
+            'id': '4d03aad9',
+            'ext': 'mp4',
+            'title': 'WALL-TO-GORTAT',
+        },
+        'skip': 'Site no longer embeds Viddler',
     }]
 
     def _real_extract(self, url):

@@ -272,6 +272,7 @@ class CNNIndonesiaIE(InfoExtractor):
         return merge_dicts(json_ld_data, {
             '_type': 'url_transparent',
             'url': embed_url,
+            'id': video_id,
             'upload_date': upload_date,
             'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', ')),
         })

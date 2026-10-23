@@ -8,17 +8,29 @@ from ..utils import (
 class TVCIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tvc\.ru/video/iframe/id/(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:http:)?//(?:www\.)?tvc\.ru/video/iframe/id/[^"]+)\1']
-    _TEST = {
+    _TESTS = [{
         'url': 'http://www.tvc.ru/video/iframe/id/74622/isPlay/false/id_stat/channel/?acc_video_id=/channel/brand/id/17/show/episodes/episode_id/39702',
-        'md5': 'bbc5ff531d1e90e856f60fc4b3afd708',
+        'md5': 'aa6fb3cf384e18a0ad3b30ee2898beba',
         'info_dict': {
             'id': '74622',
             'ext': 'mp4',
-            'title': 'События. "События". Эфир от 22.05.2015 14:30',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'title': 'TVC video #74622',
             'duration': 1122,
+            'thumbnail': r're:https?://cdn\.tvc\.ru/pictures/.+\.jpg',
         },
-    }
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://krizis-centr.ru/informatsiya/smi-o-tsentre/liniya-zashchity-bitye-zhjony-tv-tsentr',
+        'md5': '43b8eee579a5cd2b85c9ed5b73d1c671',
+        'info_dict': {
+            'id': '123378',
+            'ext': 'mp4',
+            'title': 'TVC video #123378',
+            'duration': 1526,
+            'thumbnail': r're:https?://cdn\.tvc\.ru/pictures/.+\.jpg',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

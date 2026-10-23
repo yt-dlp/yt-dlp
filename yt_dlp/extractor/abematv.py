@@ -21,6 +21,7 @@ from ..utils import (
     int_or_none,
     time_seconds,
     traverse_obj,
+    update_url,
     update_url_query,
 )
 
@@ -69,7 +70,7 @@ class AbemaLicenseRH(RequestHandler):
             })
 
         res = decode_base_n(license_response['k'], table=self._STRTABLE)
-        encvideokey = list(res.to_bytes(16, 'big'))
+        encvideokey = list(res.to_bytes(16))
 
         h = hmac.new(
             binascii.unhexlify(self._HKEY),
@@ -406,7 +407,7 @@ class AbemaTVIE(AbemaTVBaseIE):
         if is_live:
             self.report_warning("This is a livestream; yt-dlp doesn't support downloading natively, but FFmpeg cannot handle m3u8 manifests from AbemaTV")
             self.report_warning('Please consider using Streamlink to download these streams (https://github.com/streamlink/streamlink)')
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, video_id, ext='mp4', live=is_live)
 
         info.update({
@@ -414,21 +415,27 @@ class AbemaTVIE(AbemaTVBaseIE):
             'title': title,
             'description': description,
             'formats': formats,
+            'subtitles': subtitles,
             'is_live': is_live,
             'availability': availability,
         })
+
+        if thumbnail := update_url(self._og_search_thumbnail(webpage, default=''), query=None):
+            info['thumbnails'] = [{'url': thumbnail}]
+
         return info
 
 
 class AbemaTVTitleIE(AbemaTVBaseIE):
-    _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/]+)'
+    _VALID_URL = r'https?://abema\.tv/video/title/(?P<id>[^?/#]+)/?(?:\?(?:[^#]+&)?s=(?P<season>[^&#]+))?'
     _PAGE_SIZE = 25
 
     _TESTS = [{
-        'url': 'https://abema.tv/video/title/90-1597',
+        'url': 'https://abema.tv/video/title/90-1887',
         'info_dict': {
-            'id': '90-1597',
+            'id': '90-1887',
             'title': 'シャッフルアイランド',
+            'description': 'md5:61b2425308f41a5282a926edda66f178',
         },
         'playlist_mincount': 2,
     }, {
@@ -436,41 +443,54 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
         'info_dict': {
             'id': '193-132',
             'title': '真心が届く~僕とスターのオフィス・ラブ!?~',
+            'description': 'md5:9b59493d1f3a792bafbc7319258e7af8',
         },
         'playlist_mincount': 16,
     }, {
-        'url': 'https://abema.tv/video/title/25-102',
+        'url': 'https://abema.tv/video/title/25-1nzan-whrxe',
         'info_dict': {
-            'id': '25-102',
-            'title': 'ソードアート・オンライン アリシゼーション',
+            'id': '25-1nzan-whrxe',
+            'title': 'ソードアート・オンライン',
+            'description': 'md5:c094904052322e6978495532bdbf06e6',
         },
-        'playlist_mincount': 24,
+        'playlist_mincount': 25,
+    }, {
+        'url': 'https://abema.tv/video/title/26-2mzbynr-cph?s=26-2mzbynr-cph_s40',
+        'info_dict': {
+            'title': '〈物語〉シリーズ',
+            'id': '26-2mzbynr-cph',
+            'description': 'md5:e67873de1c88f360af1f0a4b84847a52',
+        },
+        'playlist_count': 59,
     }]
 
-    def _fetch_page(self, playlist_id, series_version, page):
+    def _fetch_page(self, playlist_id, series_version, season_id, page):
+        query = {
+            'seriesVersion': series_version,
+            'offset': str(page * self._PAGE_SIZE),
+            'order': 'seq',
+            'limit': str(self._PAGE_SIZE),
+        }
+        if season_id:
+            query['seasonId'] = season_id
         programs = self._call_api(
             f'v1/video/series/{playlist_id}/programs', playlist_id,
             note=f'Downloading page {page + 1}',
-            query={
-                'seriesVersion': series_version,
-                'offset': str(page * self._PAGE_SIZE),
-                'order': 'seq',
-                'limit': str(self._PAGE_SIZE),
-            })
+            query=query)
         yield from (
             self.url_result(f'https://abema.tv/video/episode/{x}')
             for x in traverse_obj(programs, ('programs', ..., 'id')))
 
-    def _entries(self, playlist_id, series_version):
+    def _entries(self, playlist_id, series_version, season_id):
         return OnDemandPagedList(
-            functools.partial(self._fetch_page, playlist_id, series_version),
+            functools.partial(self._fetch_page, playlist_id, series_version, season_id),
             self._PAGE_SIZE)
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
+        playlist_id, season_id = self._match_valid_url(url).group('id', 'season')
         series_info = self._call_api(f'v1/video/series/{playlist_id}', playlist_id)
 
         return self.playlist_result(
-            self._entries(playlist_id, series_info['version']), playlist_id=playlist_id,
+            self._entries(playlist_id, series_info['version'], season_id), playlist_id=playlist_id,
             playlist_title=series_info.get('title'),
             playlist_description=series_info.get('content'))

@@ -29,7 +29,7 @@ class TestOverwrites(unittest.TestCase):
                 '-o', 'test.webm',
                 'https://www.youtube.com/watch?v=jNQXAC9IVRw',
             ], cwd=root_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        sout, _ = outp.communicate()
         self.assertTrue(b'has already been downloaded' in sout)
         # if the file has no content, it has not been redownloaded
         self.assertTrue(os.path.getsize(download_file) < 1)
@@ -41,7 +41,7 @@ class TestOverwrites(unittest.TestCase):
                 '-o', 'test.webm',
                 'https://www.youtube.com/watch?v=jNQXAC9IVRw',
             ], cwd=root_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        sout, _ = outp.communicate()
         self.assertTrue(b'has already been downloaded' not in sout)
         # if the file has no content, it has not been redownloaded
         self.assertTrue(os.path.getsize(download_file) > 1)

@@ -11,8 +11,14 @@ from ..utils.traversal import traverse_obj
 
 class DangalPlayBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'dangalplay'
+    _REGION = 'IN'
     _OTV_USER_ID = None
-    _LOGIN_HINT = 'Pass credentials as -u "token" -p "USER_ID" where USER_ID is the `otv_user_id` in browser local storage'
+    _LOGIN_HINT = (
+        'Pass credentials as -u "token" -p "USER_ID" '
+        '(where USER_ID is the value of "otv_user_id" in your browser local storage). '
+        'Your login region can be optionally suffixed to the username as @REGION '
+        '(where REGION is the two-letter "region" code found in your browser local storage), '
+        'e.g.: -u "token@IN" -p "USER_ID"')
     _API_BASE = 'https://ottapi.dangalplay.com'
     _AUTH_TOKEN = 'jqeGWxRKK7FK5zEk3xCM'  # from https://www.dangalplay.com/main.48ad19e24eb46acccef3.js
     _SECRET_KEY = 'f53d31a4377e4ef31fa0'  # same as above
@@ -20,8 +26,12 @@ class DangalPlayBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         if self._OTV_USER_ID:
             return
-        if username != 'token' or not re.fullmatch(r'[\da-f]{32}', password):
+        mobj = re.fullmatch(r'token(?:@(?P<region>[A-Z]{2}))?', username)
+        if not mobj or not re.fullmatch(r'[\da-f]{32}', password):
             raise ExtractorError(self._LOGIN_HINT, expected=True)
+        if region := mobj.group('region'):
+            self._REGION = region
+        self.write_debug(f'Setting login region to "{self._REGION}"')
         self._OTV_USER_ID = password
 
     def _real_initialize(self):
@@ -52,7 +62,7 @@ class DangalPlayBaseIE(InfoExtractor):
             f'{self._API_BASE}/{path}', display_id, note, fatal=fatal,
             headers={'Accept': 'application/json'}, query={
                 'auth_token': self._AUTH_TOKEN,
-                'region': 'IN',
+                'region': self._REGION,
                 **query,
             })
 
@@ -106,7 +116,7 @@ class DangalPlayIE(DangalPlayBaseIE):
             'catalog_id': catalog_id,
             'content_id': content_id,
             'category': '',
-            'region': 'IN',
+            'region': self._REGION,
             'auth_token': self._AUTH_TOKEN,
             'id': self._OTV_USER_ID,
             'md5': hashlib.md5(unhashed.encode()).hexdigest(),
@@ -129,11 +139,14 @@ class DangalPlayIE(DangalPlayBaseIE):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 422:
                 error_info = traverse_obj(e.cause.response.read().decode(), ({json.loads}, 'error', {dict})) or {}
-                if error_info.get('code') == '1016':
+                error_code = error_info.get('code')
+                if error_code == '1016':
                     self.raise_login_required(
                         f'Your token has expired or is invalid. {self._LOGIN_HINT}', method=None)
-                elif msg := error_info.get('message'):
-                    raise ExtractorError(msg)
+                elif error_code == '4028':
+                    self.raise_login_required(
+                        f'Your login region is unspecified or incorrect. {self._LOGIN_HINT}', method=None)
+                raise ExtractorError(join_nonempty(error_code, error_info.get('message'), delim=': '))
             raise
 
         m3u8_url = traverse_obj(details, (

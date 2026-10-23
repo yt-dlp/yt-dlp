@@ -83,7 +83,7 @@ def aes_ecb_encrypt(data, key, iv=None):
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     encrypted_data = []
     for i in range(block_count):
@@ -103,7 +103,7 @@ def aes_ecb_decrypt(data, key, iv=None):
     @returns {int[]}           decrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     encrypted_data = []
     for i in range(block_count):
@@ -134,7 +134,7 @@ def aes_ctr_encrypt(data, key, iv):
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
     counter = iter_vector(iv)
 
     encrypted_data = []
@@ -158,7 +158,7 @@ def aes_cbc_decrypt(data, key, iv):
     @returns {int[]}           decrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     decrypted_data = []
     previous_cipher_block = iv
@@ -183,7 +183,7 @@ def aes_cbc_encrypt(data, key, iv, *, padding_mode='pkcs7'):
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
-    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+    block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
 
     encrypted_data = []
     previous_cipher_block = iv
@@ -203,7 +203,7 @@ def aes_cbc_encrypt(data, key, iv, *, padding_mode='pkcs7'):
 
 def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     """
-    Decrypt with aes in GBM mode and checks authenticity using tag
+    Decrypt with AES in GCM mode and check authenticity using tag
 
     @param {int[]} data        cipher
     @param {int[]} key         16-Byte cipher key
@@ -220,7 +220,7 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         j0 = [*nonce, 0, 0, 0, 1]
     else:
         fill = (BLOCK_SIZE_BYTES - (len(nonce) % BLOCK_SIZE_BYTES)) % BLOCK_SIZE_BYTES + 8
-        ghash_in = nonce + [0] * fill + list((8 * len(nonce)).to_bytes(8, 'big'))
+        ghash_in = nonce + [0] * fill + list((8 * len(nonce)).to_bytes(8))
         j0 = ghash(hash_subkey, ghash_in)
 
     # TODO: add nonce support to aes_ctr_decrypt
@@ -233,9 +233,8 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
     s_tag = ghash(
         hash_subkey,
         data
-        + [0] * pad_len                                  # pad
-        + list((0 * 8).to_bytes(8, 'big')                # length of associated data
-               + ((len(data) * 8).to_bytes(8, 'big'))),  # length of data
+        + [0] * (pad_len + 8)  # padding and length of associated data
+        + list((len(data) * 8).to_bytes(8)),  # length of data
     )
 
     if tag != aes_ctr_encrypt(s_tag, key, j0):
@@ -293,7 +292,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     - Mode of operation is 'counter'
 
     @param {str} data                    Base64 encoded string
-    @param {str,unicode} password        Password (will be encoded with utf-8)
+    @param {str} password                Password (will be encoded with UTF-8)
     @param {int} key_size_bytes          Possible values: 16 for 128-Bit, 24 for 192-Bit or 32 for 256-Bit
     @returns {str}                       Decrypted data
     """
@@ -435,7 +434,7 @@ def sub_bytes_inv(data):
 
 
 def rotate(data):
-    return data[1:] + [data[0]]
+    return [*data[1:], data[0]]
 
 
 def key_schedule_core(data, rcon_iteration):
@@ -447,7 +446,7 @@ def key_schedule_core(data, rcon_iteration):
 
 
 def xor(data1, data2):
-    return [x ^ y for x, y in zip(data1, data2)]
+    return [x ^ y for x, y in zip(data1, data2, strict=False)]
 
 
 def iter_mix_columns(data, matrix):
@@ -534,19 +533,17 @@ def ghash(subkey, data):
 __all__ = [
     'aes_cbc_decrypt',
     'aes_cbc_decrypt_bytes',
-    'aes_ctr_decrypt',
-    'aes_decrypt_text',
-    'aes_decrypt',
-    'aes_ecb_decrypt',
-    'aes_gcm_decrypt_and_verify',
-    'aes_gcm_decrypt_and_verify_bytes',
-
     'aes_cbc_encrypt',
     'aes_cbc_encrypt_bytes',
+    'aes_ctr_decrypt',
     'aes_ctr_encrypt',
+    'aes_decrypt',
+    'aes_decrypt_text',
+    'aes_ecb_decrypt',
     'aes_ecb_encrypt',
     'aes_encrypt',
-
+    'aes_gcm_decrypt_and_verify',
+    'aes_gcm_decrypt_and_verify_bytes',
     'key_expansion',
     'pad_block',
     'pkcs7_padding',

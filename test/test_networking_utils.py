@@ -20,7 +20,6 @@ from yt_dlp.networking._helper import (
     add_accept_encoding_header,
     get_redirect_method,
     make_socks_proxy_opts,
-    select_proxy,
     ssl_load_certs,
 )
 from yt_dlp.networking.exceptions import (
@@ -28,7 +27,7 @@ from yt_dlp.networking.exceptions import (
     IncompleteRead,
 )
 from yt_dlp.socks import ProxyType
-from yt_dlp.utils.networking import HTTPHeaderDict
+from yt_dlp.utils.networking import HTTPHeaderDict, select_proxy
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -64,13 +63,13 @@ class TestNetworkingUtils:
             'username': 'user',
             'password': '',
         }),
-        ('socks4://u%40ser:pa%20ss@127.0.0.1:1080', {
+        ('socks4://u%40ser+name:pa%20ss+word@127.0.0.1:1080', {
             'proxytype': ProxyType.SOCKS4,
             'addr': '127.0.0.1',
             'port': 1080,
             'rdns': False,
-            'username': 'u@ser',
-            'password': 'pa ss',
+            'username': 'u@ser+name',
+            'password': 'pa ss+word',
         }),
         ('socks4a://:pa%20ss@127.0.0.1', {
             'proxytype': ProxyType.SOCKS4A,

@@ -1,57 +1,102 @@
 from .ard import ARDMediathekBaseIE
 from ..utils import (
     ExtractorError,
-    get_element_by_attribute,
+    clean_html,
+    extract_attributes,
+    parse_duration,
+    parse_qs,
+    unified_strdate,
+)
+from ..utils.traversal import (
+    find_element,
+    require,
+    traverse_obj,
 )
 
 
 class SRMediathekIE(ARDMediathekBaseIE):
-    _WORKING = False
     IE_NAME = 'sr:mediathek'
     IE_DESC = 'Saarländischer Rundfunk'
-    _VALID_URL = r'https?://sr-mediathek(?:\.sr-online)?\.de/index\.php\?.*?&id=(?P<id>[0-9]+)'
 
+    _CLS_COMMON = 'teaser__image__caption__text teaser__image__caption__text--'
+    _VALID_URL = r'https?://(?:www\.)?sr-mediathek\.de/index\.php\?.*?&id=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://sr-mediathek.sr-online.de/index.php?seite=7&id=28455',
+        'url': 'https://www.sr-mediathek.de/index.php?seite=7&id=141317',
         'info_dict': {
-            'id': '28455',
+            'id': '141317',
             'ext': 'mp4',
-            'title': 'sportarena (26.10.2014)',
-            'description': 'Ringen: KSV Köllerbach gegen Aachen-Walheim; Frauen-Fußball: 1. FC Saarbrücken gegen Sindelfingen; Motorsport: Rallye in Losheim; dazu: Interview mit Timo Bernhard; Turnen: TG Saar; Reitsport: Deutscher Voltigier-Pokal; Badminton: Interview mit Michael Fuchs ',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        },
-        'skip': 'no longer available',
-    }, {
-        'url': 'http://sr-mediathek.sr-online.de/index.php?seite=7&id=37682',
-        'info_dict': {
-            'id': '37682',
-            'ext': 'mp4',
-            'title': 'Love, Cakes and Rock\'n\'Roll',
-            'description': 'md5:18bf9763631c7d326c22603681e1123d',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
+            'title': 'Kärnten, da will ich hin!',
+            'channel': 'SR Fernsehen',
+            'description': 'md5:7732e71e803379a499732864a572a456',
+            'duration': 1788.0,
+            'release_date': '20250525',
+            'series': 'da will ich hin!',
+            'series_id': 'DWIH',
+            'thumbnail': r're:https?://.+\.jpg',
         },
     }, {
-        'url': 'http://sr-mediathek.de/index.php?seite=7&id=7480',
-        'only_matching': True,
+        'url': 'https://www.sr-mediathek.de/index.php?seite=7&id=153853',
+        'info_dict': {
+            'id': '153853',
+            'ext': 'mp3',
+            'title': 'Kappes, Klöße, Kokosmilch: Bruschetta mit Nduja',
+            'channel': 'SR 3',
+            'description': 'md5:3935798de3562b10c4070b408a15e225',
+            'duration': 139.0,
+            'release_date': '20250523',
+            'series': 'Kappes, Klöße, Kokosmilch',
+            'series_id': 'SR3_KKK_A',
+            'thumbnail': r're:https?://.+\.jpg',
+        },
+    }, {
+        'url': 'https://www.sr-mediathek.de/index.php?seite=7&id=31406&pnr=&tbl=pf',
+        'info_dict': {
+            'id': '31406',
+            'ext': 'mp3',
+            'title': 'Das Leben schwer nehmen, ist einfach zu anstrengend',
+            'channel': 'SR 1',
+            'description': 'md5:3e03fd556af831ad984d0add7175fb0c',
+            'duration': 1769.0,
+            'release_date': '20230717',
+            'series': 'Abendrot',
+            'series_id': 'SR1_AB_P',
+            'thumbnail': r're:https?://.+\.jpg',
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        description = self._og_search_description(webpage)
 
-        if '>Der gew&uuml;nschte Beitrag ist leider nicht mehr verf&uuml;gbar.<' in webpage:
+        if description == 'Der gewünschte Beitrag ist leider nicht mehr vorhanden.':
             raise ExtractorError(f'Video {video_id} is no longer available', expected=True)
 
-        media_collection_url = self._search_regex(
-            r'data-mediacollection-ardplayer="([^"]+)"', webpage, 'media collection url')
-        info = self._extract_media_info(media_collection_url, webpage, video_id)
-        info.update({
+        player_url = traverse_obj(webpage, (
+            {find_element(tag='div', id=f'player{video_id}', html=True)},
+            {extract_attributes}, 'data-mediacollection-ardplayer',
+            {self._proto_relative_url}, {require('player URL')}))
+        article = traverse_obj(webpage, (
+            {find_element(cls='article__content')},
+            {find_element(tag='p')}, {clean_html}))
+
+        return {
+            **self._extract_media_info(player_url, webpage, video_id),
             'id': video_id,
-            'title': get_element_by_attribute('class', 'ardplayer-title', webpage),
-            'description': self._og_search_description(webpage),
+            'title': traverse_obj(webpage, (
+                {find_element(cls='ardplayer-title')}, {clean_html})),
+            'channel': traverse_obj(webpage, (
+                {find_element(cls=f'{self._CLS_COMMON}subheadline')},
+                {lambda x: x.split('|')[0]}, {clean_html})),
+            'description': description,
+            'duration': parse_duration(self._search_regex(
+                r'(\d{2}:\d{2}:\d{2})', article, 'duration')),
+            'release_date': unified_strdate(self._search_regex(
+                r'(\d{2}\.\d{2}\.\d{4})', article, 'release_date')),
+            'series': traverse_obj(webpage, (
+                {find_element(cls=f'{self._CLS_COMMON}headline')}, {clean_html})),
+            'series_id': traverse_obj(webpage, (
+                {find_element(cls='teaser__link', html=True)},
+                {extract_attributes}, 'href', {parse_qs}, 'sen', ..., {str}, any)),
             'thumbnail': self._og_search_thumbnail(webpage),
-        })
-        return info
+        }

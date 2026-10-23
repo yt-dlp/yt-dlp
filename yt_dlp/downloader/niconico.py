@@ -2,97 +2,49 @@ import json
 import threading
 import time
 
-from . import get_suitable_downloader
 from .common import FileDownloader
 from .external import FFmpegFD
 from ..networking import Request
-from ..utils import DownloadError, str_or_none, try_get
-
-
-class NiconicoDmcFD(FileDownloader):
-    """ Downloading niconico douga from DMC with heartbeat """
-
-    def real_download(self, filename, info_dict):
-        from ..extractor.niconico import NiconicoIE
-
-        self.to_screen(f'[{self.FD_NAME}] Downloading from DMC')
-        ie = NiconicoIE(self.ydl)
-        info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
-
-        fd = get_suitable_downloader(info_dict, params=self.params)(self.ydl, self.params)
-
-        success = download_complete = False
-        timer = [None]
-        heartbeat_lock = threading.Lock()
-        heartbeat_url = heartbeat_info_dict['url']
-        heartbeat_data = heartbeat_info_dict['data'].encode()
-        heartbeat_interval = heartbeat_info_dict.get('interval', 30)
-
-        request = Request(heartbeat_url, heartbeat_data)
-
-        def heartbeat():
-            try:
-                self.ydl.urlopen(request).read()
-            except Exception:
-                self.to_screen(f'[{self.FD_NAME}] Heartbeat failed')
-
-            with heartbeat_lock:
-                if not download_complete:
-                    timer[0] = threading.Timer(heartbeat_interval, heartbeat)
-                    timer[0].start()
-
-        heartbeat_info_dict['ping']()
-        self.to_screen('[%s] Heartbeat with %d second interval ...' % (self.FD_NAME, heartbeat_interval))
-        try:
-            heartbeat()
-            if type(fd).__name__ == 'HlsFD':
-                info_dict.update(ie._extract_m3u8_formats(info_dict['url'], info_dict['id'])[0])
-            success = fd.real_download(filename, info_dict)
-        finally:
-            if heartbeat_lock:
-                with heartbeat_lock:
-                    timer[0].cancel()
-                    download_complete = True
-        return success
+from ..networking.websocket import WebSocketResponse
+from ..utils import DownloadError, str_or_none, truncate_string
+from ..utils.traversal import traverse_obj
 
 
 class NiconicoLiveFD(FileDownloader):
     """ Downloads niconico live without being stopped """
 
     def real_download(self, filename, info_dict):
-        video_id = info_dict['video_id']
-        ws_url = info_dict['url']
-        ws_extractor = info_dict['ws']
-        ws_origin_host = info_dict['origin']
-        live_quality = info_dict.get('live_quality', 'high')
-        live_latency = info_dict.get('live_latency', 'high')
+        video_id = info_dict['id']
+        opts = info_dict['downloader_options']
+        quality, ws_extractor, ws_url = opts['max_quality'], opts['ws'], opts['ws_url']
         dl = FFmpegFD(self.ydl, self.params or {})
 
         new_info_dict = info_dict.copy()
-        new_info_dict.update({
-            'protocol': 'm3u8',
-        })
+        new_info_dict['protocol'] = 'm3u8'
 
         def communicate_ws(reconnect):
-            if reconnect:
-                ws = self.ydl.urlopen(Request(ws_url, headers={'Origin': f'https://{ws_origin_host}'}))
+            # Support --load-info-json as if it is a reconnect attempt
+            if reconnect or not isinstance(ws_extractor, WebSocketResponse):
+                ws = self.ydl.urlopen(Request(
+                    ws_url, headers={'Origin': 'https://live.nicovideo.jp'}))
                 if self.ydl.params.get('verbose', False):
-                    self.to_screen('[debug] Sending startWatching request')
+                    self.write_debug('Sending startWatching request')
                 ws.send(json.dumps({
-                    'type': 'startWatching',
                     'data': {
-                        'stream': {
-                            'quality': live_quality,
-                            'protocol': 'hls+fmp4',
-                            'latency': live_latency,
-                            'chasePlay': False,
-                        },
-                        'room': {
-                            'protocol': 'webSocket',
-                            'commentable': True,
-                        },
                         'reconnect': True,
+                        'room': {
+                            'commentable': True,
+                            'protocol': 'webSocket',
+                        },
+                        'stream': {
+                            'accessRightMethod': 'single_cookie',
+                            'chasePlay': False,
+                            'latency': 'high',
+                            'protocol': 'hls',
+                            'quality': quality,
+                        },
                     },
+                    'type': 'startWatching',
                 }))
             else:
                 ws = ws_extractor
@@ -105,7 +57,6 @@ class NiconicoLiveFD(FileDownloader):
                     if not data or not isinstance(data, dict):
                         continue
                     if data.get('type') == 'ping':
-                        # pong back
                         ws.send(r'{"type":"pong"}')
                         ws.send(r'{"type":"keepSeat"}')
                     elif data.get('type') == 'disconnect':
@@ -113,12 +64,10 @@ class NiconicoLiveFD(FileDownloader):
                         return True
                     elif data.get('type') == 'error':
                         self.write_debug(data)
-                        message = try_get(data, lambda x: x['body']['code'], str) or recv
+                        message = traverse_obj(data, ('body', 'code', {str_or_none}), default=recv)
                         return DownloadError(message)
                     elif self.ydl.params.get('verbose', False):
-                        if len(recv) > 100:
-                            recv = recv[:100] + '...'
-                        self.to_screen(f'[debug] Server said: {recv}')
+                        self.write_debug(f'Server response: {truncate_string(recv, 100)}')
 
         def ws_main():
             reconnect = False
@@ -128,7 +77,8 @@ class NiconicoLiveFD(FileDownloader):
                     if ret is True:
                         return
                 except BaseException as e:
-                    self.to_screen('[{}] {}: Connection error occured, reconnecting after 10 seconds: {}'.format('niconico:live', video_id, str_or_none(e)))
+                    self.to_screen(
+                        f'[niconico:live] {video_id}: Connection error occured, reconnecting after 10 seconds: {e}')
                     time.sleep(10)
                     continue
                 finally:
