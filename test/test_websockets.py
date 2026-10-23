@@ -65,9 +65,10 @@ def websocket_handler(websocket):
 def process_request(self, request):
     if request.path.startswith('/gen_'):
         status = http.HTTPStatus(int(request.path[5:]))
-        if 300 <= status.value <= 300:
+        if status.value in {300, 301, 302, 303, 307, 308}:
             return websockets.http11.Response(
-                status.value, status.phrase, websockets.datastructures.Headers([('Location', '/')]), b'')
+                status.value, status.phrase,
+                websockets.datastructures.Headers({'Location': '/', 'Content-Length': '0'}), b'')
         return self.protocol.reject(status.value, status.phrase)
     elif request.path.startswith('/get_cookie'):
         response = self.protocol.accept(request)
@@ -236,7 +237,7 @@ class TestWebsSocketRequestHandlerConformance:
 
     # We are restricted to known HTTP status codes in http.HTTPStatus
     # Redirects are not supported for websockets
-    @pytest.mark.parametrize('status', (200, 204, 301, 302, 303, 400, 500, 511))
+    @pytest.mark.parametrize('status', (200, 204, 300, 301, 302, 303, 307, 308, 400, 500, 511))
     def test_raise_http_error(self, handler, status):
         with handler() as rh:
             with pytest.raises(HTTPError) as exc_info:
@@ -426,10 +427,8 @@ class TestWebsSocketRequestHandlerConformance:
 
 
 def create_fake_ws_connection(raised):
-    import websockets.sync.client
-
-    class FakeWsConnection(websockets.sync.client.ClientConnection):
-        def __init__(self, *args, **kwargs):
+    class FakeWsConnection:
+        def __init__(self):
             class FakeResponse:
                 body = b''
                 headers = {}
@@ -484,6 +483,87 @@ class TestWebsocketsRequestHandler:
             with pytest.raises(expected) as exc_info:
                 rh.send(Request('ws://fake-url'))
             assert exc_info.type is expected
+
+    def test_connection_context(self, handler, monkeypatch):
+        import websockets.sync.client
+
+        import yt_dlp.networking._websockets
+
+        class FakeContext:
+            def __init__(self):
+                self.enters = self.exits = 0
+
+            def __enter__(self):
+                self.enters += 1
+                return create_fake_ws_connection(Exception)
+
+            def __exit__(self, *args):
+                self.exits += 1
+
+        context = FakeContext()
+        monkeypatch.setattr(yt_dlp.networking._websockets, 'create_connection', lambda *args, **kwargs: None)
+        monkeypatch.setattr(websockets.sync.client, 'connect', lambda *args, **kwargs: context)
+
+        with handler() as rh:
+            ws = rh.send(Request('ws://fake-url'))
+            assert (context.enters, context.exits) == (1, 0)
+            ws.close()
+            assert context.exits == 1
+            ws.close()
+            assert context.exits == 1
+
+    def test_connection_context_init_error(self, handler):
+        from yt_dlp.networking._websockets import WebsocketsResponseAdapter
+
+        class BrokenAdapter(WebsocketsResponseAdapter):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                raise RuntimeError
+
+        class FakeContext:
+            exited = False
+
+            def __enter__(self):
+                return create_fake_ws_connection(Exception)
+
+            def __exit__(self, *args):
+                self.exited = True
+
+        context = FakeContext()
+        with pytest.raises(RuntimeError):
+            BrokenAdapter.from_context(context, url='ws://fake-url')
+        assert context.exited
+
+    @pytest.mark.parametrize('explicit_cause', (False, True))
+    def test_redirect_error_mapping(self, handler, monkeypatch, explicit_cause):
+        import websockets.sync.client
+
+        import yt_dlp.networking._websockets
+
+        response = websockets.http11.Response(
+            302, 'Found', websockets.datastructures.Headers([('Location', '/')]), b'')
+        status_error = websockets.exceptions.InvalidStatus(response)
+
+        class FakeContext:
+            def __enter__(self):
+                try:
+                    raise status_error
+                except websockets.exceptions.InvalidStatus:
+                    if explicit_cause:
+                        raise ValueError('cannot follow redirect') from status_error
+                    raise ValueError('cannot follow redirect')
+
+            def __exit__(self, *args):
+                pass
+
+        monkeypatch.setattr(
+            yt_dlp.networking._websockets, 'create_connection', lambda *args, **kwargs: None)
+        monkeypatch.setattr(
+            websockets.sync.client, 'connect', lambda *args, **kwargs: FakeContext())
+
+        with handler() as rh, pytest.raises(HTTPError) as exc_info:
+            rh.send(Request('ws://fake-url'))
+        assert exc_info.value.status == 302
 
     @pytest.mark.parametrize('raised,expected,match', [
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
