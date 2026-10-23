@@ -21,6 +21,7 @@ from yt_dlp.extractor.youtube.jsc.provider import (
 )
 from yt_dlp.extractor.youtube.pot._provider import configuration_arg
 from yt_dlp.extractor.youtube.pot.provider import provider_bug_report_message
+from yt_dlp.utils import version_tuple
 from yt_dlp.utils._jsruntime import JsRuntimeInfo
 
 if _has_ejs:
@@ -223,7 +224,8 @@ class EJSBaseJCP(JsChallengeProvider):
                 skipped_components.append(script)
                 continue
             if not self.is_dev:
-                if script.version != self._SCRIPT_VERSION:
+                # Matching patch version is expected to have same hash
+                if version_tuple(script.version, lenient=True)[:2] != version_tuple(self._SCRIPT_VERSION, lenient=True)[:2]:
                     self.logger.warning(
                         f'Challenge solver {script_type.value} script version {script.version} '
                         f'is not supported (source: {script.source.value}, variant: {script.variant}, supported version: {self._SCRIPT_VERSION})')
@@ -231,8 +233,8 @@ class EJSBaseJCP(JsChallengeProvider):
                         self.logger.debug('Clearing outdated cached script')
                         self.ie.cache.store(self._CACHE_SECTION, script_type.value, None)
                     continue
-                script_hashes = self._ALLOWED_HASHES[script.type].get(script.variant, [])
-                if script_hashes and script.hash not in script_hashes:
+                expected_hash = self._ALLOWED_HASHES[script.type].get(script.variant)
+                if expected_hash and script.hash != expected_hash:
                     self.logger.warning(
                         f'Hash mismatch on challenge solver {script.type.value} script '
                         f'(source: {script.source.value}, variant: {script.variant}, hash: {script.hash})!{provider_bug_report_message(self)}')

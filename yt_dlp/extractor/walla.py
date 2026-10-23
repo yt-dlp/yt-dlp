@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class WallaIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://vod\.walla\.co\.il/[^/]+/(?P<id>\d+)/(?P<display_id>.+)'
     _TEST = {
         'url': 'http://vod.walla.co.il/movie/2642630/one-direction-all-for-one',

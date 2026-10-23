@@ -371,15 +371,16 @@ class FranceTVSiteIE(FranceTVBaseInfoExtractor):
 
 
 class FranceTVInfoIE(FranceTVBaseInfoExtractor):
-    IE_NAME = 'francetvinfo.fr'
-    _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.francetvinfo\.fr/(?:[^/]+/)*(?P<id>[^/?#&.]+)'
+    IE_NAME = 'franceinfo'
+    IE_DESC = 'franceinfo.fr (formerly francetvinfo.fr)'
+    _VALID_URL = r'https?://(?:www|mobile|france3-regions)\.france(?:tv)?info.fr/(?:[^/?#]+/)*(?P<id>[^/?#&.]+)'
 
     _TESTS = [{
         'url': 'https://www.francetvinfo.fr/replay-jt/france-3/soir-3/jt-grand-soir-3-jeudi-22-aout-2019_3561461.html',
         'info_dict': {
             'id': 'd12458ee-5062-48fe-bfdd-a30d6a01b793',
             'ext': 'mp4',
-            'title': 'Soir 3',
+            'title': 'Soir 3 - Émission du jeudi 22 août 2019',
             'upload_date': '20190822',
             'timestamp': 1566510730,
             'thumbnail': r're:^https?://.*\.jpe?g$',
@@ -398,7 +399,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
         'info_dict': {
             'id': '7d204c9e-a2d3-11eb-9e4c-000d3a23d482',
             'ext': 'mp4',
-            'title': 'Covid-19 : une situation catastrophique à New Dehli - Édition du mercredi 21 avril 2021',
+            'title': 'Journal 20h00 - Covid-19 : une situation catastrophique à New Dehli',
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'duration': 76,
             'timestamp': 1619028518,
@@ -438,12 +439,27 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             'thumbnail': r're:https://[^/?#]+/v/[^/?#]+/x1080',
         },
         'add_ie': ['Dailymotion'],
+        'skip': 'Broken Dailymotion link',
+    }, {
+        'url': 'https://www.franceinfo.fr/monde/usa/presidentielle/donald-trump/etats-unis-un-risque-d-embrasement-apres-la-mort-d-un-manifestant_7764542.html',
+        'info_dict': {
+            'id': 'f920fcc2-fa20-11f0-ac98-57a09c50f7ce',
+            'ext': 'mp4',
+            'title': 'Affaires sensibles - Manifestant tué Le risque d\'embrasement',
+            'duration': 118,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1769367756,
+            'upload_date': '20260125',
+        },
     }, {
         'url': 'http://france3-regions.francetvinfo.fr/limousin/emissions/jt-1213-limousin',
         'only_matching': True,
     }, {
         # "<figure id=" pattern (#28792)
         'url': 'https://www.francetvinfo.fr/culture/patrimoine/incendie-de-notre-dame-de-paris/notre-dame-de-paris-de-l-incendie-de-la-cathedrale-a-sa-reconstruction_4372291.html',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.franceinfo.fr/replay-jt/france-2/20-heures/robert-de-niro-portrait-d-un-monument-du-cinema_7245456.html',
         'only_matching': True,
     }]
 
@@ -460,7 +476,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
 
         video_id = (
             traverse_obj(webpage, (
-                {find_element(tag='button', attr='data-cy', value='francetv-player-wrapper', html=True)},
+                {find_element(tag='(button|div)', attr='data-cy', value='francetv-player-wrapper', html=True, regex=True)},
                 {extract_attributes}, 'id'))
             or self._search_regex(
                 (r'player\.load[^;]+src:\s*["\']([^"\']+)',

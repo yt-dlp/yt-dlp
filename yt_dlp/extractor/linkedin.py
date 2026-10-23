@@ -4,7 +4,6 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     extract_attributes,
     float_or_none,
     int_or_none,
@@ -12,44 +11,11 @@ from ..utils import (
     srt_subtitles_timecode,
     try_get,
     url_or_none,
-    urlencode_postdata,
-    urljoin,
 )
 from ..utils.traversal import find_elements, require, traverse_obj
 
 
-class LinkedInBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'linkedin'
-    _logged_in = False
-
-    def _perform_login(self, username, password):
-        if self._logged_in:
-            return
-
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-        action_url = urljoin(self._LOGIN_URL, self._search_regex(
-            r'<form[^>]+action=(["\'])(?P<url>.+?)\1', login_page, 'post url',
-            default='https://www.linkedin.com/uas/login-submit', group='url'))
-        data = self._hidden_inputs(login_page)
-        data.update({
-            'session_key': username,
-            'session_password': password,
-        })
-        login_submit_page = self._download_webpage(
-            action_url, None, 'Logging in',
-            data=urlencode_postdata(data))
-        error = self._search_regex(
-            r'<span[^>]+class="error"[^>]*>\s*(.+?)\s*</span>',
-            login_submit_page, 'error', default=None)
-        if error:
-            raise ExtractorError(error, expected=True)
-        LinkedInBaseIE._logged_in = True
-
-
-class LinkedInLearningBaseIE(LinkedInBaseIE):
-    _LOGIN_URL = 'https://www.linkedin.com/uas/login?trk=learning'
-
+class LinkedInLearningBaseIE(InfoExtractor):
     def _call_api(self, course_slug, fields, video_slug=None, resolution=None):
         query = {
             'courseSlug': course_slug,
@@ -82,7 +48,7 @@ class LinkedInLearningBaseIE(LinkedInBaseIE):
         return self._get_urn_id(video_data) or f'{course_slug}/{video_slug}'
 
 
-class LinkedInIE(LinkedInBaseIE):
+class LinkedInIE(InfoExtractor):
     _VALID_URL = [
         r'https?://(?:www\.)?linkedin\.com/posts/[^/?#]+-(?P<id>\d+)-\w{4}/?(?:[?#]|$)',
         r'https?://(?:www\.)?linkedin\.com/feed/update/urn:li:activity:(?P<id>\d+)',
@@ -280,7 +246,7 @@ class LinkedInLearningCourseIE(LinkedInLearningBaseIE):
             course_data.get('description'))
 
 
-class LinkedInEventsIE(LinkedInBaseIE):
+class LinkedInEventsIE(InfoExtractor):
     IE_NAME = 'linkedin:events'
     _VALID_URL = r'https?://(?:www\.)?linkedin\.com/events/(?P<id>[\w-]+)'
     _TESTS = [{

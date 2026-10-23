@@ -63,13 +63,13 @@ class TestNetworkingUtils:
             'username': 'user',
             'password': '',
         }),
-        ('socks4://u%40ser:pa%20ss@127.0.0.1:1080', {
+        ('socks4://u%40ser+name:pa%20ss+word@127.0.0.1:1080', {
             'proxytype': ProxyType.SOCKS4,
             'addr': '127.0.0.1',
             'port': 1080,
             'rdns': False,
-            'username': 'u@ser',
-            'password': 'pa ss',
+            'username': 'u@ser+name',
+            'password': 'pa ss+word',
         }),
         ('socks4a://:pa%20ss@127.0.0.1', {
             'proxytype': ProxyType.SOCKS4A,
