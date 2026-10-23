@@ -15,7 +15,7 @@ from ..utils import (
 class EpornerIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?eporner\.com/(?:(?:hd-porn|embed)/|video-)(?P<id>\w+)(?:/(?P<display_id>[\w-]+))?'
     _TESTS = [{
-        'url': 'http://www.eporner.com/hd-porn/95008/Infamous-Tiffany-Teen-Strip-Tease-Video/',
+        'url': 'https://www.eporner.com/hd-porn/95008/Infamous-Tiffany-Teen-Strip-Tease-Video/',
         'md5': '39d486f046212d8e1b911c52ab4691f8',
         'info_dict': {
             'id': 'qlDUmNsj6VS',
@@ -31,13 +31,13 @@ class EpornerIE(InfoExtractor):
         },
     }, {
         # New (May 2016) URL layout
-        'url': 'http://www.eporner.com/hd-porn/3YRUtzMcWn0/Star-Wars-XXX-Parody/',
+        'url': 'https://www.eporner.com/hd-porn/3YRUtzMcWn0/Star-Wars-XXX-Parody/',
         'only_matching': True,
     }, {
-        'url': 'http://www.eporner.com/hd-porn/3YRUtzMcWn0',
+        'url': 'https://www.eporner.com/hd-porn/3YRUtzMcWn0',
         'only_matching': True,
     }, {
-        'url': 'http://www.eporner.com/embed/3YRUtzMcWn0',
+        'url': 'https://www.eporner.com/embed/3YRUtzMcWn0',
         'only_matching': True,
     }, {
         'url': 'https://www.eporner.com/video-FJsA19J3Y3H/one-of-the-greats/',
@@ -64,7 +64,7 @@ class EpornerIE(InfoExtractor):
             return ''.join(encode_base_n(int(s[lb:lb + 8], 16), 36) for lb in range(0, 32, 8))
 
         video = self._download_json(
-            f'http://www.eporner.com/xhr/video/{video_id}',
+            f'https://www.eporner.com/xhr/video/{video_id}',
             display_id, note='Downloading video JSON',
             query={
                 'hash': calc_hash(vid_hash),
