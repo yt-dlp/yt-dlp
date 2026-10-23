@@ -114,7 +114,7 @@ requests.adapters.select_proxy = select_proxy
 class RequestsResponseAdapter(Response):
     def __init__(self, res: requests.models.Response):
         super().__init__(
-            fp=res.raw, headers=res.headers, url=res.url,
+            fp=res.raw, headers=res.raw.headers, url=res.url,
             status=res.status_code, reason=res.reason)
 
         self._requests_response = res
