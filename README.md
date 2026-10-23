@@ -626,7 +626,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rtmp) to use it for.
                                     Currently supports native, aria2c, axel,
-                                    curl, ffmpeg, httpie, wget. You can use this
+                                    curl, ffmpeg, httpie, wget, wget2. You can use this
                                     option multiple times to set different
                                     downloaders for different protocols. E.g.
                                     --downloader aria2c --downloader
