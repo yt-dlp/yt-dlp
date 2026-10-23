@@ -99,17 +99,17 @@ class AfreecaTVIE(AfreecaTVBaseIE):
     IE_DESC = 'sooplive.com'
     _VALID_URL = r'https?://vod\.sooplive\.com/(?:PLAYER/STATION|player)/(?P<id>\d+)/?(?:$|[?#&])'
     _TESTS = [{
-        'url': 'https://vod.sooplive.com/player/192805325',
+        'url': 'https://vod.sooplive.com/player/136691809',
         'info_dict': {
-            'id': '20260414_1B44E53B_293230967_1',
+            'id': '20240918_EC8BA7FA_276740784_1',
             'ext': 'mp4',
             'uploader_id': 'rlantnghks',
             'uploader': '페이즈으',
-            'duration': 10869,
-            'thumbnail': r're:https?://videoimg\.sooplive\.com/.+',
-            'upload_date': '20260414',
-            'timestamp': 1776174982,
-            'title': 'T1 Peyz [CC]',
+            'duration': 17998,
+            'thumbnail': r're:https?://(?:video|st)img\.(?:sooplive\.co\.kr|sooplive\.com|afreecatv\.com)/.+',
+            'upload_date': '20240918',
+            'timestamp': 1726653979,
+            'title': '젠 페 (part 1)',
         },
         'params': {
             'skip_download': True,
