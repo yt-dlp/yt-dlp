@@ -4518,7 +4518,7 @@ def rot47(s):
 
 def parse_m3u8_attributes(attrib):
     info = {}
-    for (key, val) in re.findall(r'(?P<key>[A-Z0-9-]+)=(?P<val>"[^"]+"|[^",]+)(?:,|$)', attrib):
+    for (key, val) in re.findall(r'(?P<key>[A-Z0-9-]+)=(?P<val>"[^"]*"|[^",]+)(?:,|$)', attrib):
         if val.startswith('"'):
             val = val[1:-1]
         info[key] = val
