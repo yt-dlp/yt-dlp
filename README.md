@@ -1389,6 +1389,8 @@ The available fields are:
 
 All the fields in [Filtering Formats](#filtering-formats) can also be used
 
+For Facebook, `like_count` uses the total number of reactions when available (including likes, hearts, and other reactions). The extractor also provides `reaction_count` and `like_metric` (`reactions` or `likes`) to distinguish reactions from likes alone. `facebook_metrics` contains the video ID, source URL, per-field sources, abbreviated display values, and reasons for missing statistics. Abbreviations such as `1.1K` are preserved under `facebook_metrics.approximate` and are not converted into exact count fields. Extraction uses the already downloaded public page; availability of statistics depends on the response.
+
 Available for the video that belongs to some logical chapter or section:
 
  - `chapter` (string): Name or title of the chapter the video belongs to

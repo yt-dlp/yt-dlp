@@ -9,6 +9,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
+    extract_attributes,
     float_or_none,
     format_field,
     get_element_by_id,
@@ -23,6 +24,7 @@ from ..utils import (
     str_or_none,
     traverse_obj,
     try_get,
+    unescapeHTML,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -465,11 +467,129 @@ class FacebookIE(InfoExtractor):
         'graphURI': '/api/graphql/',
     }
 
+    def _extract_video_metrics(self, webpage, video_id, info):
+        info = dict(info)
+        evidence = {
+            'video_id': video_id,
+            'source_url': self._VIDEO_PAGE_TEMPLATE % video_id,
+            'sources': {}, 'approximate': {}, 'approximate_sources': {}, 'missing_reasons': {},
+        }
+        metric_keys = ('view_count', 'like_count', 'comment_count', 'reaction_count')
+        for key in metric_keys:
+            if info.get(key) is not None:
+                evidence['sources'][key] = 'existing_metadata'
+
+        def offer(key, value, source):
+            if isinstance(value, str):
+                value = value.strip()
+                if re.fullmatch(r'\d+(?:\.\d+)?\s*[KMB万亿]', value, re.I):
+                    evidence['approximate'].setdefault(key, value)
+                    evidence['approximate_sources'].setdefault(key, source)
+                    return
+                if not re.fullmatch(r'(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:[ \xa0\u202f]\d{3})+)', value):
+                    return
+                value = int_or_none(re.sub(r'[, \xa0\u202f]', '', value))
+            if type(value) is int and value >= 0 and info.get(key) is None:
+                info[key] = value
+                evidence['sources'][key] = source
+
+        def feedback_metrics(feedback, path):
+            if not isinstance(feedback, dict):
+                return
+            associated_id = traverse_obj(feedback, ('associated_video', 'id', {str_or_none}))
+            if associated_id is not None and associated_id != video_id:
+                return
+            for key, field in (
+                ('reaction_count', ('reaction_count', 'count')),
+                ('reaction_count', ('reaction_count',)),
+                ('comment_count', ('total_comment_count',)),
+                ('comment_count', ('comment_rendering_instance', 'comments', 'total_count')),
+                ('view_count', ('video_view_count',)),
+                ('like_count', ('likers', 'count')),
+                ('reaction_count', ('i18n_reaction_count',)),
+            ):
+                offer(key, traverse_obj(feedback, field), f'{path}.{".".join(field)}')
+            view_feedback = traverse_obj(feedback, ('video_view_count_renderer', 'feedback', {dict}))
+            view_id = traverse_obj(view_feedback, ('associated_video', 'id', {str_or_none}))
+            if view_id is None or view_id == video_id:
+                # play_count and reaction subtotals describe different metrics.
+                offer('view_count', traverse_obj(view_feedback, 'video_view_count'),
+                      f'{path}.video_view_count_renderer.feedback.video_view_count')
+
+        def matches_url(value):
+            return isinstance(value, str) and any(
+                ie.suitable(value) and ie._match_id(value) == video_id for ie in (FacebookIE, FacebookReelIE))
+
+        for script in re.findall(r'(?s)<script\b[^>]*\bdata-sjs\b[^>]*>(.*?)</script>', webpage):
+            stack = [self._parse_json(script, video_id, fatal=False) or {}]
+            while stack:
+                node = stack.pop()
+                if isinstance(node, list):
+                    stack.extend(node)
+                    continue
+                if not isinstance(node, dict):
+                    continue
+                if str(node.get('id') or node.get('video_id')) == video_id:
+                    for field in (('feedback',), ('creation_story', 'feedback'), ('story', 'feedback')):
+                        feedback_metrics(traverse_obj(node, field), f'data-sjs.{".".join(field)}')
+                    for field in ('video_view_count', 'viewCount'):
+                        offer('view_count', node.get(field), f'data-sjs.{field}')
+                if traverse_obj(node, ('associated_video', 'id', {str_or_none})) == video_id:
+                    feedback_metrics(node, 'data-sjs.associated_video.feedback')
+                if matches_url(node.get('url')):
+                    feedback_metrics(node.get('feedback'), 'data-sjs.url.feedback')
+                stack.extend(value for value in node.values() if isinstance(value, (dict, list)))
+
+        canonical = self._html_search_meta('og:url', webpage, default=None) or next((
+            attrs.get('href') for tag in re.findall(r'<link\b[^>]*>', webpage, re.I)
+            if (attrs := extract_attributes(tag)).get('rel') == 'canonical'), None)
+        if matches_url(canonical):
+            for name in ('og:title', 'twitter:title', None):
+                title = (self._html_search_meta(name, webpage, default=None) if name
+                         else self._html_extract_title(webpage))
+                for token in (title or '').split('|', 1)[0].strip().split('·'):
+                    match = re.fullmatch(
+                        r'\s*([\d,. \xa0\u202f]+(?:[KMB万亿])?)\s*'
+                        r'(views?|reactions?|comments?|likes?|shares?|次观看|次播放|条评论|个心情|个赞)\s*',
+                        token, re.I)
+                    if not match:
+                        break
+                    value, label = match.groups()
+                    key = next((key for pattern, key in (
+                        (r'view|次观看|次播放', 'view_count'), (r'reaction|个心情', 'reaction_count'),
+                        (r'comment|条评论', 'comment_count'), (r'like|个赞', 'like_count'),
+                    ) if re.match(pattern, label, re.I)), None)
+                    if key:
+                        offer(key, value, f'{name or "title"}.statistics_prefix')
+
+        # Facebook reactions include likes, hearts, etc.; retain their meaning in JSON.
+        if info.get('reaction_count') is not None:
+            info.update(like_count=info['reaction_count'], like_metric='reactions')
+            evidence['sources']['like_count'] = evidence['sources']['reaction_count']
+        elif info.get('like_count') is not None:
+            info['like_metric'] = 'likes'
+        if 'reaction_count' in evidence['approximate']:
+            evidence['approximate']['like_count'] = evidence['approximate']['reaction_count']
+            evidence['approximate_sources']['like_count'] = evidence['approximate_sources']['reaction_count']
+
+        visible = clean_html(re.sub(
+            r'(?is)<(?:script|style)\b[^>]*>.*?</(?:script|style)>|<!--.*?-->', '', webpage)) or ''
+        login_required = bool(re.search(
+            r'you (?:must|need to) log in to (?:continue|view)|you must log in to see|'
+            r'请先登录以继续|登录后才能查看|你必须先登录才能继续', unescapeHTML(visible), re.I))
+        for key in metric_keys[:3]:
+            if info.get(key) is None:
+                evidence['missing_reasons'][key] = (
+                    'approximate_only' if key in evidence['approximate']
+                    else 'login_required' if login_required else 'not_returned')
+        info['facebook_metrics'] = evidence
+        return info
+
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
-        def extract_metadata(webpage):
+        def extract_metadata(webpage, target_id=None):
             post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
                 r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
@@ -513,14 +633,9 @@ class FacebookIE(InfoExtractor):
                 'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
-                'view_count': parse_count(self._search_regex(
-                    (r'\bviewCount\s*:\s*["\']([\d,.]+)', r'video_view_count["\']\s*:\s*(\d+)'),
-                    webpage, 'view count', default=None)),
                 'concurrent_view_count': get_first(post, (
                     ('video', (..., ..., 'attachments', ..., 'media')), 'liveViewerCount', {int_or_none})),
                 **traverse_obj(post, (lambda _, v: video_id in v['url'], 'feedback', {
-                    'like_count': ('likers', 'count', {int}),
-                    'comment_count': ('total_comment_count', {int}),
                     'repost_count': ('share_count_reduced', {parse_count}),
                 }), get_all=False),
             }
@@ -528,7 +643,7 @@ class FacebookIE(InfoExtractor):
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
             info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
                                      or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
-            return merge_dicts(info_json_ld, info_dict)
+            return self._extract_video_metrics(webpage, target_id or video_id, merge_dicts(info_json_ld, info_dict))
 
         video_data = None
 
@@ -740,7 +855,7 @@ class FacebookIE(InfoExtractor):
                     return self.playlist_result(entries, video_id)
 
                 video_info = entries[0] if entries else {'id': video_id}
-                webpage_info = extract_metadata(webpage)
+                webpage_info = extract_metadata(webpage, video_info['id'])
                 # honor precise duration in video info
                 if video_info.get('duration'):
                     webpage_info['duration'] = video_info['duration']
