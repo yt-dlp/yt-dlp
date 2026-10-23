@@ -1,6 +1,3 @@
-import json
-import re
-
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
 from ..utils import (
@@ -11,7 +8,12 @@ from ..utils import (
     str_or_none,
     url_or_none,
 )
-from ..utils.traversal import require, traverse_obj, value
+from ..utils.traversal import (
+    get_first,
+    require,
+    traverse_obj,
+    value,
+)
 
 
 class NineNowIE(InfoExtractor):
@@ -101,20 +103,11 @@ class NineNowIE(InfoExtractor):
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/4460760524001/default_default/index.html?videoId={}'
 
-    # XXX: For parsing next.js v15+ data; see also yt_dlp.extractor.francetv and yt_dlp.extractor.goplay
-    def _find_json(self, s):
-        return self._search_json(
-            r'\w+\s*:\s*', s, 'next js data', None, contains_pattern=r'\[(?s:.+)\]', default=None)
-
     def _real_extract(self, url):
         display_id, video_type = self._match_valid_url(url).group('id', 'type')
         webpage = self._download_webpage(url, display_id)
 
-        common_data = traverse_obj(
-            re.findall(r'<script[^>]*>\s*self\.__next_f\.push\(\s*(\[.+?\])\s*\);?\s*</script>', webpage),
-            (..., {json.loads}, ..., {self._find_json},
-             lambda _, v: v['payload'][video_type]['slug'] == display_id,
-             'payload', any, {require('video data')}))
+        common_data = get_first(self._search_nextjs_v13_data(webpage, display_id), ('payload', {dict}))
 
         if traverse_obj(common_data, (video_type, 'video', 'drm', {bool})):
             self.report_drm(display_id)

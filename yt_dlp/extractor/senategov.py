@@ -23,13 +23,10 @@ class SenateISVPIE(InfoExtractor):
             'id': 'judiciary031715',
             'ext': 'mp4',
             'title': 'ISVP',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             '_old_archive_ids': ['senategov judiciary031715'],
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Failed to download m3u8 information'],
     }, {
         'url': 'http://www.senate.gov/isvp/?type=live&comm=commerce&filename=commerce011514.mp4&auto_play=false',
@@ -38,10 +35,6 @@ class SenateISVPIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Integrated Senate Video Player',
             '_old_archive_ids': ['senategov commerce011514'],
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
         },
         'skip': 'This video is not available.',
     }, {
@@ -60,13 +53,24 @@ class SenateISVPIE(InfoExtractor):
             'id': 'help090920',
             'ext': 'mp4',
             'title': 'ISVP',
-            'thumbnail': 'https://www.help.senate.gov/assets/images/video-poster.png',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             '_old_archive_ids': ['senategov help090920'],
         },
     }, {
         # From http://www.c-span.org/video/?96791-1
         'url': 'http://www.senate.gov/isvp?type=live&comm=banking&filename=banking012715',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://www.hsgac.senate.gov/subcommittees/bmfwra/hearings/match-ready-oversight-of-the-federal-governments-border-management-and-personnel-readiness-efforts-for-the-decade-of-sports/',
+        'info_dict': {
+            'id': 'govtaff061025',
+            'ext': 'mp4',
+            'title': 'ISVP',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
+            '_old_archive_ids': ['senategov govtaff061025'],
+        },
     }]
 
     _COMMITTEES = {
@@ -150,10 +154,10 @@ class SenateGovIE(InfoExtractor):
             'id': 'help090920',
             'display_id': 'vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
             'title': 'Vaccines: Saving Lives, Ensuring Confidence, and Protecting Public Health',
-            'description': 'The U.S. Senate Committee on Health, Education, Labor & Pensions',
+            'description': 'Full Committee Hearing on September 9, 2020 at 6:00 AM',
             'ext': 'mp4',
             'age_limit': 0,
-            'thumbnail': 'https://www.help.senate.gov/assets/images/sharelogo.jpg',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             '_old_archive_ids': ['senategov help090920'],
         },
         'params': {'skip_download': 'm3u8'},
@@ -165,7 +169,7 @@ class SenateGovIE(InfoExtractor):
             'title': 'Review of the FY2019 Budget Request for the U.S. Army',
             'ext': 'mp4',
             'age_limit': 0,
-            'thumbnail': 'https://www.appropriations.senate.gov/themes/appropriations/images/video-poster-flash-fit.png',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             '_old_archive_ids': ['senategov appropsA051518'],
         },
         'params': {'skip_download': 'm3u8'},
@@ -178,7 +182,7 @@ class SenateGovIE(InfoExtractor):
             'title': '21st Century Communities: Public Transportation Infrastructure Investment and FAST Act Reauthorization',
             'description': 'The Official website of The United States Committee on Banking, Housing, and Urban Affairs',
             'ext': 'mp4',
-            'thumbnail': 'https://www.banking.senate.gov/themes/banking/images/sharelogo.jpg',
+            'thumbnail': r're:https?://.+\.(?:jpe?g|png)',
             'age_limit': 0,
             '_old_archive_ids': ['senategov banking041521'],
         },

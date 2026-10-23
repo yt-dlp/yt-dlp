@@ -1,9 +1,7 @@
 import urllib.parse
 
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
 from ..utils import (
-    ExtractorError,
     float_or_none,
     url_or_none,
 )
@@ -58,16 +56,7 @@ class FrancaisFacileIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = urllib.parse.unquote(self._match_id(url))
-
-        try:  # yt-dlp's default user-agents are too old and blocked by the site
-            webpage = self._download_webpage(url, display_id, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; rv:136.0) Gecko/20100101 Firefox/136.0',
-            })
-        except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.status != 403:
-                raise
-            # Retry with impersonation if hardcoded UA is insufficient
-            webpage = self._download_webpage(url, display_id, impersonate=True)
+        webpage = self._download_webpage(url, display_id)
 
         data = self._search_json(
             r'<script[^>]+\bdata-media-id=[^>]+\btype="application/json"[^>]*>',

@@ -1,14 +1,9 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    float_or_none,
-    format_field,
     int_or_none,
-    str_or_none,
-    traverse_obj,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class MedalTVIE(InfoExtractor):
@@ -30,25 +25,8 @@ class MedalTVIE(InfoExtractor):
             'view_count': int,
             'like_count': int,
             'duration': 13,
-        },
-    }, {
-        'url': 'https://medal.tv/games/cod-cold-war/clips/2mA60jWAGQCBH',
-        'md5': 'fc7a3e4552ae8993c1c4006db46be447',
-        'info_dict': {
-            'id': '2mA60jWAGQCBH',
-            'ext': 'mp4',
-            'title': 'Quad Cold',
-            'description': 'Medal,https://medal.tv/desktop/',
-            'uploader': 'MowgliSB',
-            'timestamp': 1603165266,
-            'upload_date': '20201020',
-            'uploader_id': '10619174',
-            'thumbnail': 'https://cdn.medal.tv/10619174/thumbnail-34934644-720p.jpg?t=1080p&c=202042&missing',
-            'uploader_url': 'https://medal.tv/users/10619174',
-            'comment_count': int,
-            'view_count': int,
-            'like_count': int,
-            'duration': 23,
+            'thumbnail': r're:https://cdn\.medal\.tv/ugcp/content-thumbnail/.*\.jpg',
+            'tags': ['headshot', 'valorant', '4k', 'clutch', 'mornu'],
         },
     }, {
         'url': 'https://medal.tv/games/cod-cold-war/clips/2um24TWdty0NA',
@@ -57,12 +35,12 @@ class MedalTVIE(InfoExtractor):
             'id': '2um24TWdty0NA',
             'ext': 'mp4',
             'title': 'u tk me i tk u bigger',
-            'description': 'Medal,https://medal.tv/desktop/',
-            'uploader': 'Mimicc',
+            'description': '',
+            'uploader': 'zahl',
             'timestamp': 1605580939,
             'upload_date': '20201117',
             'uploader_id': '5156321',
-            'thumbnail': 'https://cdn.medal.tv/5156321/thumbnail-36787208-360p.jpg?t=1080p&c=202046&missing',
+            'thumbnail': r're:https://cdn\.medal\.tv/source/.*\.png',
             'uploader_url': 'https://medal.tv/users/5156321',
             'comment_count': int,
             'view_count': int,
@@ -70,91 +48,77 @@ class MedalTVIE(InfoExtractor):
             'duration': 9,
         },
     }, {
-        'url': 'https://medal.tv/games/valorant/clips/37rMeFpryCC-9',
-        'only_matching': True,
-    }, {
+        # API requires auth
         'url': 'https://medal.tv/games/valorant/clips/2WRj40tpY_EU9',
+        'md5': '6c6bb6569777fd8b4ef7b33c09de8dcf',
+        'info_dict': {
+            'id': '2WRj40tpY_EU9',
+            'ext': 'mp4',
+            'title': '1v5 clutch',
+            'description': '',
+            'uploader': 'adny',
+            'uploader_id': '6256941',
+            'uploader_url': 'https://medal.tv/users/6256941',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'duration': 25,
+            'thumbnail': r're:https://cdn\.medal\.tv/source/.*\.jpg',
+            'timestamp': 1612896680,
+            'upload_date': '20210209',
+        },
+        'expected_warnings': ['Video formats are not available through API'],
+    }, {
+        'url': 'https://medal.tv/games/valorant/clips/37rMeFpryCC-9',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id, query={'mobilebypass': 'true'})
-
-        hydration_data = self._search_json(
-            r'<script[^>]*>[^<]*\bhydrationData\s*=', webpage,
-            'next data', video_id, end_pattern='</script>', fatal=False)
-
-        clip = traverse_obj(hydration_data, ('clips', ...), get_all=False)
-        if not clip:
-            raise ExtractorError(
-                'Could not find video information.', video_id=video_id)
-
-        title = clip['contentTitle']
-
-        source_width = int_or_none(clip.get('sourceWidth'))
-        source_height = int_or_none(clip.get('sourceHeight'))
-
-        aspect_ratio = source_width / source_height if source_width and source_height else 16 / 9
-
-        def add_item(container, item_url, height, id_key='format_id', item_id=None):
-            item_id = item_id or '%dp' % height
-            if item_id not in item_url:
-                return
-            container.append({
-                'url': item_url,
-                id_key: item_id,
-                'width': round(aspect_ratio * height),
-                'height': height,
-            })
+        content_data = self._download_json(
+            f'https://medal.tv/api/content/{video_id}', video_id,
+            headers={'Accept': 'application/json'})
 
         formats = []
-        thumbnails = []
-        for k, v in clip.items():
-            if not (v and isinstance(v, str)):
-                continue
-            mobj = re.match(r'(contentUrl|thumbnail)(?:(\d+)p)?$', k)
-            if not mobj:
-                continue
-            prefix = mobj.group(1)
-            height = int_or_none(mobj.group(2))
-            if prefix == 'contentUrl':
-                add_item(
-                    formats, v, height or source_height,
-                    item_id=None if height else 'source')
-            elif prefix == 'thumbnail':
-                add_item(thumbnails, v, height, 'id')
-
-        error = clip.get('error')
-        if not formats and error:
-            if error == 404:
-                self.raise_no_formats(
-                    'That clip does not exist.',
-                    expected=True, video_id=video_id)
-            else:
-                self.raise_no_formats(
-                    f'An unknown error occurred ({error}).',
-                    video_id=video_id)
-
-        # Necessary because the id of the author is not known in advance.
-        # Won't raise an issue if no profile can be found as this is optional.
-        author = traverse_obj(hydration_data, ('profiles', ...), get_all=False) or {}
-        author_id = str_or_none(author.get('userId'))
-        author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
+        if m3u8_url := url_or_none(content_data.get('contentUrlHls')):
+            formats.extend(self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls'))
+        if http_url := url_or_none(content_data.get('contentUrl')):
+            formats.append({
+                'url': http_url,
+                'format_id': 'http-source',
+                'ext': 'mp4',
+                'quality': 1,
+            })
+        formats = [fmt for fmt in formats if 'video/privacy-protected-guest' not in fmt['url']]
+        if not formats:
+            # Fallback, does not require auth
+            self.report_warning('Video formats are not available through API, falling back to social video URL')
+            urlh = self._request_webpage(
+                f'https://medal.tv/api/content/{video_id}/socialVideoUrl', video_id,
+                note='Checking social video URL')
+            formats.append({
+                'url': urlh.url,
+                'format_id': 'social-video',
+                'ext': 'mp4',
+                'quality': -1,
+            })
 
         return {
             'id': video_id,
-            'title': title,
             'formats': formats,
-            'thumbnails': thumbnails,
-            'description': clip.get('contentDescription'),
-            'uploader': author.get('displayName'),
-            'timestamp': float_or_none(clip.get('created'), 1000),
-            'uploader_id': author_id,
-            'uploader_url': author_url,
-            'duration': int_or_none(clip.get('videoLengthSeconds')),
-            'view_count': int_or_none(clip.get('views')),
-            'like_count': int_or_none(clip.get('likes')),
-            'comment_count': int_or_none(clip.get('comments')),
+            **traverse_obj(content_data, {
+                'title': ('contentTitle', {str}),
+                'description': ('contentDescription', {str}),
+                'timestamp': ('created', {int_or_none(scale=1000)}),
+                'duration': ('videoLengthSeconds', {int_or_none}),
+                'view_count': ('views', {int_or_none}),
+                'like_count': ('likes', {int_or_none}),
+                'comment_count': ('comments', {int_or_none}),
+                'uploader': ('poster', 'displayName', {str}),
+                'uploader_id': ('poster', 'userId', {str}),
+                'uploader_url': ('poster', 'userId', {str}, filter, {lambda x: x and f'https://medal.tv/users/{x}'}),
+                'tags': ('tags', ..., {str}),
+                'thumbnail': ('thumbnailUrl', {url_or_none}),
+            }),
         }

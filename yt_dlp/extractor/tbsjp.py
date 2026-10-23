@@ -1,104 +1,107 @@
-from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
+from .streaks import StreaksBaseIE
 from ..utils import (
-    ExtractorError,
     clean_html,
     int_or_none,
     str_or_none,
     unified_timestamp,
-    urljoin,
+    url_or_none,
 )
-from ..utils.traversal import find_element, traverse_obj
+from ..utils.traversal import traverse_obj
 
 
-class TBSJPEpisodeIE(InfoExtractor):
+class TBSJPBaseIE(StreaksBaseIE):
+    def _search_window_app_json(self, webpage, name, item_id, **kwargs):
+        return self._search_json(r'window\.app\s*=', webpage, f'{name} info', item_id, **kwargs)
+
+
+class TBSJPEpisodeIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/episode/(?P<id>[\d_]+)'
-    _GEO_BYPASS = False
     _TESTS = [{
-        'url': 'https://cu.tbs.co.jp/episode/23613_2044134_1000049010',
-        'skip': 'streams geo-restricted, Japan only. Also, will likely expire eventually',
+        'url': 'https://cu.tbs.co.jp/episode/14694_2094162_1000123656',
+        'skip': 'geo-blocked to japan + 7-day expiry',
         'info_dict': {
-            'title': 'VIVANT 第三話 誤送金完結へ!絶体絶命の反撃開始',
-            'id': '23613_2044134_1000049010',
+            'title': 'クロちゃん、寝て起きたら川のほとりにいてその向こう岸に亡くなった父親がいたら死の淵にいるかと思う説 ほか',
+            'id': '14694_2094162_1000123656',
             'ext': 'mp4',
-            'upload_date': '20230728',
-            'duration': 3517,
-            'release_timestamp': 1691118230,
-            'episode': '第三話 誤送金完結へ!絶体絶命の反撃開始',
-            'release_date': '20230804',
-            'categories': 'count:11',
-            'episode_number': 3,
-            'timestamp': 1690522538,
-            'description': 'md5:2b796341af1ef772034133174ba4a895',
-            'series': 'VIVANT',
+            'display_id': 'ref:14694_2094162_1000123656',
+            'description': 'md5:1a82fcdeb5e2e82190544bb72721c46e',
+            'uploader': 'TBS',
+            'uploader_id': 'tbs',
+            'duration': 2752,
+            'thumbnail': 'md5:d8855c8c292683c95a84cafdb42300bc',
+            'categories': ['エンタメ', '水曜日のダウンタウン', 'ダウンタウン', '浜田雅功', '松本人志', '水ダウ', '動画', 'バラエティ'],
+            'cast': ['浜田 雅功', '藤本 敏史', 'ビビる 大木', '千原 ジュニア', '横澤 夏子', 'せいや', 'あの', '服部 潤'],
+            'genres': ['variety'],
+            'series': '水曜日のダウンタウン',
+            'series_id': '14694',
+            'episode': 'クロちゃん、寝て起きたら川のほとりにいてその向こう岸に亡くなった父親がいたら死の淵にいるかと思う説 ほか',
+            'episode_number': 341,
+            'episode_id': '14694_2094162_1000123656',
+            'timestamp': 1753778992,
+            'upload_date': '20250729',
+            'release_timestamp': 1753880402,
+            'release_date': '20250730',
+            'modified_timestamp': 1753880741,
+            'modified_date': '20250730',
+            'live_status': 'not_live',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        meta = self._search_json(r'window\.app\s*=', webpage, 'episode info', video_id, fatal=False)
+        meta = self._search_window_app_json(webpage, 'episode', video_id, fatal=False)
         episode = traverse_obj(meta, ('falcorCache', 'catalog', 'episode', video_id, 'value'))
 
-        tf_path = self._search_regex(
-            r'<script[^>]+src=["\'](/assets/tf\.[^"\']+\.js)["\']', webpage, 'stream API config')
-        tf_js = self._download_webpage(urljoin(url, tf_path), video_id, note='Downloading stream API config')
-        video_url = self._search_regex(r'videoPlaybackUrl:\s*[\'"]([^\'"]+)[\'"]', tf_js, 'stream API url')
-        api_key = self._search_regex(r'api_key:\s*[\'"]([^\'"]+)[\'"]', tf_js, 'stream API key')
-
-        try:
-            source_meta = self._download_json(f'{video_url}ref:{video_id}', video_id,
-                                              headers={'X-Streaks-Api-Key': api_key},
-                                              note='Downloading stream metadata')
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 403:
-                self.raise_geo_restricted(countries=['JP'])
-            raise
-
-        formats, subtitles = [], {}
-        for src in traverse_obj(source_meta, ('sources', ..., 'src')):
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(src, video_id, fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
         return {
-            'title': traverse_obj(webpage, ({find_element(tag='h3')}, {clean_html})),
-            'id': video_id,
+            **self._extract_from_streaks_api(
+                'tbs', f'ref:{video_id}', headers={'Origin': 'https://cu.tbs.co.jp'}),
             **traverse_obj(episode, {
-                'categories': ('keywords', {list}),
-                'id': ('content_id', {str}),
-                'description': ('description', 0, 'value'),
-                'timestamp': ('created_at', {unified_timestamp}),
-                'release_timestamp': ('pub_date', {unified_timestamp}),
+                'title': ('title', ..., 'value', {str}, any),
+                'cast': (
+                    'credit', ..., 'name', ..., 'value', {clean_html}, any,
+                    {lambda x: x.split(',')}, ..., {str.strip}, filter, all, filter),
+                'categories': ('keywords', ..., {str}, filter, all, filter),
+                'description': ('description', ..., 'value', {clean_html}, any),
                 'duration': ('tv_episode_info', 'duration', {int_or_none}),
+                'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value', {str}, any),
+                'episode_id': ('content_id', {str}),
                 'episode_number': ('tv_episode_info', 'episode_number', {int_or_none}),
-                'episode': ('title', lambda _, v: not v.get('is_phonetic'), 'value'),
-                'series': ('custom_data', 'program_name'),
-            }, get_all=False),
-            'formats': formats,
-            'subtitles': subtitles,
+                'genres': ('genre', ..., {str}, filter, all, filter),
+                'release_timestamp': ('pub_date', {unified_timestamp}),
+                'series': ('custom_data', 'program_name', {str}),
+                'tags': ('tags', ..., {str}, filter, all, filter),
+                'thumbnail': ('artwork', ..., 'url', {url_or_none}, any),
+                'timestamp': ('created_at', {unified_timestamp}),
+                'uploader': ('tv_show_info', 'networks', ..., {str}, any),
+            }),
+            **traverse_obj(episode, ('tv_episode_info', {
+                'duration': ('duration', {int_or_none}),
+                'episode_number': ('episode_number', {int_or_none}),
+                'series_id': ('show_content_id', {str}),
+            })),
+            'id': video_id,
         }
 
 
-class TBSJPProgramIE(InfoExtractor):
+class TBSJPProgramIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/program/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://cu.tbs.co.jp/program/23601',
-        'playlist_mincount': 4,
+        'url': 'https://cu.tbs.co.jp/program/14694',
+        'playlist_mincount': 1,
         'info_dict': {
-            'id': '23601',
-            'categories': ['エンタメ', 'ミライカプセル', '会社', '働く', 'バラエティ', '動画'],
-            'description': '幼少期の夢は大人になって、どう成長したのだろうか？\nそしてその夢は今後、どのように広がっていくのか？\nいま話題の会社で働く人の「夢の成長」を描く',
-            'series': 'ミライカプセル　-I have a dream-',
-            'title': 'ミライカプセル　-I have a dream-',
+            'id': '14694',
+            'title': '水曜日のダウンタウン',
+            'description': 'md5:cf1d46c76c2755d7f87512498718b837',
+            'categories': ['エンタメ', '水曜日のダウンタウン', 'ダウンタウン', '浜田雅功', '松本人志', '水ダウ', '動画', 'バラエティ'],
+            'series': '水曜日のダウンタウン',
         },
     }]
 
     def _real_extract(self, url):
         programme_id = self._match_id(url)
         webpage = self._download_webpage(url, programme_id)
-        meta = self._search_json(r'window\.app\s*=', webpage, 'programme info', programme_id)
-
+        meta = self._search_window_app_json(webpage, 'programme', programme_id)
         programme = traverse_obj(meta, ('falcorCache', 'catalog', 'program', programme_id, 'false', 'value'))
 
         return {
@@ -116,7 +119,7 @@ class TBSJPProgramIE(InfoExtractor):
         }
 
 
-class TBSJPPlaylistIE(InfoExtractor):
+class TBSJPPlaylistIE(TBSJPBaseIE):
     _VALID_URL = r'https?://cu\.tbs\.co\.jp/playlist/(?P<id>[\da-f]+)'
     _TESTS = [{
         'url': 'https://cu.tbs.co.jp/playlist/184f9970e7ba48e4915f1b252c55015e',
@@ -129,8 +132,8 @@ class TBSJPPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        page = self._download_webpage(url, playlist_id)
-        meta = self._search_json(r'window\.app\s*=', page, 'playlist info', playlist_id)
+        webpage = self._download_webpage(url, playlist_id)
+        meta = self._search_window_app_json(webpage, 'playlist', playlist_id)
         playlist = traverse_obj(meta, ('falcorCache', 'playList', playlist_id))
 
         def entries():

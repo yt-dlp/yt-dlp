@@ -13,12 +13,9 @@ from ..utils import (
     ContentTooShortError,
     RetryManager,
     ThrottledDownload,
-    XAttrMetadataError,
-    XAttrUnavailableError,
     int_or_none,
     parse_http_range,
     try_call,
-    write_xattr,
 )
 from ..utils.networking import HTTPHeaderDict
 
@@ -27,6 +24,10 @@ class HttpFD(FileDownloader):
     def real_download(self, filename, info_dict):
         url = info_dict['url']
         request_data = info_dict.get('request_data', None)
+        request_extensions = {}
+        impersonate_target = self._get_impersonate_target(info_dict)
+        if impersonate_target is not None:
+            request_extensions['impersonate'] = impersonate_target
 
         class DownloadContext(dict):
             __getattr__ = dict.get
@@ -109,7 +110,7 @@ class HttpFD(FileDownloader):
             if try_call(lambda: range_end >= ctx.content_len):
                 range_end = ctx.content_len - 1
 
-            request = Request(url, request_data, headers)
+            request = Request(url, request_data, headers, extensions=request_extensions)
             has_range = range_start is not None
             if has_range:
                 request.headers['Range'] = f'bytes={int(range_start)}-{int_or_none(range_end) or ""}'
@@ -269,12 +270,6 @@ class HttpFD(FileDownloader):
                         self.report_error(f'unable to open for writing: {err}')
                         return False
 
-                    if self.params.get('xattr_set_filesize', False) and data_len is not None:
-                        try:
-                            write_xattr(ctx.tmpfilename, 'user.ytdl.filesize', str(data_len).encode())
-                        except (XAttrUnavailableError, XAttrMetadataError) as err:
-                            self.report_error(f'unable to set filesize xattr: {err}')
-
                 try:
                     ctx.stream.write(data_block)
                 except OSError as err:
@@ -348,7 +343,7 @@ class HttpFD(FileDownloader):
             self.try_rename(ctx.tmpfilename, ctx.filename)
 
             # Update file modification time
-            if self.params.get('updatetime', True):
+            if self.params.get('updatetime'):
                 info_dict['filetime'] = self.try_utime(ctx.filename, ctx.data.headers.get('last-modified', None))
 
             self._hook_progress({

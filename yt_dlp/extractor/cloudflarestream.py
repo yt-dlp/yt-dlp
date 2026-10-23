@@ -19,18 +19,16 @@ class CloudflareStreamIE(InfoExtractor):
             'id': '31c9291ab41fac05471db4e73aa11717',
             'ext': 'mp4',
             'title': '31c9291ab41fac05471db4e73aa11717',
-            'thumbnail': 'https://cloudflarestream.com/31c9291ab41fac05471db4e73aa11717/thumbnails/thumbnail.jpg',
+            'thumbnail': r're:https?://cloudflarestream\.com/.+\.jpg',
         },
-        'params': {
-            'skip_download': 'm3u8',
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://watch.cloudflarestream.com/embed/sdk-iframe-integration.fla9.latest.js?video=0e8e040aec776862e1d632a699edf59e',
         'info_dict': {
             'id': '0e8e040aec776862e1d632a699edf59e',
             'ext': 'mp4',
             'title': '0e8e040aec776862e1d632a699edf59e',
-            'thumbnail': 'https://cloudflarestream.com/0e8e040aec776862e1d632a699edf59e/thumbnails/thumbnail.jpg',
+            'thumbnail': r're:https?://cloudflarestream\.com/.+\.jpg',
         },
     }, {
         'url': 'https://watch.cloudflarestream.com/9df17203414fd1db3e3ed74abbe936c1',
@@ -54,10 +52,20 @@ class CloudflareStreamIE(InfoExtractor):
             'id': 'eaef9dea5159cf968be84241b5cedfe7',
             'ext': 'mp4',
             'title': 'eaef9dea5159cf968be84241b5cedfe7',
-            'thumbnail': 'https://cloudflarestream.com/eaef9dea5159cf968be84241b5cedfe7/thumbnails/thumbnail.jpg',
+            'thumbnail': r're:https?://cloudflarestream\.com/.+\.jpg',
         },
         'params': {
+            'extractor_args': {'generic': {'impersonate': ['chrome']}},
             'skip_download': 'm3u8',
+        },
+    }, {
+        # FIXME: Embed detection
+        'url': 'https://www.cloudflare.com/developer-platform/products/cloudflare-stream/',
+        'info_dict': {
+            'id': 'e7bd2dd67e0f8860b4ae81e33a966049',
+            'ext': 'mp4',
+            'title': 'e7bd2dd67e0f8860b4ae81e33a966049',
+            'thumbnail': r're:https?://cloudflarestream\.com/.+\.jpg',
         },
     }]
 

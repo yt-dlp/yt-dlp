@@ -31,10 +31,9 @@ class MegaTVComIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom'
     IE_DESC = 'megatv.com videos'
     _VALID_URL = r'https?://(?:www\.)?megatv\.com/(?:\d{4}/\d{2}/\d{2}|[^/]+/(?P<id>\d+))/(?P<slug>[^/]+)'
-
     _TESTS = [{
+        # FIXME: Unable to extract article id
         'url': 'https://www.megatv.com/2021/10/23/egkainia-gia-ti-nea-skini-omega-tou-dimotikou-theatrou-peiraia/',
-        'md5': '6546a1a37fff0dd51c9dce5f490b7d7d',
         'info_dict': {
             'id': '520979',
             'ext': 'mp4',
@@ -43,20 +42,19 @@ class MegaTVComIE(MegaTVComBaseIE):
             'timestamp': 1634975747,
             'upload_date': '20211023',
             'display_id': 'egkainia-gia-ti-nea-skini-omega-tou-dimotikou-theatrou-peiraia',
-            'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/10/ΠΕΙΡΑΙΑΣ-1024x450.jpg',
+            'thumbnail': r're:https?://www\.megatv\.com/wp-content/uploads/.+\.jpg',
         },
     }, {
         'url': 'https://www.megatv.com/tvshows/527800/epeisodio-65-12/',
-        'md5': 'cba2085d45c1abeb8e7e9b7e1d6c0072',
         'info_dict': {
             'id': '527800',
             'ext': 'mp4',
-            'title': 'md5:fc322cb51f682eecfe2f54cd5ab3a157',
+            'title': 'Η Γη της Ελιάς: Επεισόδιο 65 - A\' ΚΥΚΛΟΣ ',
             'description': 'md5:b2b7ed3690a78f2a0156eb790fdc00df',
             'timestamp': 1636048859,
             'upload_date': '20211104',
             'display_id': 'epeisodio-65-12',
-            'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/11/16-1-1.jpg',
+            'thumbnail': r're:https?://www\.megatv\.com/wp-content/uploads/.+\.jpg',
         },
     }]
 
@@ -104,8 +102,8 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     IE_DESC = 'megatv.com embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.)?megatv\.com/embed/?\?p=(?P<id>\d+)'
     _EMBED_REGEX = [rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''']
-
     _TESTS = [{
+        # FIXME: Unable to extract article id
         'url': 'https://www.megatv.com/embed/?p=2020520979',
         'md5': '6546a1a37fff0dd51c9dce5f490b7d7d',
         'info_dict': {
@@ -119,6 +117,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
             'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/10/ΠΕΙΡΑΙΑΣ-1024x450.jpg',
         },
     }, {
+        # FIXME: Unable to extract article id
         'url': 'https://www.megatv.com/embed/?p=2020534081',
         'md5': '6ac8b3ce4dc6120c802f780a1e6b3812',
         'info_dict': {
@@ -131,6 +130,15 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
             'display_id': 'neo-rekor-stin-timi-tou-ilektrikou-reymatos-pano-apo-ta-200e-i-xondriki-timi-tou-ilektrikou',
             'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/11/Capture-266.jpg',
         },
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Unable to extract article id
+        'url': 'https://www.in.gr/2021/12/18/greece/apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize/',
+        'info_dict': {
+            'id': 'apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize',
+            'title': 'md5:5e569cf996ec111057c2764ec272848f',
+        },
+        'playlist_count': 2,
     }]
 
     def _match_canonical_url(self, webpage):

@@ -206,7 +206,7 @@ class DouyuTVIE(DouyuBaseIE):
             'is_live': True,
             **traverse_obj(room, {
                 'display_id': ('url', {str}, {lambda i: i[1:]}),
-                'title': ('room_name', {unescapeHTML}),
+                'title': ('room_name', {str}, {unescapeHTML}),
                 'description': ('show_details', {str}),
                 'uploader': ('nickname', {str}),
                 'thumbnail': ('room_src', {url_or_none}),

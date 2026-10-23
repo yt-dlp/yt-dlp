@@ -76,17 +76,18 @@ class SimplecastIE(SimplecastBaseIE):
         'id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
         'ext': 'mp3',
         'title': 'Errant Signal - Chris Franklin & New Wave Video Essays',
+        'channel_url': 'https://the-re-bind-io-podcast.simplecast.com',
+        'episode': 'Episode 1',
         'episode_number': 1,
         'episode_id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
         'description': 'md5:34752789d3d2702e2d2c975fbd14f357',
+        'season': 'Season 1',
         'season_number': 1,
         'season_id': 'e23df0da-bae4-4531-8bbf-71364a88dc13',
         'series': 'The RE:BIND.io Podcast',
         'duration': 5343,
         'timestamp': 1580979475,
         'upload_date': '20200206',
-        'webpage_url': r're:^https?://the-re-bind-io-podcast\.simplecast\.com/episodes/errant-signal-chris-franklin-new-wave-video-essays',
-        'channel_url': r're:^https?://the-re-bind-io-podcast\.simplecast\.com$',
     }
     _TESTS = [{
         'url': 'https://api.simplecast.com/episodes/b6dc49a2-9404-4853-9aa9-9cfc097be876',
@@ -95,6 +96,29 @@ class SimplecastIE(SimplecastBaseIE):
     }, {
         'url': 'https://player.simplecast.com/b6dc49a2-9404-4853-9aa9-9cfc097be876',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://poddtoppen.se/podcast/1498417306/the-rebindio-podcast/errant-signal-chris-franklin-new-wave-video-essays',
+        'md5': '8c93be7be54251bf29ee97464eabe61c',
+        'info_dict': {
+            'id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
+            'ext': 'mp3',
+            'title': 'Errant Signal - Chris Franklin & New Wave Video Essays',
+            'channel_url': 'https://the-re-bind-io-podcast.simplecast.com',
+            'description': 'md5:34752789d3d2702e2d2c975fbd14f357',
+            'display_id': 'errant-signal-chris-franklin-new-wave-video-essays',
+            'duration': 5343,
+            'episode': 'Episode 1',
+            'episode_id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
+            'episode_number': 1,
+            'season': 'Season 1',
+            'season_id': 'e23df0da-bae4-4531-8bbf-71364a88dc13',
+            'season_number': 1,
+            'series': 'The RE:BIND.io Podcast',
+            'timestamp': 1580979475,
+            'upload_date': '20200206',
+        },
     }]
 
     def _real_extract(self, url):
@@ -106,11 +130,11 @@ class SimplecastIE(SimplecastBaseIE):
 class SimplecastEpisodeIE(SimplecastBaseIE):
     IE_NAME = 'simplecast:episode'
     _VALID_URL = r'https?://(?!api\.)[^/]+\.simplecast\.com/episodes/(?P<id>[^/?&#]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://the-re-bind-io-podcast.simplecast.com/episodes/errant-signal-chris-franklin-new-wave-video-essays',
         'md5': '8c93be7be54251bf29ee97464eabe61c',
         'info_dict': SimplecastIE._COMMON_TEST_INFO,
-    }
+    }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -124,7 +148,7 @@ class SimplecastPodcastIE(SimplecastBaseIE):
     _VALID_URL = r'https?://(?!(?:api|cdn|embed|feeds|player)\.)(?P<id>[^/]+)\.simplecast\.com(?!/episodes/[^/?&#]+)'
     _TESTS = [{
         'url': 'https://the-re-bind-io-podcast.simplecast.com',
-        'playlist_mincount': 33,
+        'playlist_mincount': 32,
         'info_dict': {
             'id': '07d28d26-7522-42eb-8c53-2bdcfc81c43c',
             'title': 'The RE:BIND.io Podcast',

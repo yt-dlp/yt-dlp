@@ -15,7 +15,6 @@ from ..utils import (
     str_or_none,
     strip_jsonp,
     traverse_obj,
-    unescapeHTML,
     url_or_none,
     urljoin,
 )
@@ -80,7 +79,6 @@ class QQMusicIE(QQMusicBaseIE):
             'creators': ['ケーキ姫', 'JUMA'],
             'genres': ['Pop'],
             'description': 'md5:b5261f3d595657ae561e9e6aee7eb7d9',
-            'size': 4501244,
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
             'subtitles': 'count:1',
         },
@@ -114,7 +112,6 @@ class QQMusicIE(QQMusicBaseIE):
             'creators': ['李季美'],
             'genres': [],
             'description': 'md5:fc711212aa623b28534954dc4bd67385',
-            'size': 3535730,
             'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
         },
     }, {
@@ -192,7 +189,7 @@ class QQMusicIE(QQMusicBaseIE):
                 'url': urljoin('https://dl.stream.qqmusic.qq.com', media_info['purl']),
                 'format': format_id,
                 'format_id': format_id,
-                'size': traverse_obj(info_data, ('file', f'size_{format_id}', {int_or_none})),
+                'filesize': traverse_obj(info_data, ('file', f'size_{format_id}', {int_or_none})),
                 'quality': format_info.get('preference'),
                 'abr': format_info.get('abr'),
                 'ext': format_info.get('ext'),
@@ -262,7 +259,6 @@ class QQMusicSingerIE(QQMusicBaseIE):
                 'creators': ['桃几OvO'],
                 'genres': ['Pop'],
                 'description': 'md5:4296005a04edcb5cdbe0889d5055a7ae',
-                'size': 3970822,
                 'thumbnail': r're:^https?://.*\.jpg(?:$|[#?])',
             },
         }],
@@ -425,7 +421,7 @@ class QQMusicPlaylistIE(QQPlaylistBaseIE):
 
         return self.playlist_result(entries, list_id, **traverse_obj(list_json, ('cdlist', 0, {
             'title': ('dissname', {str}),
-            'description': ('desc', {unescapeHTML}, {clean_html}),
+            'description': ('desc', {clean_html}),
         })))
 
 
