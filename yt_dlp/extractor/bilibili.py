@@ -369,7 +369,7 @@ class BilibiliBaseIE(InfoExtractor):
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:[a-z]{2}/)?(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?bilibili\.com/(?:[a-z]{2}|zh-Hans/)?(?:video/|festival/[^/?#]+\?(?:[^#]*&)?bvid=)(?P<prefix>[aAbB][vV])(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -729,6 +729,25 @@ class BiliBiliIE(BilibiliBaseIE):
             'ext': 'mp4',
         },
         'skip': 'supporter-only video',
+    }, {
+        'url': 'https://www.bilibili.com/zh-Hans/video/BV1YTB1YJEJ4/',
+        'info_dict': {
+            'id': 'BV1YTB1YJEJ4',
+            'ext': 'mp4',
+            'title': '【滚动的天空I/官方】Lv.144 枢纽_游戏原声音乐：传递能量的无声放送',
+            'description': 'md5:f34cb266b81ecb7bb83fe42a39da8440',
+            'uploader': 'RSP_污猫',
+            'uploader_id': '39496987',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'duration': 141.186,
+            'thumbnail': 'http://i0.hdslb.com/bfs/archive/7a46e915b7e60f3b0a3d42e15129296d822d5834.jpg',
+            'tags': ['发现《Horizon》', '万物皆可游戏', '游戏原声', '官方', '音乐游戏', 'BGM', '音乐', '游戏', '游戏音乐', '滚动的天空'],
+            'timestamp': 1732363200,
+            'upload_date': '20241123',
+            '_old_archive_ids': ['bilibili 113531403901643_part1'],
+        },
     }, {
         'url': 'https://www.bilibili.com/video/BV1Ks411f7aQ/',
         'info_dict': {
