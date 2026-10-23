@@ -3,11 +3,12 @@ from __future__ import annotations
 import functools
 import http.client
 import logging
+import operator
 import re
 import warnings
 
 from ..dependencies import brotli, requests, urllib3
-from ..utils import bug_reports_message, int_or_none, variadic
+from ..utils import bug_reports_message, int_or_none
 from ..utils.networking import normalize_url, select_proxy
 
 if requests is None:
@@ -117,7 +118,9 @@ class RequestsResponseAdapter(Response):
             fp=res.raw, headers=res.headers, url=res.url,
             status=res.status_code, reason=res.reason)
 
-        self._requests_response = res
+    def close(self):
+        super().close()
+        self.fp.release_conn()
 
     def _real_read(self, amt: int | None = None) -> bytes:
         # Work around issue with `.read(amt)` then `.read()`
@@ -130,30 +133,35 @@ class RequestsResponseAdapter(Response):
         return self.fp.read(amt, decode_content=True)
 
     def read(self, amt: int | None = None):
+        if self.closed:
+            return b''
+        if amt is not None:
+            amt = operator.index(amt)
+            if amt < 0:
+                amt = None
         try:
             data = self._real_read(amt)
-            if self.fp.closed:
+            # A closed raw stream may still return decoded data.
+            if amt is None or (amt and not data):
                 self.close()
             return data
         # See urllib3.response.HTTPResponse.read() for exceptions raised on read
-        except urllib3.exceptions.SSLError as e:
-            raise SSLError(cause=e) from e
-
-        except urllib3.exceptions.ProtocolError as e:
-            # IncompleteRead is always contained within ProtocolError
-            # See urllib3.response.HTTPResponse._error_catcher()
-            ir_err = next(
-                (err for err in (e.__context__, e.__cause__, *variadic(e.args))
-                 if isinstance(err, http.client.IncompleteRead)), None)
-            if ir_err is not None:
-                # `urllib3.exceptions.IncompleteRead` is subclass of `http.client.IncompleteRead`
-                # but uses an `int` for its `partial` property.
-                partial = ir_err.partial if isinstance(ir_err.partial, int) else len(ir_err.partial)
-                raise IncompleteRead(partial=partial, expected=ir_err.expected) from e
-            raise TransportError(cause=e) from e
-
         except urllib3.exceptions.HTTPError as e:
-            # catch-all for any other urllib3 response exceptions
+            self.close()
+            if isinstance(e, urllib3.exceptions.SSLError):
+                raise SSLError(cause=e) from e
+
+            if isinstance(e, urllib3.exceptions.ProtocolError):
+                # IncompleteRead is always contained within ProtocolError
+                # See urllib3.response.HTTPResponse._error_catcher()
+                ir_err = next(
+                    (err for err in (e.__context__, e.__cause__, *e.args)
+                     if isinstance(err, http.client.IncompleteRead)), None)
+                if ir_err is not None:
+                    # `urllib3.exceptions.IncompleteRead` is subclass of `http.client.IncompleteRead`
+                    # but uses an `int` for its `partial` property.
+                    partial = ir_err.partial if isinstance(ir_err.partial, int) else len(ir_err.partial)
+                    raise IncompleteRead(partial=partial, expected=ir_err.expected, cause=e) from e
             raise TransportError(cause=e) from e
 
 
