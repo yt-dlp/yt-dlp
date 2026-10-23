@@ -2768,7 +2768,7 @@ def js_to_json(code, vars={}, *, strict=False):
     # vars is a dict of var, val pairs to substitute
     STRING_QUOTES = '\'"`'
     STRING_RE = '|'.join(rf'{q}(?:\\.|[^\\{q}])*{q}' for q in STRING_QUOTES)
-    COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
+    COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\r\n\u2028\u2029]*(?:\r\n|[\r\n\u2028\u2029]|$)'
     SKIP_RE = fr'\s*(?:{COMMENT_RE})?\s*'
     INTEGER_TABLE = (
         (fr'(?s)^(0[xX][0-9a-fA-F]+){SKIP_RE}:?$', 16),
