@@ -33,9 +33,9 @@ if curl_cffi is None:
 
 curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
 
-if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 16):
+if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 17):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.15.x are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.16.x are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -92,7 +92,8 @@ class CurlCFFIResponseAdapter(Response):
             fp=CurlCFFIResponseReader(response),
             headers=response.headers,
             url=response.url,
-            status=response.status_code)
+            status=response.status_code,
+            reason=response.reason)
 
     def read(self, amt=None):
         try:
@@ -173,6 +174,9 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
         # Ref: https://github.com/lexiforest/curl-impersonate/issues/234
         'firefox144': ImpersonateTarget('firefox', '144', 'macos', '26'),
         'firefox147': ImpersonateTarget('firefox', '147', 'macos', '26'),
+    },
+    (0, 16, 1): {
+        'chrome150': ImpersonateTarget('chrome', '150', 'macos', '26'),
     },
 }
 
@@ -326,7 +330,8 @@ class CurlCFFIRH(ImpersonateRequestHandler, InstanceStoreMixin):
 
             elif (
                 e.code == CurlECode.PROXY
-                or (e.code == CurlECode.RECV_ERROR and 'CONNECT' in str(e))
+                # curl_cffi >= 0.16.0: changed to CurlECode.COULDNT_CONNECT https://github.com/curl/curl/pull/21084
+                or (e.code in (CurlECode.RECV_ERROR, CurlECode.COULDNT_CONNECT) and 'CONNECT' in str(e))
             ):
                 raise ProxyError(cause=e) from e
             else:
