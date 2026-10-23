@@ -1,162 +1,213 @@
 import re
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
     parse_iso8601,
-    str_or_none,
-    try_get,
+    traverse_obj,
     unescapeHTML,
-    url_or_none,
 )
 
 
-class RteBaseIE(InfoExtractor):
-    def _real_extract(self, url):
-        item_id = self._match_id(url)
+class RteRadioIE(InfoExtractor):
+    IE_NAME = 'rte:radio'
+    IE_DESC = 'Raidió Teilifís Éireann radio'
+    _VALID_URL = r'''(?x)
+        # Base URL
+        https://www\.rte\.ie/radio/
+        # The radio station, eg lyricfm
+        (?P<station>[^/]+)
+        # If not selecting the station live-stream, one of...
+        (
+            # 1. A clip with an ID
+            (/clips/(?P<clip_id>\d+)/*)|
+            # 2. A named show with an optional ID/date,
+            #    (If ID missing, it's the latest show, or show's live-stream)
+            (/(?P<show>[^/]+)
+                (
+                    (/episodes/(?P<ep_id>\d+)/*)|
+                    (/(?P<date_id>\d{4}/\d{4}/\d+-[^/]+/*))
+                )?
+            )
+        )?
+        '''
 
+    BASE_URL = 'https://www.rte.ie/radio'
+    _TESTS = [{
+        # A specific show by episode ID
+        'url': f'{BASE_URL}/radio1/sunday-miscellany/episodes/11800551',
+        'md5': 'b2e3ee98d12571aa2b1de6b0599d6cb6',
+        'info_dict': {
+            'id': '11800551',
+            'ext': 'mp4',
+            'title': 'Sunday Miscellany',
+            'thumbnail': 'https://www.rte.ie/images/001f2456-512.jpg',
+            'description': 'A mix of \'music and musings\'',
+            'timestamp': 1780822800,
+            'upload_date': '20260607',
+            'duration': 2962.673,
+        },
+    }, {
+        # A specific show by date
+        'url': f'{BASE_URL}/lyricfm/vespertine/2026/0531/'
+        '1576169-vespertine-with-ellen-cranitch-sunday-31-may-2026//',
+        'md5': '46ae1dcabdf30382e4b8db4c49d8c013',
+        'info_dict': {
+            'id': '11799347',
+            'ext': 'mp4',
+            'title': 'Vespertine with Ellen Cranitch',
+            'thumbnail': 'https://www.rte.ie/images/000e3182-512.jpg',
+            'description': r'startswith:Let Ellen Cranitch be your guide',
+            'timestamp': 1780261200,
+            'upload_date': '20260531',
+            'duration': 10830.0,
+        },
+    }, {
+        # A clip
+        'url': f'{BASE_URL}/radio1/clips/22561698/',
+        'md5': '5d07ff1698c7f3ad6dada5280f17168d',
+        'info_dict': {
+            'id': '22561698',
+            'ext': 'mp4',
+            'title': 'startswith:“He died three days later. Nobody knew',
+            'thumbnail': 'https://www.rte.ie/images/002385a8-512.jpg',
+            'description': r'startswith:Homeless campaigner, and founder',
+            'timestamp': 1763895600,
+            'upload_date': '20251123',
+            'duration': 1737.962,
+        },
+    }]
+
+    def _real_extract(self, url):
         info_dict = {}
         formats = []
 
-        ENDPOINTS = (
-            'https://feeds.rasset.ie/rteavgen/player/playlist?type=iptv&format=json&showId=',
-            'http://www.rte.ie/rteavgen/getplaylist/?type=web&format=json&id=',
-        )
+        m = self._match_valid_url(url)
+        station = m.group('station')
+        show = m.group('show')
+        item_id = m.group('ep_id') or m.group('clip_id')
+        date_id = m.group('date_id')
+        if show is None and item_id is None:
+            # If it's not a show or a clip, we've got a URL for the station.
+            # Find the live-streaming show
+            url = 'https://www.rte.ie/radio/live_stations/json'
+            data = self._download_json(url, station)
+            channel_ids = traverse_obj(data, (
+                'stations',
+                lambda _, x: x['url'] == f'/radio/{station}/',
+                'liveListing',
+                'stationId',
+            ))
+            if not channel_ids:
+                raise ExtractorError(
+                    f'{self.IE_NAME} said: Live stream not found for {url}',
+                    expected=True)
+            return self._get_live_channel(channel_ids[0])
 
-        for num, ep_url in enumerate(ENDPOINTS, start=1):
-            try:
-                data = self._download_json(ep_url + item_id, item_id)
-            except ExtractorError as ee:
-                if num < len(ENDPOINTS) or formats:
-                    continue
-                if isinstance(ee.cause, HTTPError) and ee.cause.status == 404:
-                    error_info = self._parse_json(ee.cause.response.read().decode(), item_id, fatal=False)
-                    if error_info:
-                        raise ExtractorError(
-                            '{} said: {}'.format(self.IE_NAME, error_info['message']),
-                            expected=True)
-                raise
+        if item_id is None and date_id is None:
+            # The URL has a show ID but not an episode. Find the latest episode
+            data = self._download_webpage(url, show, note='Latest show')
 
-            # NB the string values in the JSON are stored using XML escaping(!)
-            show = try_get(data, lambda x: x['shows'][0], dict)
-            if not show:
-                continue
-
-            if not info_dict:
-                title = unescapeHTML(show['title'])
-                description = unescapeHTML(show.get('description'))
-                thumbnail = show.get('thumbnail')
-                duration = float_or_none(show.get('duration'), 1000)
-                timestamp = parse_iso8601(show.get('published'))
-                info_dict = {
-                    'id': item_id,
-                    'title': title,
-                    'description': description,
-                    'thumbnail': thumbnail,
-                    'timestamp': timestamp,
-                    'duration': duration,
-                }
-
-            mg = try_get(show, lambda x: x['media:group'][0], dict)
-            if not mg:
-                continue
-
-            if mg.get('url'):
-                m = re.match(r'(?P<url>rtmpe?://[^/]+)/(?P<app>.+)/(?P<playpath>mp4:.*)', mg['url'])
+            # If the latest episode is live, find the station and use its
+            # live stream
+            if ('<span class="on-air">On Air</span>' in data
+               and '<h1>Listen Live</h1>' in data):
+                regex = r'data-stationid="(\d+)"'
+                m = re.search(regex, data)
                 if m:
-                    m = m.groupdict()
-                    formats.append({
-                        'url': m['url'] + '/' + m['app'],
-                        'app': m['app'],
-                        'play_path': m['playpath'],
-                        'player_url': url,
-                        'ext': 'flv',
-                        'format_id': 'rtmp',
-                    })
+                    return self._get_live_channel(int(m.group(1)))
+                raise ExtractorError(
+                    f'{self.IE_NAME} said: Station ID not found for {url}',
+                    expected=True)
 
-            if mg.get('hls_server') and mg.get('hls_url'):
-                formats.extend(self._extract_m3u8_formats(
-                    mg['hls_server'] + mg['hls_url'], item_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+            # Else find the first (newest) episode on the show's web page.
+            # The web page URLs may be date-based or ID based, but we fall
+            # through to recorded episode URL parsing next.
+            regex = f'href="(/radio/{station}/{show}/[^"]+)"'
+            m = re.search(regex, data)
+            if m:
+                url = 'https://www.rte.ie' + m.group(1)
+                m = self._match_valid_url(url)
+                item_id = m.group('ep_id') or m.group('clip_id')
+                date_id = m.group('date_id')
+            else:
+                raise ExtractorError(
+                    f'{self.IE_NAME} said: Latest episode not found for {url}',
+                    expected=True)
 
-            if mg.get('hds_server') and mg.get('hds_url'):
-                formats.extend(self._extract_f4m_formats(
-                    mg['hds_server'] + mg['hds_url'], item_id,
-                    f4m_id='hds', fatal=False))
+        if date_id is not None:
+            # The URL is date-based (rather than ID-based) so make a HTTP HEAD
+            # request to follow HTTP 302 redirects to get a canonical ID.
+            url = self._request_webpage(
+                HEADRequest(url),
+                date_id,
+                note='Resolving redirects').url
+            m = self._match_valid_url(url)
+            if m:
+                item_id = m.group('ep_id') or m.group('clip_id')
+            if item_id is None:
+                raise ExtractorError(
+                    f'{self.IE_NAME} said: id not found for date-based {url}',
+                    expected=True)
 
-            mg_rte_server = str_or_none(mg.get('rte:server'))
-            mg_url = str_or_none(mg.get('url'))
-            if mg_rte_server and mg_url:
-                hds_url = url_or_none(mg_rte_server + mg_url)
-                if hds_url:
-                    formats.extend(self._extract_f4m_formats(
-                        hds_url, item_id, f4m_id='hds', fatal=False))
+        # Finally we've got an episode/clip with an ID and can get the
+        # playlist (metadata) and m3u8 for it.
+        try:
+            url = f'https://www.rte.ie/rteavgen/getplaylist/?id={item_id}'
+            data = self._download_json(url, item_id)
+        except ExtractorError as ee:
+            if isinstance(ee.cause, HTTPError) and ee.cause.status == 404:
+                error_info = self._parse_json(
+                    ee.cause.response.read().decode(),
+                    item_id,
+                    fatal=False)
+                if error_info:
+                    raise ExtractorError(
+                        f'{self.IE_NAME} said: {error_info["message"]}',
+                        expected=True)
+            raise
+
+        show = traverse_obj(data, ('shows', 0))
+        if show:
+            info_dict = {
+                'id': item_id,
+                'title': unescapeHTML(show['title']),
+                'description': unescapeHTML(show.get('description')),
+                'thumbnail': show.get('thumbnail'),
+                'timestamp': parse_iso8601(show.get('published')),
+                'duration': float_or_none(show.get('duration'), 1000),
+            }
+
+        mg = traverse_obj(show, ('media:group', 0))
+        if mg.get('hls_server') and mg.get('hls_url'):
+            formats.extend(self._extract_m3u8_formats(
+                mg['hls_server'] + mg['hls_url'], item_id, 'mp4',
+                entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
 
         info_dict['formats'] = formats
         return info_dict
 
-
-class RteIE(RteBaseIE):
-    IE_NAME = 'rte'
-    IE_DESC = 'Raidió Teilifís Éireann TV'
-    _VALID_URL = r'https?://(?:www\.)?rte\.ie/player/[^/]{2,3}/show/[^/]+/(?P<id>[0-9]+)'
-    _TEST = {
-        'url': 'http://www.rte.ie/player/ie/show/iwitness-862/10478715/',
-        'md5': '4a76eb3396d98f697e6e8110563d2604',
-        'info_dict': {
-            'id': '10478715',
-            'ext': 'mp4',
-            'title': 'iWitness',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'description': 'The spirit of Ireland, one voice and one minute at a time.',
-            'duration': 60.046,
-            'upload_date': '20151012',
-            'timestamp': 1444694160,
-        },
-    }
-
-
-class RteRadioIE(RteBaseIE):
-    IE_NAME = 'rte:radio'
-    IE_DESC = 'Raidió Teilifís Éireann radio'
-    # Radioplayer URLs have two distinct specifier formats,
-    # the old format #!rii=<channel_id>:<id>:<playable_item_id>:<date>:
-    # the new format #!rii=b<channel_id>_<id>_<playable_item_id>_<date>_
-    # where the IDs are int/empty, the date is DD-MM-YYYY, and the specifier may be truncated.
-    # An <id> uniquely defines an individual recording, and is the only part we require.
-    _VALID_URL = r'https?://(?:www\.)?rte\.ie/radio/utils/radioplayer/rteradioweb\.html#!rii=(?:b?[0-9]*)(?:%3A|:|%5F|_)(?P<id>[0-9]+)'
-
-    _TESTS = [{
-        # Old-style player URL; HLS and RTMPE formats
-        'url': 'http://www.rte.ie/radio/utils/radioplayer/rteradioweb.html#!rii=16:10507902:2414:27-12-2015:',
-        'md5': 'c79ccb2c195998440065456b69760411',
-        'info_dict': {
-            'id': '10507902',
-            'ext': 'mp4',
-            'title': 'Gloria',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'description': 'md5:9ce124a7fb41559ec68f06387cabddf0',
-            'timestamp': 1451203200,
-            'upload_date': '20151227',
-            'duration': 7230.0,
-        },
-    }, {
-        # New-style player URL; RTMPE formats only
-        'url': 'http://rte.ie/radio/utils/radioplayer/rteradioweb.html#!rii=b16_3250678_8861_06-04-2012_',
-        'info_dict': {
-            'id': '3250678',
-            'ext': 'flv',
-            'title': 'The Lyric Concert with Paul Herriott',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'description': '',
-            'timestamp': 1333742400,
-            'upload_date': '20120406',
-            'duration': 7199.016,
-        },
-        'params': {
-            # rtmp download
-            'skip_download': True,
-        },
-    }]
+    def _get_live_channel(self, channel_id: int) -> dict:
+        url_base = 'https://www.rte.ie/feeds/livelistings/playlist/?channelid='
+        data = self._download_json(f'{url_base}{channel_id}', channel_id)
+        show = traverse_obj(data, 0)
+        if show is None:
+            return {}
+        m3u8_url, m3u8_id = show.get('fullUrl'), show.get('listingId')
+        formats = []
+        if m3u8_url is not None and m3u8_id is not None:
+            formats.extend(self._extract_m3u8_formats(
+                m3u8_url, m3u8_id, 'mp4', entry_protocol='m3u8_native',
+                m3u8_id='hls', fatal=True))
+        return {
+            'id': str(show['listingId']),
+            'title': show.get('progName'),
+            'description': show.get('description'),
+            'thumbnail': show.get('thumbnail'),
+            'timstamp': parse_iso8601(show.get('progDate')),
+            'is_live': 'currently_live',
+            'formats': formats,
+        }
