@@ -34,11 +34,6 @@ class NetEaseMusicBaseIE(InfoExtractor):
         'sky',       # SVIP tier; 沉浸环绕声 (Surround Audio); flac
     )
     _API_BASE = 'http://music.163.com/api/'
-    _GEO_BYPASS = False
-
-    @staticmethod
-    def _kilo_or_none(value):
-        return int_or_none(value, scale=1000)
 
     def _create_eapi_cipher(self, api_path, query_body, cookies):
         request_text = json.dumps({**query_body, 'header': cookies}, separators=(',', ':'))
@@ -68,6 +63,8 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'MUSIC_U': ('MUSIC_U', {lambda i: i.value}),
             }),
         }
+        if self._x_forwarded_for_ip:
+            headers.setdefault('X-Real-IP', self._x_forwarded_for_ip)
         return self._download_json(
             urljoin('https://interface3.music.163.com/', f'/eapi{path}'), video_id,
             data=self._create_eapi_cipher(f'/api{path}', query_body, cookies), headers={
@@ -101,7 +98,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 **traverse_obj(song, {
                     'ext': ('type', {str}),
-                    'abr': ('br', {self._kilo_or_none}),
+                    'abr': ('br', {int_or_none(scale=1000)}),
                     'filesize': ('size', {int_or_none}),
                 }),
             })
@@ -159,17 +156,35 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             'id': '17241424',
             'ext': 'mp3',
             'title': 'Opus 28',
-            'upload_date': '20080211',
-            'timestamp': 1202745600,
+            'upload_date': '20060912',
+            'timestamp': 1158076800,
             'duration': 263,
             'thumbnail': r're:^http.*\.jpg',
-            'album': 'Piano Solos Vol. 2',
+            'album': 'Piano Solos, Vol. 2',
             'album_artist': 'Dustin O\'Halloran',
             'average_rating': int,
-            'description': '[00:05.00]纯音乐，请欣赏\n',
+            'description': 'md5:b566b92c55ca348df65d206c5d689576',
             'album_artists': ['Dustin O\'Halloran'],
             'creators': ['Dustin O\'Halloran'],
             'subtitles': {'lyrics': [{'ext': 'lrc'}]},
+        },
+    }, {
+        'url': 'https://music.163.com/#/song?id=2755669231',
+        'info_dict': {
+            'id': '2755669231',
+            'ext': 'mp3',
+            'title': '十二月-Departure',
+            'upload_date': '20251111',
+            'timestamp': 1762876800,
+            'duration': 188,
+            'thumbnail': r're:^http.*\.jpg',
+            'album': '円',
+            'album_artist': 'ひとひら',
+            'average_rating': int,
+            'description': 'md5:deee249c8c9c3e2c54ecdab36e87d174',
+            'album_artists': ['ひとひら'],
+            'creators': ['ひとひら'],
+            'subtitles': {'lyrics': [{'ext': 'lrc', 'data': 'md5:d32b4425a5d6c9fa249ca6e803dd0401'}]},
         },
     }, {
         'url': 'https://y.music.163.com/m/song?app_version=8.8.45&id=95670&uct2=sKnvS4+0YStsWkqsPhFijw%3D%3D&dlt=0846',
@@ -244,9 +259,16 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
                 'lyrics': [{'data': original, 'ext': 'lrc'}],
             }
 
-        lyrics_expr = r'(\[[0-9]{2}:[0-9]{2}\.[0-9]{2,}\])([^\n]+)'
-        original_ts_texts = re.findall(lyrics_expr, original)
-        translation_ts_dict = dict(re.findall(lyrics_expr, translated))
+        def collect_lyrics(lrc):
+            lyrics_expr = r'\[([0-9]{2}):([0-9]{2})[:.]([0-9]{2,})\]([^\n]+)'
+            matches = re.findall(lyrics_expr, lrc)
+            return (
+                (f'[{minute}:{sec}.{msec}]', text)
+                for minute, sec, msec, text in matches
+            )
+
+        original_ts_texts = collect_lyrics(original)
+        translation_ts_dict = dict(collect_lyrics(translated))
 
         merged = '\n'.join(
             join_nonempty(f'{timestamp}{text}', translation_ts_dict.get(timestamp, ''), delim=' / ')
@@ -282,9 +304,9 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             **lyric_data,
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'timestamp': ('album', 'publishTime', {self._kilo_or_none}),
+                'timestamp': ('album', 'publishTime', {int_or_none(scale=1000)}),
                 'thumbnail': ('album', 'picUrl', {url_or_none}),
-                'duration': ('duration', {self._kilo_or_none}),
+                'duration': ('duration', {int_or_none(scale=1000)}),
                 'album': ('album', 'name', {str}),
                 'average_rating': ('score', {int_or_none}),
             }),
@@ -440,7 +462,7 @@ class NetEaseMusicListIE(NetEaseMusicBaseIE):
             'tags': ('tags', ..., {str}),
             'uploader': ('creator', 'nickname', {str}),
             'uploader_id': ('creator', 'userId', {str_or_none}),
-            'timestamp': ('updateTime', {self._kilo_or_none}),
+            'timestamp': ('updateTime', {int_or_none(scale=1000)}),
         }))
         if traverse_obj(info, ('playlist', 'specialType')) == 10:
             metainfo['title'] = f'{metainfo.get("title")} {strftime_or_none(metainfo.get("timestamp"), "%Y-%m-%d")}'
@@ -517,10 +539,10 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             'creators': traverse_obj(info, ('artists', ..., 'name')) or [info.get('artistName')],
             **traverse_obj(info, {
                 'title': ('name', {str}),
-                'description': (('desc', 'briefDesc'), {str}, {lambda x: x or None}),
+                'description': (('desc', 'briefDesc'), {str}, filter),
                 'upload_date': ('publishTime', {unified_strdate}),
                 'thumbnail': ('cover', {url_or_none}),
-                'duration': ('duration', {self._kilo_or_none}),
+                'duration': ('duration', {int_or_none(scale=1000)}),
                 'view_count': ('playCount', {int_or_none}),
                 'like_count': ('likeCount', {int_or_none}),
                 'comment_count': ('commentCount', {int_or_none}),
@@ -531,7 +553,7 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
 class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
     IE_NAME = 'netease:program'
     IE_DESC = '网易云音乐 - 电台节目'
-    _VALID_URL = r'https?://music\.163\.com/(?:#/)?program\?id=(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://music\.163\.com/(?:#/)?(?:dj|program)\?id=(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://music.163.com/#/program?id=10109055',
         'info_dict': {
@@ -575,6 +597,9 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
         'params': {
             'noplaylist': True,
         },
+    }, {
+        'url': 'https://music.163.com/#/dj?id=3706179315',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -588,7 +613,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             'description': ('description', {str}),
             'creator': ('dj', 'brand', {str}),
             'thumbnail': ('coverUrl', {url_or_none}),
-            'timestamp': ('createTime', {self._kilo_or_none}),
+            'timestamp': ('createTime', {int_or_none(scale=1000)}),
         })
 
         if not self._yes_playlist(
@@ -598,7 +623,7 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
             return {
                 'id': str(info['mainSong']['id']),
                 'formats': formats,
-                'duration': traverse_obj(info, ('mainSong', 'duration', {self._kilo_or_none})),
+                'duration': traverse_obj(info, ('mainSong', 'duration', {int_or_none(scale=1000)})),
                 **metainfo,
             }
 
@@ -633,7 +658,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
 
             entries.extend(self.url_result(
                 f'http://music.163.com/#/program?id={program["id"]}', NetEaseMusicProgramIE,
-                program['id'], program.get('name')) for program in info['programs'])
+                str_or_none(program['id']), program.get('name')) for program in info['programs'])
             if not metainfo:
                 metainfo = traverse_obj(info, ('programs', 0, 'radio', {
                     'title': ('name', {str}),

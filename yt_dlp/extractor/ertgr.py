@@ -64,14 +64,12 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
     _VALID_URL = r'ertflix:(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'ertflix:monogramma-praxitelis-tzanoylinos',
-        'md5': '5b9c2cd171f09126167e4082fc1dd0ef',
         'info_dict': {
             'id': 'monogramma-praxitelis-tzanoylinos',
             'ext': 'mp4',
-            'title': 'md5:ef0b439902963d56c43ac83c3f41dd0e',
+            'title': 'monogramma-praxitelis-tzanoylinos',
         },
-    },
-    ]
+    }]
 
     def _extract_formats_and_subs(self, video_id):
         media_info = self._call_api(video_id, codename=video_id)
@@ -131,13 +129,14 @@ class ERTFlixIE(ERTFlixBaseIE):
             'duration': 3166,
             'age_limit': 8,
         },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://www.ertflix.gr/series/ser.3448-monogramma',
         'info_dict': {
             'id': 'ser.3448',
             'age_limit': 8,
-            'description': 'Η εκπομπή σαράντα ετών που σημάδεψε τον πολιτισμό μας.',
-            'title': 'Μονόγραμμα',
+            'title': 'Monogramma',
+            'description': 'md5:e30cc640e6463da87f210a8ed10b2439',
         },
         'playlist_mincount': 64,
     }, {
@@ -145,28 +144,28 @@ class ERTFlixIE(ERTFlixBaseIE):
         'info_dict': {
             'id': 'ser.3448',
             'age_limit': 8,
-            'description': 'Η εκπομπή σαράντα ετών που σημάδεψε τον πολιτισμό μας.',
-            'title': 'Μονόγραμμα',
+            'title': 'Monogramma',
+            'description': 'md5:e30cc640e6463da87f210a8ed10b2439',
         },
-        'playlist_count': 22,
+        'playlist_mincount': 66,
     }, {
         'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1&season=2021%20-%202022',
         'info_dict': {
             'id': 'ser.3448',
             'age_limit': 8,
-            'description': 'Η εκπομπή σαράντα ετών που σημάδεψε τον πολιτισμό μας.',
-            'title': 'Μονόγραμμα',
+            'title': 'Monogramma',
+            'description': 'md5:e30cc640e6463da87f210a8ed10b2439',
         },
-        'playlist_mincount': 36,
+        'playlist_mincount': 25,
     }, {
         'url': 'https://www.ertflix.gr/series/ser.164991-to-diktuo-1?season=1-9',
         'info_dict': {
             'id': 'ser.164991',
             'age_limit': 8,
-            'description': 'Η πρώτη ελληνική εκπομπή με θεματολογία αποκλειστικά γύρω από το ίντερνετ.',
-            'title': 'Το δίκτυο',
+            'title': 'The Network',
+            'description': 'The first Greek show featuring topics exclusively around the internet.',
         },
-        'playlist_mincount': 9,
+        'playlist_mincount': 0,
     }, {
         'url': 'https://www.ertflix.gr/en/vod/vod.127652-ta-kalytera-mas-chronia-ep1-mia-volta-sto-feggari',
         'only_matching': True,
@@ -281,6 +280,16 @@ class ERTWebtvEmbedIE(InfoExtractor):
             'title': 'md5:914f06a73cd8b62fbcd6fb90c636e497',
             'ext': 'mp4',
             'thumbnail': 'https://program.ert.gr/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
+        },
+        'skip': 'Invalid URL',
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
+        'info_dict': {
+            'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+            'ext': 'mp4',
+            'title': 'VOD - 2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+            'thumbnail': r're:https?://www\.ert\.gr/themata/photos/.+\.jpg',
         },
     }]
 

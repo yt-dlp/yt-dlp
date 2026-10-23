@@ -11,11 +11,9 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     ass_subtitles_timecode,
-    bytes_to_intlist,
     bytes_to_long,
     float_or_none,
     int_or_none,
-    intlist_to_bytes,
     join_nonempty,
     long_to_bytes,
     parse_iso8601,
@@ -52,14 +50,13 @@ class ADNIE(ADNBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animationdigitalnetwork\.com/(?:(?P<lang>de)/)?video/[^/?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://animationdigitalnetwork.com/video/558-fruits-basket/9841-episode-1-a-ce-soir',
-        'md5': '1c9ef066ceb302c86f80c2b371615261',
+        'md5': '3999b7b235ffb3591a385d1913cd3cd1',
         'info_dict': {
             'id': '9841',
             'ext': 'mp4',
             'title': 'Fruits Basket - Episode 1',
-            'description': 'md5:14be2f72c3c96809b0ca424b0097d336',
             'series': 'Fruits Basket',
-            'duration': 1437,
+            'duration': 1436,
             'release_date': '20190405',
             'comment_count': int,
             'average_rating': float,
@@ -176,6 +173,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
     def _real_extract(self, url):
         lang, video_id = self._match_valid_url(url).group('lang', 'id')
         self._HEADERS['X-Target-Distribution'] = lang or 'fr'
+        if 'Authorization' in self._HEADERS:
+            self._HEADERS['X-Profile-ID'] = self._configuration_arg('profile_id', ['1'])[0]
         video_base_url = self._PLAYER_BASE_URL + f'video/{video_id}/'
         player = self._download_json(
             video_base_url + 'configuration', video_id,
@@ -198,16 +197,16 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
         self._K = ''.join(random.choices('0123456789abcdef', k=16))
-        message = bytes_to_intlist(json.dumps({
+        message = list(json.dumps({
             'k': self._K,
             't': token,
-        }))
+        }).encode())
 
         # Sometimes authentication fails for no good reason, retry with
         # a different random padding
         links_data = None
         for _ in range(3):
-            padded_message = intlist_to_bytes(pkcs1pad(message, 128))
+            padded_message = bytes(pkcs1pad(message, 128))
             n, e = self._RSA_KEY
             encrypted_message = long_to_bytes(pow(bytes_to_long(padded_message), e, n))
             authorization = base64.b64encode(encrypted_message).decode()
@@ -234,7 +233,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
 
                 error = self._parse_json(e.cause.response.read(), video_id)
                 message = error.get('message')
-                if e.cause.code == 403 and error.get('code') == 'player-bad-geolocation-country':
+                if e.cause.status == 403 and error.get('code') == 'player-bad-geolocation-country':
                     self.raise_geo_restricted(msg=message)
                 raise ExtractorError(message)
         else:

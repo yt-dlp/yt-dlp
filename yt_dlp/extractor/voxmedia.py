@@ -1,7 +1,6 @@
 import urllib.parse
 
 from .common import InfoExtractor
-from .once import OnceIE
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -10,7 +9,7 @@ from ..utils import (
 )
 
 
-class VoxMediaVolumeIE(OnceIE):
+class VoxMediaVolumeIE(InfoExtractor):
     _VALID_URL = r'https?://volume\.vox-cdn\.com/embed/(?P<id>[0-9a-f]{9})'
 
     def _real_extract(self, url):
@@ -57,7 +56,8 @@ class VoxMediaVolumeIE(OnceIE):
             if not provider_video_id:
                 continue
             if provider_video_type == 'brightcove':
-                info['formats'] = self._extract_once_formats(provider_video_id)
+                # TODO: Find embed example or confirm that Vox has stopped using Brightcove
+                raise ExtractorError('Vox Brightcove embeds are currently unsupported')
             else:
                 info.update({
                     '_type': 'url_transparent',
@@ -72,6 +72,7 @@ class VoxMediaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:(?:theverge|vox|sbnation|eater|polygon|curbed|racked|funnyordie)\.com|recode\.net)/(?:[^/]+/)*(?P<id>[^/?]+)'
     _EMBED_REGEX = [r'<iframe[^>]+?src="(?P<url>https?://(?:www\.)?funnyordie\.com/embed/[^"]+)"']
     _TESTS = [{
+        # FIXME: Unsupported iframe embed
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/6/27/5849272/material-world-how-google-discovered-what-software-is-made-of',
         'info_dict': {
@@ -155,20 +156,15 @@ class VoxMediaIE(InfoExtractor):
             },
         }],
         'skip': 'Page no longer contain videos',
-    }, {
-        # volume embed, Brightcove Once
-        'url': 'https://www.recode.net/2014/6/17/11628066/post-post-pc-ceo-the-full-code-conference-video-of-microsofts-satya',
-        'md5': '2dbc77b8b0bff1894c2fce16eded637d',
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.theguardian.com/world/2014/mar/11/obama-zach-galifianakis-between-two-ferns',
         'info_dict': {
-            'id': '1231c973d',
+            'id': '18e820ec3f',
             'ext': 'mp4',
-            'title': 'Post-Post-PC CEO: The Full Code Conference Video of Microsoft\'s Satya Nadella',
-            'description': 'The longtime veteran was chosen earlier this year as the software giant\'s third leader in its history.',
-            'timestamp': 1402938000,
-            'upload_date': '20140616',
-            'duration': 4114,
+            'title': 'Between Two Ferns with Zach Galifianakis: President Barack Obama',
         },
-        'add_ie': ['VoxMediaVolume'],
+        'skip': 'Invalid URL',
     }]
 
     def _real_extract(self, url):

@@ -8,6 +8,7 @@ import contextlib
 import datetime as dt
 import email.header
 import email.utils
+import enum
 import errno
 import functools
 import hashlib
@@ -27,6 +28,7 @@ import os
 import platform
 import random
 import re
+import secrets
 import shlex
 import socket
 import ssl
@@ -46,17 +48,15 @@ import xml.etree.ElementTree
 from . import traversal
 
 from ..compat import (
+    compat_datetime_from_timestamp,
     compat_etree_fromstring,
     compat_expanduser,
     compat_HTMLParseError,
-    compat_os_name,
 )
 from ..dependencies import xattr
+from ..globals import IN_CLI, WINDOWS_VT_MODE
 
-__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001: Pretend to be the parent module
-
-# This is not clearly defined otherwise
-compiled_regex_type = type(re.compile(''))
+__name__ = __name__.rsplit('.', 1)[0]  # noqa: A001 # Pretend to be the parent module
 
 
 class NO_DEFAULT:
@@ -76,6 +76,9 @@ MONTH_NAMES = {
     'fr': [
         'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
         'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    'is': [
+        'janúar', 'febrúar', 'mars', 'apríl', 'maí', 'júní',
+        'júlí', 'ágúst', 'september', 'október', 'nóvember', 'desember'],
     # these follow the genitive grammatical case (dopełniacz)
     # some websites might be using nominative, which will require another month list
     # https://en.wikibooks.org/wiki/Polish/Noun_cases
@@ -96,7 +99,7 @@ TIMEZONE_NAMES = {
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
                         itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUY', ['TH', 'ss'],
-                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y')))
+                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuy', ['th'], 'y'), strict=True))
 
 DATE_FORMATS = (
     '%d %B %Y',
@@ -212,17 +215,32 @@ def write_json_file(obj, fn):
         raise
 
 
+def partial_application(func):
+    sig = inspect.signature(func)
+    required_args = [
+        param.name for param in sig.parameters.values()
+        if param.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        if param.default is inspect.Parameter.empty
+    ]
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if set(required_args[len(args):]).difference(kwargs):
+            return functools.partial(func, *args, **kwargs)
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
     assert re.match(r'^[a-zA-Z_-]+$', key)
     expr = xpath + (f'[@{key}]' if val is None else f"[@{key}='{val}']")
     return node.find(expr)
 
-# On python2.6 the xml.etree.ElementTree.Element methods don't support
-# the namespace parameter
-
 
 def xpath_with_ns(path, ns_map):
+    """Expand namespace-prefixed names to Clark notation."""
     components = [c.split(':') for c in path.split('/')]
     replaced = []
     for c in components:
@@ -672,7 +690,8 @@ def _sanitize_path_parts(parts):
         elif part == '..':
             if sanitized_parts and sanitized_parts[-1] != '..':
                 sanitized_parts.pop()
-            sanitized_parts.append('..')
+            else:
+                sanitized_parts.append('..')
             continue
         # Replace invalid segments with `#`
         # - trailing dots and spaces (`asdf...` => `asdf..#`)
@@ -689,7 +708,8 @@ def sanitize_path(s, force=False):
         if not force:
             return s
         root = '/' if s.startswith('/') else ''
-        return root + '/'.join(_sanitize_path_parts(s.split('/')))
+        path = '/'.join(_sanitize_path_parts(s.split('/')))
+        return root + path if root or path else '.'
 
     normed = s.replace('/', '\\')
 
@@ -708,7 +728,8 @@ def sanitize_path(s, force=False):
         root = '\\' if normed[:1] == '\\' else ''
         parts = normed.split('\\')
 
-    return root + '\\'.join(_sanitize_path_parts(parts))
+    path = '\\'.join(_sanitize_path_parts(parts))
+    return root + path if root or path else '.'
 
 
 def sanitize_url(url, *, scheme='http'):
@@ -853,17 +874,23 @@ class Popen(subprocess.Popen):
 
         self.__text_mode = kwargs.get('encoding') or kwargs.get('errors') or text or kwargs.get('universal_newlines')
         if text is True:
-            kwargs['universal_newlines'] = True  # For 3.6 compatibility
+            kwargs['text'] = True
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
 
-        if shell and compat_os_name == 'nt' and kwargs.get('executable') is None:
-            if not isinstance(args, str):
-                args = shell_quote(args, shell=True)
-            shell = False
-            # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
-            env['='] = '"^\n\n"'
-            args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
+        if os.name == 'nt' and kwargs.get('executable') is None:
+            # Must apply shell escaping if we are trying to run a batch file
+            # These conditions should be very specific to limit impact
+            if not shell and isinstance(args, list) and args and args[0].lower().endswith(('.bat', '.cmd')):
+                shell = True
+
+            if shell:
+                if not isinstance(args, str):
+                    args = shell_quote(args, shell=True)
+                shell = False
+                # Set variable for `cmd.exe` newline escaping (see `utils.shell_quote`)
+                env['='] = '"^\n\n"'
+                args = f'{self.__comspec()} /Q /S /D /V:OFF /E:ON /C "{args}"'
 
         super().__init__(args, *remaining, env=env, shell=shell, **kwargs, startupinfo=self._startupinfo)
 
@@ -887,10 +914,12 @@ class Popen(subprocess.Popen):
             self.wait(timeout=timeout)
 
     @classmethod
-    def run(cls, *args, timeout=None, **kwargs):
+    def run(cls, *args, timeout=None, input=None, **kwargs):
+        if input is not None and kwargs.get('stdin') is None:
+            kwargs['stdin'] = subprocess.PIPE
         with cls(*args, **kwargs) as proc:
             default = '' if proc.__text_mode else b''
-            stdout, stderr = proc.communicate_or_kill(timeout=timeout)
+            stdout, stderr = proc.communicate_or_kill(input=input, timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
 
@@ -955,7 +984,7 @@ class ExtractorError(YoutubeDLError):
         If expected is set, this is a normal error message and most likely not a bug in yt-dlp.
         """
         from ..networking.exceptions import network_exceptions
-        if sys.exc_info()[0] in network_exceptions:
+        if type(sys.exception()) in network_exceptions:
             expected = True
 
         self.orig_msg = str(msg)
@@ -981,7 +1010,7 @@ class ExtractorError(YoutubeDLError):
     def format_traceback(self):
         return join_nonempty(
             self.traceback and ''.join(traceback.format_tb(self.traceback)),
-            self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
+            self.cause and ''.join(traceback.format_exception(self.cause)[1:]),
             delim='\n') or None
 
     def __setattr__(self, name, value):
@@ -1154,6 +1183,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+class UnsafeExecExpansionError(YoutubeDLError):
+    pass
+
+
 def is_path_like(f):
     return isinstance(f, (str, bytes, os.PathLike))
 
@@ -1192,6 +1225,7 @@ def extract_timezone(date_str, default=None):
     return timezone, date_str
 
 
+@partial_application
 def parse_iso8601(date_str, delimiter='T', timezone=None):
     """ Return a UNIX timestamp from the given date """
 
@@ -1236,7 +1270,8 @@ def unified_strdate(date_str, day_first=True):
         return str(upload_date)
 
 
-def unified_timestamp(date_str, day_first=True):
+@partial_application
+def unified_timestamp(date_str, day_first=True, tz_offset=0):
     if not isinstance(date_str, str):
         return None
 
@@ -1244,7 +1279,8 @@ def unified_timestamp(date_str, day_first=True):
         r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
 
     pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
-    timezone, date_str = extract_timezone(date_str)
+    timezone, date_str = extract_timezone(
+        date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
 
     # Remove AM/PM + timezone
     date_str = re.sub(r'(?i)\s*(?:AM|PM)(?:\s+[A-Z]+)?', '', date_str)
@@ -1266,9 +1302,10 @@ def unified_timestamp(date_str, day_first=True):
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
-        return calendar.timegm(timetuple) + pm_delta * 3600 - timezone.total_seconds()
+        return calendar.timegm(timetuple) + pm_delta * 3600 - int(timezone.total_seconds())
 
 
+@partial_application
 def determine_ext(url, default_ext='unknown_video'):
     if url is None or '.' not in url:
         return default_ext
@@ -1300,7 +1337,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(dt.datetime.now(dt.timezone.utc), precision)
+    today = datetime_round(dt.datetime.now(dt.UTC), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1356,6 +1393,7 @@ def datetime_round(dt_, precision='day'):
     if precision == 'microsecond':
         return dt_
 
+    time_scale = 1_000_000
     unit_seconds = {
         'day': 86400,
         'hour': 3600,
@@ -1363,8 +1401,8 @@ def datetime_round(dt_, precision='day'):
         'second': 1,
     }
     roundto = lambda x, n: ((x + n / 2) // n) * n
-    timestamp = roundto(calendar.timegm(dt_.timetuple()), unit_seconds[precision])
-    return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
+    timestamp = roundto(calendar.timegm(dt_.timetuple()) + dt_.microsecond / time_scale, unit_seconds[precision])
+    return compat_datetime_from_timestamp(timestamp)
 
 
 def hyphenate_date(date_str):
@@ -1438,7 +1476,7 @@ def system_identifier():
 @functools.cache
 def get_windows_version():
     """ Get Windows version. returns () if it's not running on Windows """
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         return version_tuple(platform.win32_ver()[1])
     else:
         return ()
@@ -1451,7 +1489,7 @@ def write_string(s, out=None, encoding=None):
     if not out:
         return
 
-    if compat_os_name == 'nt' and supports_terminal_sequences(out):
+    if os.name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
     enc, buffer = None, out
@@ -1468,8 +1506,7 @@ def write_string(s, out=None, encoding=None):
 
 # TODO: Use global logger
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from .. import _IN_CLI
-    if _IN_CLI:
+    if IN_CLI.value:
         if msg in deprecation_warning._cache:
             return
         deprecation_warning._cache.add(msg)
@@ -1482,21 +1519,6 @@ def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
 
 
 deprecation_warning._cache = set()
-
-
-def bytes_to_intlist(bs):
-    if not bs:
-        return []
-    if isinstance(bs[0], int):  # Python 3
-        return list(bs)
-    else:
-        return [ord(c) for c in bs]
-
-
-def intlist_to_bytes(xs):
-    if not xs:
-        return b''
-    return struct.pack('%dB' % len(xs), *xs)
 
 
 class LockingUnsupportedError(OSError):
@@ -1682,7 +1704,7 @@ _CMD_QUOTE_TRANS = str.maketrans({
 def shell_quote(args, *, shell=False):
     args = list(variadic(args))
 
-    if compat_os_name != 'nt':
+    if os.name != 'nt':
         return shlex.join(args)
 
     trans = _CMD_QUOTE_TRANS if shell else _WINDOWS_QUOTE_TRANS
@@ -1849,7 +1871,8 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s, *, lenient=False):
+@partial_application
+def parse_resolution(s, *, lenient=False, parse_fps=False):
     if s is None:
         return {}
 
@@ -1863,13 +1886,24 @@ def parse_resolution(s, *, lenient=False):
             'height': int(mobj.group('h')),
         }
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(\d+)[pPiI](?![a-zA-Z0-9])', s)
+    fps_suffix = r'(?P<fps>\d{2,3})?'
+    mobj = re.search(rf'(?<![a-zA-Z0-9])(?P<height>\d+)[pPiI]{fps_suffix}(?![a-zA-Z0-9])', s)
+    scale = 1
+    if not mobj:
+        mobj = re.search(rf'\b(?P<height>[48])[kK]{fps_suffix}\b', s)
+        scale = 540
     if mobj:
-        return {'height': int(mobj.group(1))}
+        res = {'height': int(mobj.group('height')) * scale}
+        if parse_fps:
+            if fps := mobj.group('fps'):
+                res['fps'] = int(fps)
 
-    mobj = re.search(r'\b([48])[kK]\b', s)
-    if mobj:
-        return {'height': int(mobj.group(1)) * 540}
+        return res
+
+    if lenient:
+        mobj = re.search(r'(?<!\d)(\d{2,5})w(?![a-zA-Z0-9])', s)
+        if mobj:
+            return {'width': int(mobj.group(1))}
 
     return {}
 
@@ -1924,14 +1958,8 @@ def setproctitle(title):
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
     except OSError:
         return
-    except TypeError:
-        # LoadLibrary in Windows Python 2.7.13 only expects
-        # a bytestring, but since unicode_literals turns
-        # every string into a unicode string, it fails.
-        return
-    title_bytes = title.encode()
-    buf = ctypes.create_string_buffer(len(title_bytes))
-    buf.value = title_bytes
+
+    buf = ctypes.create_string_buffer(title.encode())
     try:
         # PR_SET_NAME = 15      Ref: /usr/include/linux/prctl.h
         libc.prctl(15, buf, 0, 0, 0)
@@ -1944,7 +1972,7 @@ def remove_start(s, start):
 
 
 def remove_end(s, end):
-    return s[:-len(end)] if s is not None and s.endswith(end) else s
+    return s[:-len(end)] if s is not None and end and s.endswith(end) else s
 
 
 def remove_quotes(s):
@@ -1973,6 +2001,7 @@ def base_url(url):
     return re.match(r'https?://[^?#]+/', url).group()
 
 
+@partial_application
 def urljoin(base, path):
     if isinstance(path, bytes):
         path = path.decode()
@@ -1986,21 +2015,6 @@ def urljoin(base, path):
             r'^(?:https?:)?//', base):
         return None
     return urllib.parse.urljoin(base, path)
-
-
-def partial_application(func):
-    sig = inspect.signature(func)
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            sig.bind(*args, **kwargs)
-        except TypeError:
-            return functools.partial(func, *args, **kwargs)
-        else:
-            return func(*args, **kwargs)
-
-    return wrapped
 
 
 @partial_application
@@ -2038,7 +2052,7 @@ def float_or_none(v, scale=1, invscale=1, default=None):
         scale = 1
     try:
         return float(v) * invscale / scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -2054,25 +2068,20 @@ def url_or_none(url):
     if not url or not isinstance(url, str):
         return None
     url = url.strip()
-    return url if re.match(r'(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
+    return url if re.match(r'(?:(?:https?|rtm(?:pt?[es]?|fp)|ftps?|wss?):)?//', url) else None
 
 
 def strftime_or_none(timestamp, date_format='%Y%m%d', default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            # Using naive datetime here can break timestamp() in Windows
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
-            # Also, dt.datetime.fromtimestamp breaks for negative timestamps
-            # Ref: https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
-            datetime_object = (dt.datetime.fromtimestamp(0, dt.timezone.utc)
-                               + dt.timedelta(seconds=timestamp))
+            datetime_object = compat_datetime_from_timestamp(timestamp)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = dt.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
             r'(?<!%)(%%)*%s', rf'\g<1>{int(datetime_object.timestamp())}', date_format)
         return datetime_object.strftime(date_format)
-    except (ValueError, TypeError, AttributeError):
+    except (ValueError, TypeError, AttributeError, OverflowError, OSError):
         return default
 
 
@@ -2128,20 +2137,22 @@ def parse_duration(s):
 
     if ms:
         ms = ms.replace(':', '.')
-    return sum(float(part or 0) * mult for part, mult in (
+    total = sum(float(part or 0) * mult for part, mult in (
         (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
+    return int(total) if total.is_integer() else total
 
-def _change_extension(prepend, filename, ext, expected_real_ext=None):
+
+def _change_extension(prepend, filename, ext, expected_real_ext=None, *, _allowed_exts=()):
     name, real_ext = os.path.splitext(filename)
 
     if not expected_real_ext or real_ext[1:] == expected_real_ext:
         filename = name
         if prepend and real_ext:
-            _UnsafeExtensionError.sanitize_extension(ext, prepend=True)
+            _UnsafeExtensionError.sanitize_extension(ext, prepend=True, _allowed_exts=_allowed_exts)
             return f'{filename}.{ext}{real_ext}'
 
-    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext)}'
+    return f'{filename}.{_UnsafeExtensionError.sanitize_extension(ext, _allowed_exts=_allowed_exts)}'
 
 
 prepend_extension = functools.partial(_change_extension, True)
@@ -2158,14 +2169,14 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, ignore_return_code=False):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
         stdout, _, ret = Popen.run([encodeArgument(exe), *args], text=True,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if ret:
+        if not ignore_return_code and ret:
             return None
     except OSError:
         return False
@@ -2423,7 +2434,7 @@ class PlaylistEntries:
         if self.is_incomplete:
             assert self.is_exhausted
             self._entries = [self.MissingEntry] * max(requested_entries or [0])
-            for i, entry in zip(requested_entries, entries):
+            for i, entry in zip(requested_entries, entries):  # noqa: B905
                 self._entries[i - 1] = entry
         elif isinstance(entries, (list, PagedList, LazyList)):
             self._entries = entries
@@ -2583,6 +2594,7 @@ def urlencode_postdata(*args, **kargs):
     return urllib.parse.urlencode(*args, **kargs).encode('ascii')
 
 
+@partial_application
 def update_url(url, *, query_update=None, **kwargs):
     """Replace URL components specified by kwargs
        @param url           str or parse url tuple
@@ -2603,6 +2615,7 @@ def update_url(url, *, query_update=None, **kwargs):
     return urllib.parse.urlunparse(url._replace(**kwargs))
 
 
+@partial_application
 def update_url_query(url, query):
     return update_url(url, query_update=query)
 
@@ -2634,11 +2647,10 @@ def multipart_encode(data, boundary=None):
     Encode a dict to RFC 7578-compliant form-data
 
     data:
-        A dict where keys and values can be either Unicode or bytes-like
-        objects.
+        A dict where keys and values can be either str or bytes-like objects.
     boundary:
-        If specified a Unicode object, it's used as the boundary. Otherwise
-        a random boundary is generated.
+        An ASCII string to use as the boundary. If omitted, a random boundary
+        is generated.
 
     Reference: https://tools.ietf.org/html/rfc7578
     """
@@ -2695,8 +2707,8 @@ def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if (v is not None and k not in merged
-                    or isinstance(v, str) and merged[k] == ''):
+            if ((v is not None and k not in merged)
+                    or (isinstance(v, str) and merged[k] == '')):
                 merged[k] = v
     return merged
 
@@ -2775,7 +2787,8 @@ def js_to_json(code, vars={}, *, strict=False):
     def template_substitute(match):
         evaluated = js_to_json(match.group(1), vars, strict=strict)
         if evaluated[0] == '"':
-            return json.loads(evaluated)
+            with contextlib.suppress(json.JSONDecodeError):
+                return json.loads(evaluated)
         return evaluated
 
     def fix_kv(m):
@@ -2827,7 +2840,7 @@ def js_to_json(code, vars={}, *, strict=False):
         {STRING_RE}|
         {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
-        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{SKIP_RE}:)?|
+        \b(?:0[xX][0-9a-fA-F]+|(?<!\.)0+[0-7]+)(?:{SKIP_RE}:)?|
         [0-9]+(?={SKIP_RE}:)|
         !+
         ''', fix_kv, code)
@@ -2835,11 +2848,13 @@ def js_to_json(code, vars={}, *, strict=False):
 
 def qualities(quality_ids):
     """ Get a numeric quality value out of a list of possible values """
+    quality_map = {}
+    for index, quality_id in enumerate(quality_ids):
+        quality_map.setdefault(quality_id, index)
+
     def q(qid):
-        try:
-            return quality_ids.index(qid)
-        except ValueError:
-            return -1
+        return quality_map.get(qid, -1)
+
     return q
 
 
@@ -2894,8 +2909,9 @@ def limit_length(s, length):
     return s
 
 
-def version_tuple(v):
-    return tuple(int(e) for e in re.split(r'[-.]', v))
+def version_tuple(v, *, lenient=False):
+    parse = int_or_none(default=-1) if lenient else int
+    return tuple(parse(e) for e in re.split(r'[-.]', v))
 
 
 def is_outdated_version(version, limit, assume_new=True):
@@ -2924,6 +2940,7 @@ def error_to_str(err):
     return f'{type(err).__name__}: {err}'
 
 
+@partial_application
 def mimetype2ext(mt, default=NO_DEFAULT):
     if not isinstance(mt, str):
         if default is not NO_DEFAULT:
@@ -2949,6 +2966,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'x-ms-asf': 'asf',
         'x-ms-wmv': 'wmv',
         'x-msvideo': 'avi',
+        'vnd.dlna.mpeg-tts': 'mpeg',
 
         # application (streaming playlists)
         'dash+xml': 'mpd',
@@ -2967,6 +2985,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'aacp': 'aac',
+        'flac': 'flac',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
@@ -2997,6 +3016,8 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'ttaf+xml': 'dfxp',
         'ttml+xml': 'ttml',
         'x-ms-sami': 'sami',
+        'x-subrip': 'srt',
+        'x-srt': 'srt',
 
         # misc
         'gzip': 'gz',
@@ -3108,24 +3129,26 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     return 'mkv' if allow_mkv else preferences[-1]
 
 
+def disposition_filename(headers):
+    filename = None
+    for name, value in headers.get_params(header='Content-Disposition') or ():
+        if name.lower() != 'filename':
+            continue
+        filename = value
+        if isinstance(value, tuple):  # Prefer filename* over filename
+            break
+
+    return email.utils.collapse_rfc2231_value(filename).strip() if filename is not None else None
+
+
 def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
-    getheader = url_handle.headers.get
+    headers = url_handle.headers
 
-    cd = getheader('Content-Disposition')
-    if cd:
-        m = re.match(r'attachment;\s*filename="(?P<filename>[^"]+)"', cd)
-        if m:
-            e = determine_ext(m.group('filename'), default_ext=None)
-            if e:
-                return e
-
-    meta_ext = getheader('x-amz-meta-name')
-    if meta_ext:
-        e = meta_ext.rpartition('.')[2]
-        if e:
-            return e
-
-    return mimetype2ext(getheader('Content-Type'), default=default)
+    return (
+        determine_ext(disposition_filename(headers), default_ext=None)
+        or determine_ext(headers.get('x-amz-meta-name'), default_ext=None)
+        or headers.get('x-amz-meta-file-type')
+        or mimetype2ext(headers.get('Content-Type'), default=default))
 
 
 def encode_data_uri(data, mime_type):
@@ -3171,10 +3194,6 @@ def determine_protocol(info_dict):
     url = sanitize_url(info_dict['url'])
     if url.startswith('rtmp'):
         return 'rtmp'
-    elif url.startswith('mms'):
-        return 'mms'
-    elif url.startswith('rtsp'):
-        return 'rtsp'
 
     ext = determine_ext(url)
     if ext == 'm3u8':
@@ -3192,7 +3211,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
-        return [max(width(str(v)) for v in col) for col in zip(*table)]
+        return [max(width(str(v)) for v in col) for col in zip(*table, strict=True)]
 
     def filter_using_list(row, filter_array):
         return [col for take, col in itertools.zip_longest(filter_array, row, fillvalue=True) if take]
@@ -3254,7 +3273,7 @@ def _match_one(filter_part, dct, incomplete):
             op = lambda attr, value: not unnegated_op(attr, value)
         else:
             op = unnegated_op
-        comparison_value = m['quotedstrval'] or m['strval'] or m['intval']
+        comparison_value = m['quotedstrval'] or m['strval']
         if m['quote']:
             comparison_value = comparison_value.replace(r'\{}'.format(m['quote']), m['quote'])
         actual_value = dct.get(m['key'])
@@ -3371,10 +3390,15 @@ class download_range_func:
 
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
-                and self.chapters == other.chapters and self.ranges == other.ranges)
+                and self.chapters == other.chapters
+                and self.ranges == other.ranges
+                and self.from_info == other.from_info)
 
     def __repr__(self):
-        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
+        args = [repr(self.chapters), repr(self.ranges)]
+        if self.from_info:
+            args.append('from_info=True')
+        return f'{__name__}.{type(self).__name__}({", ".join(args)})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -3402,7 +3426,7 @@ def ass_subtitles_timecode(seconds):
 def dfxp2srt(dfxp_data):
     """
     @param dfxp_data A bytes-like object containing DFXP data
-    @returns A unicode object containing converted SRT data
+    @returns A string containing the converted SRT data
     """
     LEGACY_NAMESPACES = (
         (b'http://www.w3.org/ns/ttml', [
@@ -3548,7 +3572,7 @@ def dfxp2srt(dfxp_data):
             continue
         default_style.update(style)
 
-    for para, index in zip(paras, itertools.count(1)):
+    for para, index in zip(paras, itertools.count(1), strict=False):
         begin_time = parse_dfxp_time_expr(para.attrib.get('begin'))
         end_time = parse_dfxp_time_expr(para.attrib.get('end'))
         dur = parse_dfxp_time_expr(para.attrib.get('dur'))
@@ -4416,16 +4440,16 @@ def ohdave_rsa_encrypt(data, exponent, modulus):
 
 def pkcs1pad(data, length):
     """
-    Padding input data with PKCS#1 scheme
+    Pad input data using EME-PKCS1-v1_5 encoding
 
     @param {int[]} data        input data
     @param {int}   length      target length
     @returns {int[]}           padded data
     """
     if len(data) > length - 11:
-        raise ValueError('Input data too long for PKCS#1 padding')
+        raise ValueError('Input data too long for EME-PKCS1-v1_5 encoding')
 
-    pseudo_random = [random.randint(0, 254) for _ in range(length - len(data) - 3)]
+    pseudo_random = [secrets.randbelow(255) + 1 for _ in range(length - len(data) - 3)]
     return [0, 2, *pseudo_random, 0, *data]
 
 
@@ -4475,7 +4499,7 @@ def decode_packed_codes(code):
         symbol_table[base_n_count] = symbols[count] or base_n_count
 
     return re.sub(
-        r'\b(\w+)\b', lambda mobj: symbol_table[mobj.group(0)],
+        r'\b(\w+)\b', lambda m: symbol_table.get(m.group(0), m.group(0)),
         obfuscated_code)
 
 
@@ -4508,7 +4532,7 @@ def urshift(val, n):
 def write_xattr(path, key, value):
     # Windows: Write xattrs to NTFS Alternate Data Streams:
     # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
-    if compat_os_name == 'nt':
+    if os.name == 'nt':
         assert ':' not in key
         assert os.path.exists(path)
 
@@ -4611,8 +4635,21 @@ LINK_TEMPLATES = {
     'webloc': DOT_WEBLOC_LINK_TEMPLATE,
 }
 
+# Ref: https://specifications.freedesktop.org/desktop-entry/latest/value-types.html
+_DESKTOP_ENTRY_TRANS = str.maketrans({
+    ' ': R'\s',
+    '\n': R'\n',
+    '\t': R'\t',
+    '\r': R'\r',
+    '\\': R'\\',
+})
 
-def iri_to_uri(iri):
+
+def _desktop_entry_localestring(s):
+    return s.translate(_DESKTOP_ENTRY_TRANS)
+
+
+def iri_to_uri(iri, *, allowed_schemes=('http', 'https')):
     """
     Converts an IRI (Internationalized Resource Identifier, allowing Unicode characters) to a URI (Uniform Resource Identifier, ASCII-only).
 
@@ -4620,6 +4657,9 @@ def iri_to_uri(iri):
     """
 
     iri_parts = urllib.parse.urlparse(iri)
+
+    if iri_parts.scheme not in allowed_schemes:
+        raise ValueError(f'"{iri_parts.scheme}" is not in allowed_schemes: {", ".join(allowed_schemes)}')
 
     if '[' in iri_parts.netloc:
         raise ValueError('IPv6 URIs are not, yet, supported.')
@@ -4664,6 +4704,7 @@ def to_high_limit_path(path):
     return path
 
 
+@partial_application
 def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=IDENTITY):
     val = traversal.traverse_obj(obj, *variadic(field))
     if not val if ignore is NO_DEFAULT else val in variadic(ignore):
@@ -4693,23 +4734,9 @@ def clean_podcast_url(url):
     return re.sub(r'^\w+://(\w+://)', r'\1', url)
 
 
-_HEX_TABLE = '0123456789abcdef'
-
-
-def random_uuidv4():
-    return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
-
-
-def make_dir(path, to_screen=None):
-    try:
-        dn = os.path.dirname(path)
-        if dn:
-            os.makedirs(dn, exist_ok=True)
-        return True
-    except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen(f'unable to create directory {err}')
-        return False
+def make_parent_dirs(path):
+    if dir_name := os.path.dirname(path):
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def get_executable_path():
@@ -4744,38 +4771,49 @@ def time_seconds(**kwargs):
     return time.time() + dt.timedelta(**kwargs).total_seconds()
 
 
-# create a JSON Web Signature (jws) with HS256 algorithm
-# the resulting format is in JWS Compact Serialization
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html
 # implemented following JWS https://www.rfc-editor.org/rfc/rfc7515.html
-def jwt_encode_hs256(payload_data, key, headers={}):
+def jwt_encode(payload_data, key, *, alg='HS256', headers=None):
+    assert alg in ('HS256',), f'Unsupported algorithm "{alg}"'
+
+    def jwt_json_bytes(obj):
+        return json.dumps(obj, separators=(',', ':')).encode()
+
+    def jwt_b64encode(bytestring):
+        return base64.urlsafe_b64encode(bytestring).rstrip(b'=')
+
     header_data = {
-        'alg': 'HS256',
+        'alg': alg,
         'typ': 'JWT',
     }
     if headers:
-        header_data.update(headers)
-    header_b64 = base64.b64encode(json.dumps(header_data).encode())
-    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+        # Allow re-ordering of keys if both 'alg' and 'typ' are present
+        if 'alg' in headers and 'typ' in headers:
+            header_data = headers
+        else:
+            header_data.update(headers)
+
+    header_b64 = jwt_b64encode(jwt_json_bytes(header_data))
+    payload_b64 = jwt_b64encode(jwt_json_bytes(payload_data))
+
+    # HS256 is the only algorithm currently supported
     h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
-    signature_b64 = base64.b64encode(h.digest())
-    return header_b64 + b'.' + payload_b64 + b'.' + signature_b64
+    signature_b64 = jwt_b64encode(h.digest())
+
+    return (header_b64 + b'.' + payload_b64 + b'.' + signature_b64).decode()
 
 
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
 def jwt_decode_hs256(jwt):
-    header_b64, payload_b64, signature_b64 = jwt.split('.')
+    _header_b64, payload_b64, _signature_b64 = jwt.split('.')
     # add trailing ='s that may have been stripped, superfluous ='s are ignored
     return json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
 
 
-WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
-
-
 @functools.cache
 def supports_terminal_sequences(stream):
-    if compat_os_name == 'nt':
-        if not WINDOWS_VT_MODE:
+    if os.name == 'nt':
+        if not WINDOWS_VT_MODE.value:
             return False
     elif not os.getenv('TERM'):
         return False
@@ -4812,8 +4850,7 @@ def windows_enable_vt_mode():
     finally:
         os.close(handle)
 
-    global WINDOWS_VT_MODE
-    WINDOWS_VT_MODE = True
+    WINDOWS_VT_MODE.value = True
     supports_terminal_sequences.cache_clear()
 
 
@@ -4822,10 +4859,6 @@ _terminal_sequences_re = re.compile('\033\\[[^m]+m')
 
 def remove_terminal_sequences(string):
     return _terminal_sequences_re.sub('', string)
-
-
-def number_of_digits(number):
-    return len('%d' % number)
 
 
 def join_nonempty(*values, delim='-', from_dict=None):
@@ -4851,7 +4884,7 @@ def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
     return [
         merge_dicts(
             {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
-            dict(zip(_keys, max_dimensions)), thumbnail)
+            dict(zip(_keys, max_dimensions, strict=True)), thumbnail)
         for thumbnail in thumbnails
     ]
 
@@ -4868,7 +4901,7 @@ def parse_http_range(range):
 
 def read_stdin(what):
     if what:
-        eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
+        eof = 'Ctrl+Z' if os.name == 'nt' else 'Ctrl+D'
         write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
     return sys.stdin
 
@@ -4896,10 +4929,6 @@ class Config:
     parsed_args = None
     filename = None
     __initialized = False
-
-    # Internal only, do not use! Hack to enable --plugin-dirs
-    # TODO(coletdjnz): remove when plugin globals system is implemented
-    _plugin_dirs = None
 
     def __init__(self, parser, label=None):
         self.parser, self.label = parser, label
@@ -5065,7 +5094,7 @@ class function_with_repr:
 
 
 class Namespace(types.SimpleNamespace):
-    """Immutable namespace"""
+    """SimpleNamespace iterable over attribute values"""
 
     def __iter__(self):
         return iter(self.__dict__.values())
@@ -5132,6 +5161,7 @@ class _UnsafeExtensionError(Exception):
         'rm',
         'swf',
         'ts',
+        'vid',
         'vob',
         'vp9',
 
@@ -5164,7 +5194,9 @@ class _UnsafeExtensionError(Exception):
         'heic',
         'ico',
         'image',
+        'jfif',
         'jng',
+        'jpe',
         'jpeg',
         'jxl',
         'svg',
@@ -5191,20 +5223,22 @@ class _UnsafeExtensionError(Exception):
         # others
         *MEDIA_EXTENSIONS.manifests,
         *MEDIA_EXTENSIONS.storyboards,
-        'desktop',
         'ism',
         'm3u',
         'sbv',
-        'url',
-        'webloc',
     ])
+
+    _enabled = True
 
     def __init__(self, extension, /):
         super().__init__(f'unsafe file extension: {extension!r}')
         self.extension = extension
 
     @classmethod
-    def sanitize_extension(cls, extension, /, *, prepend=False):
+    def sanitize_extension(cls, extension, /, *, prepend=False, _allowed_exts=()):
+        if not cls._enabled:
+            return extension
+
         if extension is None:
             return None
 
@@ -5215,7 +5249,8 @@ class _UnsafeExtensionError(Exception):
             _, _, last = extension.rpartition('.')
             if last == 'bin':
                 extension = last = 'unknown_video'
-            if last.lower() not in cls.ALLOWED_EXTENSIONS:
+            allowed = _allowed_exts or cls.ALLOWED_EXTENSIONS
+            if last.lower() not in allowed:
                 raise cls(extension)
 
         return extension
@@ -5277,11 +5312,13 @@ class RetryManager:
             time.sleep(delay)
 
 
+@partial_application
 def make_archive_id(ie, video_id):
     ie_key = ie if isinstance(ie, str) else ie.ie_key()
     return f'{ie_key.lower()} {video_id}'
 
 
+@partial_application
 def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
@@ -5324,21 +5361,24 @@ class FormatSorter:
     regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
     default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-               'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
+               'res', 'fps', 'hdr:12', 'vcodec', 'channels', 'acodec',
                'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
+    _prefer_vp9_sort = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
+                        'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
+                        'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')
     ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                     'height', 'width', 'proto', 'vext', 'abr', 'aext',
                     'fps', 'fs_approx', 'source', 'id')
 
     settings = {
         'vcodec': {'type': 'ordered', 'regex': True,
-                   'order': ['av0?1', 'vp0?9.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
+                   'order': ['av0?1', r'vp0?9\.0?2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
         'acodec': {'type': 'ordered', 'regex': True,
                    'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'ac-?4', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                 'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
         'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
+                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'ws|websocket', 'f4']},
         'vext': {'type': 'ordered', 'field': 'video_ext',
                  'order': ('mp4', 'mov', 'webm', 'flv', '', 'none'),
                  'order_free': ('webm', 'mp4', 'mov', 'flv', '', 'none')},
@@ -5630,6 +5670,24 @@ def filesize_from_tbr(tbr, duration):
     return int(duration * tbr * (1000 / 8))
 
 
+def _request_dump_filename(url, video_id, data=None, trim_length=None):
+    if data is not None:
+        data = hashlib.md5(data).hexdigest()
+    basen = join_nonempty(video_id, data, url, delim='_')
+    trim_length = trim_length or 240
+    if len(basen) > trim_length:
+        h = '___' + hashlib.md5(basen.encode()).hexdigest()
+        basen = basen[:trim_length - len(h)] + h
+    filename = sanitize_filename(f'{basen}.dump', restricted=True)
+    # Working around MAX_PATH limitation on Windows (see
+    # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
+    if os.name == 'nt':
+        absfilepath = os.path.abspath(filename)
+        if len(absfilepath) > 259:
+            filename = fR'\\?\{absfilepath}'
+    return filename
+
+
 # XXX: Temporary
 class _YDLLogger:
     def __init__(self, ydl=None):
@@ -5658,3 +5716,32 @@ class _YDLLogger:
     def stderr(self, message):
         if self._ydl:
             self._ydl.to_stderr(message)
+
+
+class _ProgressState(enum.Enum):
+    """
+    Represents a state for a progress bar.
+
+    See: https://conemu.github.io/en/AnsiEscapeCodes.html#ConEmu_specific_OSC
+    """
+
+    HIDDEN = 0
+    INDETERMINATE = 3
+    VISIBLE = 1
+    WARNING = 4
+    ERROR = 2
+
+    @classmethod
+    def from_dict(cls, s, /):
+        if s['status'] == 'finished':
+            return cls.INDETERMINATE
+
+        # Not currently used
+        if s['status'] == 'error':
+            return cls.ERROR
+
+        return cls.INDETERMINATE if s.get('_percent') is None else cls.VISIBLE
+
+    def get_ansi_escape(self, /, percent=None):
+        percent = 0 if percent is None else int(percent)
+        return f'\033]9;4;{self.value};{percent}\007'

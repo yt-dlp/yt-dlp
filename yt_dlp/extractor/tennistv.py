@@ -1,9 +1,9 @@
 import urllib.parse
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    random_uuidv4,
     unified_timestamp,
     urlencode_postdata,
 )
@@ -77,11 +77,11 @@ class TennisTVIE(InfoExtractor):
             query={
                 'client_id': 'tennis-tv-web',
                 'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
-                'state': random_uuidv4(),
+                'state': str(uuid.uuid4()),
                 'response_mode': 'fragment',
                 'response_type': 'code',
                 'scope': 'openid',
-                'nonce': random_uuidv4(),
+                'nonce': str(uuid.uuid4()),
                 'prompt': 'none',
             })
 

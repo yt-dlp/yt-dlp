@@ -30,9 +30,7 @@ class WimTVIE(InfoExtractor):
             'duration': 6481,
             'thumbnail': r're:https?://.+?/thumbnail/.+?/720$',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         # live stream
         'url': 'https://platform.wim.tv/embed/?live=28e22c22-49db-40f3-8c37-8cbb0ff44556&autostart=true',
@@ -42,15 +40,24 @@ class WimTVIE(InfoExtractor):
             'title': 'Streaming MSmotorTV',
             'is_live': True,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://platform.wim.tv/#/webtv/automotornews/vod/422492b6-539e-474d-9c6b-68c9d5893365',
         'only_matching': True,
     }, {
         'url': 'https://platform.wim.tv/#/webtv/renzoarborechannel/cast/f47e0d15-5b45-455e-bf0d-dba8ffa96365',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.renzoarborechannel.tv/50_sorrisi_da_napoli.htm',
+        'info_dict': {
+            'id': '50_sorrisi_da_napoli',
+            'title': 'Renzo Arbore Channel . TV - 50 Sorrisi da Napoli',
+            'age_limit': 0,
+            'timestamp': 1612226372,
+            'upload_date': '20210202',
+        },
+        'playlist_count': 40,
     }]
 
     def _real_initialize(self):

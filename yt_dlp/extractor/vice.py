@@ -32,6 +32,7 @@ class ViceBaseIE(InfoExtractor):
 
 
 class ViceIE(ViceBaseIE, AdobePassIE):
+    _WORKING = False
     IE_NAME = 'vice'
     _VALID_URL = r'https?://(?:(?:video|vms)\.vice|(?:www\.)?vice(?:land|tv))\.com/(?P<locale>[^/]+)/(?:video/[^/]+|embed)/(?P<id>[\da-f]{24})'
     _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//video\.vice\.com/[^/]+/embed/[\da-f]{24})']
@@ -99,6 +100,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         'url': 'https://www.viceland.com/en_us/video/thursday-march-1-2018/5a8f2d7ff1cdb332dd446ec1',
         'only_matching': True,
     }]
+    _SOFTWARE_STATEMENT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIwMTVjODBlZC04ZDcxLTQ4ZGEtOTZkZi00NzU5NjIwNzJlYTQiLCJuYmYiOjE2NjgwMTM0ODQsImlzcyI6ImF1dGguYWRvYmUuY29tIiwiaWF0IjoxNjY4MDEzNDg0fQ.CjhUnTrlh-bmYnEFHyC2Y4it5Y_Zfza1x66O4-ki5gBR7JT6aUunYI_YflXomQPACriMpObkITFz4grVaDwdd8Xp9hrQ2R0SwRBdaklkdy1_j68RqSP5PnexJIa0q_ThtOwfRBd5uGcb33nMJ9Qs92W4kVXuca0Ta-i7SJyWgXUaPDlRDdgyCL3hKj5wuM7qUIwrd9A5CMm-j3dMIBCDgw7X6TwRK65eUQe6gTWqcvL2yONHHTpmIfeOTUxGwwKFr29COOTBowm0VJ6HE08xjXCShP08Neusu-JsgkjzhkEbiDE2531EKgfAki_7WCd2JUZVsAsCusv4a1maokk6NA'
 
     def _real_extract(self, url):
         locale, video_id = self._match_valid_url(url).groups()
@@ -116,7 +118,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
             resource = self._get_mvpd_resource(
                 'VICELAND', title, video_id, rating)
             query['tvetoken'] = self._extract_mvpd_auth(
-                url, video_id, 'VICELAND', resource)
+                url, video_id, 'VICELAND', resource, self._SOFTWARE_STATEMENT)
 
         # signature generation algorithm is reverse engineered from signatureGenerator in
         # webpack:///../shared/~/vice-player/dist/js/vice-player.js in
@@ -181,6 +183,7 @@ class ViceIE(ViceBaseIE, AdobePassIE):
 
 
 class ViceShowIE(ViceBaseIE):
+    _WORKING = False
     IE_NAME = 'vice:show'
     _VALID_URL = r'https?://(?:video\.vice|(?:www\.)?vice(?:land|tv))\.com/(?P<locale>[^/]+)/show/(?P<id>[^/?#&]+)'
     _PAGE_SIZE = 25
@@ -221,6 +224,7 @@ class ViceShowIE(ViceBaseIE):
 
 
 class ViceArticleIE(ViceBaseIE):
+    _WORKING = False
     IE_NAME = 'vice:article'
     _VALID_URL = r'https?://(?:www\.)?vice\.com/(?P<locale>[^/]+)/article/(?:[0-9a-z]{6}/)?(?P<id>[^?#]+)'
 

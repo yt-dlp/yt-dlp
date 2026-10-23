@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class TwentyMinutenIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = '20min'
     _VALID_URL = r'''(?x)
                     https?://
@@ -24,7 +25,7 @@ class TwentyMinutenIE(InfoExtractor):
             'id': '469148',
             'ext': 'mp4',
             'title': '85 000 Franken für 15 perfekte Minuten',
-            'thumbnail': r're:https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
         },
     }, {
         'url': 'http://www.20min.ch/videoplayer/videoplayer.html?params=client@twentyDE|videoId@523629',
@@ -33,7 +34,7 @@ class TwentyMinutenIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'So kommen Sie bei Eis und Schnee sicher an',
             'description': 'md5:117c212f64b25e3d95747e5276863f7d',
-            'thumbnail': r're:https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
         },
         'params': {
             'skip_download': True,
@@ -41,6 +42,16 @@ class TwentyMinutenIE(InfoExtractor):
     }, {
         'url': 'http://www.20min.ch/videotv/?cid=44&vid=468738',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
+        'url': 'https://www.20min.ch/story/so-kommen-sie-bei-eis-und-schnee-sicher-an-557858045456',
+        'info_dict': {
+            'id': '523629',
+            'ext': 'mp4',
+            'title': 'So kommen Sie bei Eis und Schnee sicher an',
+            'description': 'md5:117c212f64b25e3d95747e5276863f7d',
+        },
     }]
 
     def _real_extract(self, url):

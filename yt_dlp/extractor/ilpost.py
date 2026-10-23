@@ -1,4 +1,3 @@
-import functools
 
 from .common import InfoExtractor
 from ..utils import (
@@ -63,7 +62,7 @@ class IlPostIE(InfoExtractor):
                 'url': ('podcast_raw_url', {url_or_none}),
                 'thumbnail': ('image', {url_or_none}),
                 'timestamp': ('timestamp', {int_or_none}),
-                'duration': ('milliseconds', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('milliseconds', {float_or_none(scale=1000)}),
                 'availability': ('free', {lambda v: 'public' if v else 'subscriber_only'}),
             }),
         }

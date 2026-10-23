@@ -11,7 +11,7 @@ from ..utils import (
 )
 
 
-class WykopBaseExtractor(InfoExtractor):
+class WykopBaseIE(InfoExtractor):
     def _get_token(self, force_refresh=False):
         if not force_refresh:
             maybe_cached = self.cache.load('wykop', 'bearer')
@@ -72,7 +72,7 @@ class WykopBaseExtractor(InfoExtractor):
         }
 
 
-class WykopDigIE(WykopBaseExtractor):
+class WykopDigIE(WykopBaseIE):
     IE_NAME = 'wykop:dig'
     _VALID_URL = r'https?://(?:www\.)?wykop\.pl/link/(?P<id>\d+)'
 
@@ -128,7 +128,7 @@ class WykopDigIE(WykopBaseExtractor):
         }
 
 
-class WykopDigCommentIE(WykopBaseExtractor):
+class WykopDigCommentIE(WykopBaseIE):
     IE_NAME = 'wykop:dig:comment'
     _VALID_URL = r'https?://(?:www\.)?wykop\.pl/link/(?P<dig_id>\d+)/[^/]+/komentarz/(?P<id>\d+)'
 
@@ -177,7 +177,7 @@ class WykopDigCommentIE(WykopBaseExtractor):
         }
 
 
-class WykopPostIE(WykopBaseExtractor):
+class WykopPostIE(WykopBaseIE):
     IE_NAME = 'wykop:post'
     _VALID_URL = r'https?://(?:www\.)?wykop\.pl/wpis/(?P<id>\d+)'
 
@@ -228,7 +228,7 @@ class WykopPostIE(WykopBaseExtractor):
         }
 
 
-class WykopPostCommentIE(WykopBaseExtractor):
+class WykopPostCommentIE(WykopBaseIE):
     IE_NAME = 'wykop:post:comment'
     _VALID_URL = r'https?://(?:www\.)?wykop\.pl/wpis/(?P<post_id>\d+)/[^/#]+#(?P<id>\d+)'
 

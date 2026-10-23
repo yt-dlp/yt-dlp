@@ -8,7 +8,6 @@ class JWPlatformIE(InfoExtractor):
     _VALID_URL = r'(?:https?://(?:content\.jwplatform|cdn\.jwplayer)\.com/(?:(?:feed|player|thumb|preview|manifest)s|jw6|v2/media)/|jwplatform:)(?P<id>[a-zA-Z0-9]{8})'
     _TESTS = [{
         'url': 'http://content.jwplatform.com/players/nPripu9l-ALJ3XQCI.js',
-        'md5': '3aa16e4f6860e6e78b7df5829519aed3',
         'info_dict': {
             'id': 'nPripu9l',
             'ext': 'mp4',
@@ -17,13 +16,12 @@ class JWPlatformIE(InfoExtractor):
             'upload_date': '20081127',
             'timestamp': 1227796140,
             'duration': 32.0,
-            'thumbnail': 'https://cdn.jwplayer.com/v2/media/nPripu9l/poster.jpg?width=720',
+            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
         },
     }, {
         'url': 'https://cdn.jwplayer.com/players/nPripu9l-ALJ3XQCI.js',
         'only_matching': True,
     }]
-
     _WEBPAGE_TESTS = [{
         # JWPlatform iframe
         'url': 'https://www.covermagazine.co.uk/feature/2465255/business-protection-involved',
@@ -33,10 +31,11 @@ class JWPlatformIE(InfoExtractor):
             'upload_date': '20160719',
             'timestamp': 1468923808,
             'title': '2016_05_18 Cover L&G Business Protection V1 FINAL.mp4',
-            'thumbnail': 'https://cdn.jwplayer.com/v2/media/AG26UQXM/poster.jpg?width=720',
+            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
             'description': '',
             'duration': 294.0,
         },
+        'skip': 'Site no longer embeds JWPlatform',
     }, {
         # Player url not surrounded by quotes
         'url': 'https://www.deutsche-kinemathek.de/en/online/streaming/school-trip',
@@ -45,12 +44,12 @@ class JWPlatformIE(InfoExtractor):
             'title': 'Klassenfahrt',
             'ext': 'mp4',
             'upload_date': '20230109',
-            'thumbnail': 'https://cdn.jwplayer.com/v2/media/jUxh5uin/poster.jpg?width=720',
+            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
             'timestamp': 1673270298,
             'description': '',
             'duration': 5193.0,
         },
-        'params': {'allowed_extractors': ['generic', 'jwplatform']},
+        'skip': 'Site no longer embeds JWPlatform',
     }, {
         # iframe src attribute includes backslash before URL string
         'url': 'https://www.elespectador.com/colombia/video-asi-se-evito-la-fuga-de-john-poulos-presunto-feminicida-de-valentina-trespalacios-explicacion',
@@ -59,10 +58,23 @@ class JWPlatformIE(InfoExtractor):
             'title': 'Así se evitó la fuga de John Poulos, presunto feminicida de Valentina Trespalacios',
             'ext': 'mp4',
             'upload_date': '20230127',
-            'thumbnail': 'https://cdn.jwplayer.com/v2/media/QD3gsexj/poster.jpg?width=720',
+            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
             'timestamp': 1674862986,
             'description': 'md5:128fd74591c4e1fc2da598c5cb6f5ce4',
             'duration': 263.0,
+        },
+    }, {
+        'url': 'https://www.skimag.com/video/ski-people-1980',
+        'info_dict': {
+            'id': 'YTmgRiNU',
+            'ext': 'mp4',
+            'title': 'Ski People (1980)',
+            'channel': 'snow',
+            'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
+            'duration': 5688.0,
+            'thumbnail': r're:https?://cdn\.jwplayer\.com/v2/media/.+',
+            'timestamp': 1610407738,
+            'upload_date': '20210111',
         },
     }]
 

@@ -71,7 +71,7 @@ class AllstarBaseIE(InfoExtractor):
             'thumbnails': (('clipImageThumb', 'clipImageSource'), {'url': {media_url_or_none}}),
             'duration': ('clipLength', {int_or_none}),
             'filesize': ('clipSizeBytes', {int_or_none}),
-            'timestamp': ('createdDate', {functools.partial(int_or_none, scale=1000)}),
+            'timestamp': ('createdDate', {int_or_none(scale=1000)}),
             'uploader': ('username', {str}),
             'uploader_id': ('user', '_id', {str}),
             'view_count': ('views', {int_or_none}),

@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class DropboxIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/fi|sh?)/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?dropbox\.com/(?:(?:e/)?scl/f[io]|sh?)/(?P<id>\w+)'
     _TESTS = [
         {
             'url': 'https://www.dropbox.com/s/nelirfsxnmcfbfh/youtube-dl%20test%20video%20%27%C3%A4%22BaW_jenozKc.mp4?dl=0',
@@ -35,6 +35,9 @@ class DropboxIE(InfoExtractor):
         }, {
             'url': 'https://www.dropbox.com/e/scl/fi/r2kd2skcy5ylbbta5y1pz/DJI_0003.MP4?dl=0&rlkey=wcdgqangn7t3lnmmv6li9mu9h',
             'only_matching': True,
+        }, {
+            'url': 'https://www.dropbox.com/scl/fo/zjfqse5txqfd7twa8iewj/AOfZzSYWUSKle2HD7XF7kzQ/A-BEAT%20C.mp4?rlkey=6tg3jkp4tv6a5vt58a6dag0mm&dl=0',
+            'only_matching': True,
         },
     ]
 
@@ -48,32 +51,30 @@ class DropboxIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         fn = urllib.parse.unquote(url_basename(url))
         title = os.path.splitext(fn)[0]
-        password = self.get_param('videopassword')
+        content_id = None
 
         for part in self._yield_decoded_parts(webpage):
             if '/sm/password' in part:
-                webpage = self._download_webpage(
-                    update_url('https://www.dropbox.com/sm/password', query=part.partition('?')[2]), video_id)
+                content_id = self._search_regex(r'content_id=([\w.+=/-]+)', part, 'content ID')
                 break
 
-        if (self._og_search_title(webpage, default=None) == 'Dropbox - Password Required'
-                or 'Enter the password for this link' in webpage):
-            if password:
-                response = self._download_json(
-                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password',
-                    headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'},
-                    data=urlencode_postdata({
-                        'is_xhr': 'true',
-                        't': self._get_cookies('https://www.dropbox.com')['t'].value,
-                        'content_id': self._search_regex(r'content_id=([\w.+=/-]+)["\']', webpage, 'content id'),
-                        'password': password,
-                        'url': url,
-                    }))
-
-                if response.get('status') != 'authed':
-                    raise ExtractorError('Invalid password', expected=True)
-            elif not self._get_cookies('https://dropbox.com').get('sm_auth'):
+        if content_id:
+            password = self.get_param('videopassword')
+            if not password:
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
+
+            response = self._download_json(
+                'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password',
+                data=urlencode_postdata({
+                    'is_xhr': 'true',
+                    't': self._get_cookies('https://www.dropbox.com')['t'].value,
+                    'content_id': content_id,
+                    'password': password,
+                    'url': update_url(url, scheme='', netloc=''),
+                }))
+            if response.get('status') != 'authed':
+                raise ExtractorError('Invalid password', expected=True)
+
             webpage = self._download_webpage(url, video_id)
 
         formats, subtitles = [], {}
@@ -84,7 +85,7 @@ class DropboxIE(InfoExtractor):
                 has_anonymous_download = self._search_regex(
                     r'(anonymous:\tanonymous)', part, 'anonymous', default=False)
             transcode_url = self._search_regex(
-                r'\n.(https://[^\x03\x08\x12\n]+\.m3u8)', part, 'transcode url', default=None)
+                r'\n.?(https://[^\x03\x08\x12\n]+\.m3u8)', part, 'transcode url', default=None)
             if not transcode_url:
                 continue
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id, 'mp4')

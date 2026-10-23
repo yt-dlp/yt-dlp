@@ -5,11 +5,13 @@ from .common import InfoExtractor
 from ..utils import (
     OnDemandPagedList,
     float_or_none,
+    int_or_none,
+    orderedSet,
     str_or_none,
-    str_to_int,
-    traverse_obj,
     unified_timestamp,
+    url_or_none,
 )
+from ..utils.traversal import require, traverse_obj
 
 
 class PodchaserIE(InfoExtractor):
@@ -21,24 +23,25 @@ class PodchaserIE(InfoExtractor):
             'id': '104365585',
             'title': 'Ep. 285 – freeze me off',
             'description': 'cam ahn',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+/.+\.jpg',
             'ext': 'mp3',
-            'categories': ['Comedy'],
+            'categories': ['Comedy', 'News', 'Politics', 'Arts'],
             'tags': ['comedy', 'dark humor'],
-            'series': 'Cum Town',
+            'series': 'The Adam Friedland Show Podcast',
             'duration': 3708,
             'timestamp': 1636531259,
             'upload_date': '20211110',
             'average_rating': 4.0,
+            'series_id': '36924',
         },
     }, {
         'url': 'https://www.podchaser.com/podcasts/the-bone-zone-28853',
         'info_dict': {
             'id': '28853',
             'title': 'The Bone Zone',
-            'description': 'Podcast by The Bone Zone',
+            'description': r're:The official home of the Bone Zone podcast.+',
         },
-        'playlist_count': 275,
+        'playlist_mincount': 275,
     }, {
         'url': 'https://www.podchaser.com/podcasts/sean-carrolls-mindscape-scienc-699349/episodes',
         'info_dict': {
@@ -51,19 +54,33 @@ class PodchaserIE(InfoExtractor):
 
     @staticmethod
     def _parse_episode(episode, podcast):
-        return {
-            'id': str(episode.get('id')),
-            'title': episode.get('title'),
-            'description': episode.get('description'),
-            'url': episode.get('audio_url'),
-            'thumbnail': episode.get('image_url'),
-            'duration': str_to_int(episode.get('length')),
-            'timestamp': unified_timestamp(episode.get('air_date')),
-            'average_rating': float_or_none(episode.get('rating')),
-            'categories': list(set(traverse_obj(podcast, (('summary', None), 'categories', ..., 'text')))),
-            'tags': traverse_obj(podcast, ('tags', ..., 'text')),
-            'series': podcast.get('title'),
-        }
+        info = traverse_obj(episode, {
+            'id': ('id', {int}, {str_or_none}, {require('episode ID')}),
+            'title': ('title', {str}),
+            'description': ('description', {str}),
+            'url': ('audio_url', {url_or_none}),
+            'thumbnail': ('image_url', {url_or_none}),
+            'duration': ('length', {int_or_none}),
+            'timestamp': ('air_date', {unified_timestamp}),
+            'average_rating': ('rating', {float_or_none}),
+        })
+        info.update(traverse_obj(podcast, {
+            'series': ('title', {str}),
+            'series_id': ('id', {int}, {str_or_none}),
+            'categories': (('summary', None), 'categories', ..., 'text', {str}, filter, all, {orderedSet}),
+            'tags': ('tags', ..., 'text', {str}),
+        }))
+        info['vcodec'] = 'none'
+
+        if info.get('series_id'):
+            podcast_slug = traverse_obj(podcast, ('slug', {str})) or 'podcast'
+            episode_slug = traverse_obj(episode, ('slug', {str})) or 'episode'
+            info['webpage_url'] = '/'.join((
+                'https://www.podchaser.com/podcasts',
+                '-'.join((podcast_slug[:30].rstrip('-'), info['series_id'])),
+                '-'.join((episode_slug[:30].rstrip('-'), info['id']))))
+
+        return info
 
     def _call_api(self, path, *args, **kwargs):
         return self._download_json(f'https://api.podchaser.com/{path}', *args, **kwargs)
@@ -93,5 +110,5 @@ class PodchaserIE(InfoExtractor):
                 OnDemandPagedList(functools.partial(self._fetch_page, podcast_id, podcast), self._PAGE_SIZE),
                 str_or_none(podcast.get('id')), podcast.get('title'), podcast.get('description'))
 
-        episode = self._call_api(f'episodes/{episode_id}', episode_id)
+        episode = self._call_api(f'podcasts/{podcast_id}/episodes/{episode_id}/player_ids', episode_id)
         return self._parse_episode(episode, podcast)

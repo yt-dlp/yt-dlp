@@ -1,0 +1,4 @@
+machine normal_use login user password pass
+machine empty_user login "" password pass
+machine empty_pass login user password ""
+machine both_empty login "" password ""

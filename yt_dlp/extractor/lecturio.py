@@ -5,7 +5,6 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    float_or_none,
     int_or_none,
     str_or_none,
     url_or_none,
@@ -130,7 +129,7 @@ class LecturioIE(LecturioBaseIE):
             f = {
                 'url': file_url,
                 'format_id': label,
-                'filesize': float_or_none(filesize, invscale=1000),
+                'filesize': int_or_none(filesize, invscale=1000),
             }
             if label:
                 mobj = re.match(r'(\d+)p\s*\(([^)]+)\)', label)

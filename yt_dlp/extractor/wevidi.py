@@ -78,7 +78,7 @@ class WeVidiIE(InfoExtractor):
         }
 
         src_path = f'{wvplayer_props["srcVID"]}/{wvplayer_props["srcUID"]}/{wvplayer_props["srcNAME"]}'
-        for res in traverse_obj(wvplayer_props, ('resolutions', ..., {int}, {lambda x: x or None})):
+        for res in traverse_obj(wvplayer_props, ('resolutions', ..., {int}, filter)):
             format_id = str(-(res // -2) - 1)
             yield {
                 'acodec': 'mp4a.40.2',

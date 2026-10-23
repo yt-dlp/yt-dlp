@@ -3,6 +3,7 @@ from ..utils import int_or_none
 
 
 class LiveJournalIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:[^.]+\.)?livejournal\.com/video/album/\d+.+?\bid=(?P<id>\d+)'
     _TEST = {
         'url': 'https://andrei-bt.livejournal.com/video/album/407/?mode=view&id=51272',

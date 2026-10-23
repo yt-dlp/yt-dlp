@@ -30,7 +30,7 @@ class UnicodeBOMIE(InfoExtractor):
     _VALID_URL = r'(?P<bom>\ufeff)(?P<id>.*)$'
 
     _TESTS = [{
-        'url': '\ufeffhttp://www.youtube.com/watch?v=BaW_jenozKc',
+        'url': '\ufeffhttp://www.youtube.com/watch?v=YE7VzlLtp-4',
         'only_matching': True,
     }]
 

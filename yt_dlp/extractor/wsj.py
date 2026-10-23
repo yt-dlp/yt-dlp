@@ -100,8 +100,8 @@ class WSJIE(InfoExtractor):
 
 
 class WSJArticleIE(InfoExtractor):
-    _VALID_URL = r'(?i)https?://(?:www\.)?wsj\.com/articles/(?P<id>[^/?#&]+)'
-    _TEST = {
+    _VALID_URL = r'(?i)https?://(?:www\.)?wsj\.com/(?:articles|opinion)/(?P<id>[^/?#&]+)'
+    _TESTS = [{
         'url': 'https://www.wsj.com/articles/dont-like-china-no-pandas-for-you-1490366939?',
         'info_dict': {
             'id': '4B13FA62-1D8C-45DB-8EA1-4105CB20B362',
@@ -110,11 +110,20 @@ class WSJArticleIE(InfoExtractor):
             'uploader_id': 'ralcaraz',
             'title': 'Bao Bao the Panda Leaves for China',
         },
-    }
+    }, {
+        'url': 'https://www.wsj.com/opinion/hamas-hostages-caskets-bibas-family-israel-gaza-29da083b',
+        'info_dict': {
+            'id': 'CE68D629-8DB8-4CD3-B30A-92112C102054',
+            'ext': 'mp4',
+            'upload_date': '20241007',
+            'uploader_id': 'Tinnes, David',
+            'title': 'WSJ Opinion: "Get the Jew": The Crown Heights Riot Revisited',
+        },
+    }]
 
     def _real_extract(self, url):
         article_id = self._match_id(url)
-        webpage = self._download_webpage(url, article_id)
+        webpage = self._download_webpage(url, article_id, impersonate=True)
         video_id = self._search_regex(
             r'(?:id=["\']video|video-|iframe\.html\?guid=|data-src=["\'])([a-fA-F0-9-]{36})',
             webpage, 'video id')

@@ -1,5 +1,3 @@
-import functools
-
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
@@ -83,7 +81,7 @@ class ParlerIE(InfoExtractor):
                 'timestamp': ('date_created', {unified_timestamp}),
                 'uploader': ('user', 'name', {strip_or_none}),
                 'uploader_id': ('user', 'username', {str}),
-                'uploader_url': ('user', 'username', {functools.partial(urljoin, 'https://parler.com/')}),
+                'uploader_url': ('user', 'username', {urljoin('https://parler.com/')}),
                 'view_count': ('views', {int_or_none}),
                 'comment_count': ('total_comments', {int_or_none}),
                 'repost_count': ('echos', {int_or_none}),

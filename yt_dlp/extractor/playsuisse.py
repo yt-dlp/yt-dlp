@@ -1,14 +1,18 @@
+import base64
+import hashlib
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_qs,
-    traverse_obj,
     update_url_query,
     urlencode_postdata,
 )
+from ..utils.traversal import traverse_obj, unpack
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -23,12 +27,12 @@ class PlaySuisseIE(InfoExtractor):
         {
             # episode in a series
             'url': 'https://www.playsuisse.ch/watch/763182?episodeId=763211',
-            'md5': '82df2a470b2dfa60c2d33772a8a60cf8',
+            'md5': 'e20d1ede6872a03b41905ca1060a1ef2',
             'info_dict': {
                 'id': '763211',
                 'ext': 'mp4',
                 'title': 'Knochen',
-                'description': 'md5:8ea7a8076ba000cd9e8bc132fd0afdd8',
+                'description': 'md5:3bdd80e2ce20227c47aab1df2a79a519',
                 'duration': 3344,
                 'series': 'Wilder',
                 'season': 'Season 1',
@@ -39,24 +43,33 @@ class PlaySuisseIE(InfoExtractor):
             },
         }, {
             # film
-            'url': 'https://www.playsuisse.ch/watch/808675',
-            'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
+            'url': 'https://www.playsuisse.ch/detail/2573198',
+            'md5': '1f115bb0a5191477b1a5771643a4283d',
             'info_dict': {
-                'id': '808675',
+                'id': '2573198',
                 'ext': 'mp4',
-                'title': 'Der Läufer',
-                'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
-                'duration': 5280,
+                'title': 'Azor',
+                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+                'genres': ['Fiction'],
+                'creators': ['Andreas Fontana'],
+                'cast': ['Fabrizio Rongione', 'Stéphanie Cléau', 'Gilles Privat', 'Alexandre Trocki'],
+                'location': 'France; Argentine',
+                'release_year': 2021,
+                'duration': 5981,
                 'thumbnail': 're:https://playsuisse-img.akamaized.net/',
             },
         }, {
             # series (treated as a playlist)
             'url': 'https://www.playsuisse.ch/detail/1115687',
             'info_dict': {
-                'description': 'md5:e4a2ae29a8895823045b5c3145a02aa3',
                 'id': '1115687',
                 'series': 'They all came out to Montreux',
                 'title': 'They all came out to Montreux',
+                'description': 'md5:0fefd8c5b4468a0bb35e916887681520',
+                'genres': ['Documentary'],
+                'creators': ['Oliver Murray'],
+                'location': 'Switzerland',
+                'release_year': 2021,
             },
             'playlist': [{
                 'info_dict': {
@@ -117,6 +130,12 @@ class PlaySuisseIE(InfoExtractor):
             id
             name
             description
+            descriptionLong
+            year
+            contentTypes
+            directors
+            mainCast
+            productionCountries
             duration
             episodeNumber
             seasonNumber
@@ -142,45 +161,77 @@ class PlaySuisseIE(InfoExtractor):
             id
             url
         }'''
-    _LOGIN_BASE_URL = 'https://login.srgssr.ch/srgssrlogin.onmicrosoft.com'
-    _LOGIN_PATH = 'B2C_1A__SignInV2'
+    _CLIENT_ID = '1e33f1bf-8bf3-45e4-bbd9-c9ad934b5fca'
+    _LOGIN_BASE = 'https://account.srgssr.ch'
     _ID_TOKEN = None
 
     def _perform_login(self, username, password):
-        login_page = self._download_webpage(
-            'https://www.playsuisse.ch/api/sso/login', None, note='Downloading login page',
-            query={'x': 'x', 'locale': 'de', 'redirectUrl': 'https://www.playsuisse.ch/'})
-        settings = self._search_json(r'var\s+SETTINGS\s*=', login_page, 'settings', None)
+        code_verifier = uuid.uuid4().hex + uuid.uuid4().hex + uuid.uuid4().hex
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
-        csrf_token = settings['csrf']
-        query = {'tx': settings['transId'], 'p': self._LOGIN_PATH}
+        request_id = parse_qs(self._request_webpage(
+            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID', query={
+                'client_id': self._CLIENT_ID,
+                'redirect_uri': 'https://www.playsuisse.ch/auth',
+                'scope': 'email profile openid offline_access',
+                'response_type': 'code',
+                'code_challenge': code_challenge,
+                'code_challenge_method': 'S256',
+                'view_type': 'login',
+            }).url)['requestId'][0]
 
-        status = traverse_obj(self._download_json(
-            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/SelfAsserted', None, 'Logging in',
-            query=query, headers={'X-CSRF-TOKEN': csrf_token}, data=urlencode_postdata({
-                'request_type': 'RESPONSE',
-                'signInName': username,
-                'password': password,
-            }), expected_status=400), ('status', {int_or_none}))
-        if status == 400:
-            raise ExtractorError('Invalid username or password', expected=True)
+        try:
+            exchange_id = self._download_json(
+                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password', None,
+                'Submitting username', headers={'content-type': 'application/json'}, data=json.dumps({
+                    'usage_type': 'INITIAL_AUTHENTICATION',
+                    'request_id': request_id,
+                    'medium_id': 'PASSWORD',
+                    'type': 'password',
+                    'identifier': username,
+                }).encode())['data']['exchange_id']['exchange_id']
+        except ExtractorError:
+            raise ExtractorError('Invalid username', expected=True)
 
-        urlh = self._request_webpage(
-            f'{self._LOGIN_BASE_URL}/{self._LOGIN_PATH}/api/CombinedSigninAndSignup/confirmed',
-            None, 'Downloading ID token', query={
-                'rememberMe': 'false',
-                'csrf_token': csrf_token,
-                **query,
-                'diags': '',
-            })
+        try:
+            login_data = self._download_json(
+                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password', None,
+                'Submitting password', headers={'content-type': 'application/json'}, data=json.dumps({
+                    'requestId': request_id,
+                    'exchange_id': exchange_id,
+                    'type': 'password',
+                    'password': password,
+                }).encode())['data']
+        except ExtractorError:
+            raise ExtractorError('Invalid password', expected=True)
 
-        self._ID_TOKEN = traverse_obj(parse_qs(urlh.url), ('id_token', 0))
+        authorization_code = parse_qs(self._request_webpage(
+            f'{self._LOGIN_BASE}/login-srv/verification/login', None, 'Logging in',
+            data=urlencode_postdata({
+                'requestId': request_id,
+                'exchange_id': login_data['exchange_id']['exchange_id'],
+                'verificationType': 'password',
+                'sub': login_data['sub'],
+                'status_id': login_data['status_id'],
+                'rememberMe': True,
+                'lat': '',
+                'lon': '',
+            })).url)['code'][0]
+
+        self._ID_TOKEN = self._download_json(
+            f'{self._LOGIN_BASE}/proxy/token', None, 'Downloading token', data=b'', query={
+                'client_id': self._CLIENT_ID,
+                'redirect_uri': 'https://www.playsuisse.ch/auth',
+                'code': authorization_code,
+                'code_verifier': code_verifier,
+                'grant_type': 'authorization_code',
+            })['id_token']
+
         if not self._ID_TOKEN:
             raise ExtractorError('Login failed')
 
-    def _get_media_data(self, media_id):
-        # NOTE In the web app, the "locale" header is used to switch between languages,
-        # However this doesn't seem to take effect when passing the header here.
+    def _get_media_data(self, media_id, locale=None):
         response = self._download_json(
             'https://www.playsuisse.ch/api/graphql',
             media_id, data=json.dumps({
@@ -188,7 +239,7 @@ class PlaySuisseIE(InfoExtractor):
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id},
             }).encode(),
-            headers={'Content-Type': 'application/json', 'locale': 'de'})
+            headers={'Content-Type': 'application/json', 'locale': locale or 'de'})
 
         return response['data']['assetV2']
 
@@ -197,7 +248,7 @@ class PlaySuisseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         media_id = self._match_id(url)
-        media_data = self._get_media_data(media_id)
+        media_data = self._get_media_data(media_id, traverse_obj(parse_qs(url), ('locale', 0)))
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
             info.update({
@@ -220,15 +271,22 @@ class PlaySuisseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': media_data['id'],
-            'title': media_data.get('name'),
-            'description': media_data.get('description'),
             'thumbnails': thumbnails,
-            'duration': int_or_none(media_data.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
-            'series': media_data.get('seriesName'),
-            'season_number': int_or_none(media_data.get('seasonNumber')),
-            'episode': media_data.get('name') if media_data.get('episodeNumber') else None,
-            'episode_number': int_or_none(media_data.get('episodeNumber')),
+            **traverse_obj(media_data, {
+                'id': ('id', {str}),
+                'title': ('name', {str}),
+                'description': (('descriptionLong', 'description'), {str}, any),
+                'genres': ('contentTypes', ..., {str}),
+                'creators': ('directors', ..., {str}),
+                'cast': ('mainCast', ..., {str}),
+                'location': ('productionCountries', ..., {str}, all, {unpack(join_nonempty, delim='; ')}, filter),
+                'release_year': ('year', {str}, {lambda x: x[:4]}, {int_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'series': ('seriesName', {str}),
+                'season_number': ('seasonNumber', {int_or_none}),
+                'episode': ('name', {str}, {lambda x: x if media_data['episodeNumber'] is not None else None}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+            }),
         }

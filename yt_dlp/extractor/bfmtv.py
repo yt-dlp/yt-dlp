@@ -1,21 +1,29 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import extract_attributes
+from ..utils import ExtractorError, extract_attributes
 
 
 class BFMTVBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.|rmc\.)?bfmtv\.com/'
     _VALID_URL_TMPL = _VALID_URL_BASE + r'(?:[^/]+/)*[^/?&#]+_%s[A-Z]-(?P<id>\d{12})\.html'
-    _VIDEO_BLOCK_REGEX = r'(<div[^>]+class="video_block[^"]*"[^>]*>)'
+    _VIDEO_BLOCK_REGEX = r'(<div[^>]+\bdata-video-id=[^>]+>.*?</div>)'
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
 
-    def _brightcove_url_result(self, video_id, video_block):
-        account_id = video_block.get('accountid') or '876450612001'
-        player_id = video_block.get('playerid') or 'I2qBTln4u'
-        return self.url_result(
-            self.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, video_id),
-            'BrightcoveNew', video_id)
+    def _extract_video(self, video_block, fatal=True):
+        video_block_attrs = extract_attributes(video_block)
+        video_id = video_block_attrs.get('data-video-id')
+        if not video_id:
+            msg = 'Unable to extract Brightcove video id'
+            if not fatal:
+                self.report_warning(msg)
+                return {}
+            raise ExtractorError(msg)
+
+        account_id = video_block_attrs.get('data-account-id') or '876450612001'
+        player_id = video_block_attrs.get('playerid') or 'default'
+
+        return self.url_result(self.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, video_id), 'BrightcoveNew', video_id)
 
 
 class BFMTVIE(BFMTVBaseIE):
@@ -40,26 +48,24 @@ class BFMTVIE(BFMTVBaseIE):
     def _real_extract(self, url):
         bfmtv_id = self._match_id(url)
         webpage = self._download_webpage(url, bfmtv_id)
-        video_block = extract_attributes(self._search_regex(
+        return self._extract_video(self._search_regex(
             self._VIDEO_BLOCK_REGEX, webpage, 'video block'))
-        return self._brightcove_url_result(video_block['videoid'], video_block)
 
 
-class BFMTVLiveIE(BFMTVIE):  # XXX: Do not subclass from concrete IE
+class BFMTVLiveIE(BFMTVBaseIE):
     IE_NAME = 'bfmtv:live'
     _VALID_URL = BFMTVBaseIE._VALID_URL_BASE + '(?P<id>(?:[^/]+/)?en-direct)'
     _TESTS = [{
         'url': 'https://www.bfmtv.com/en-direct/',
         'info_dict': {
-            'id': '5615950982001',
+            'id': '6346069778112',
             'ext': 'mp4',
-            'title': r're:^le direct BFMTV WEB \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'title': r're:^Le Live BFM TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'uploader_id': '876450610001',
-            'upload_date': '20220926',
-            'timestamp': 1664207191,
+            'upload_date': '20240202',
+            'timestamp': 1706887572,
             'live_status': 'is_live',
             'thumbnail': r're:https://.+/image\.jpg',
-            'tags': [],
         },
         'params': {
             'skip_download': True,
@@ -68,6 +74,12 @@ class BFMTVLiveIE(BFMTVIE):  # XXX: Do not subclass from concrete IE
         'url': 'https://www.bfmtv.com/economie/en-direct/',
         'only_matching': True,
     }]
+
+    def _real_extract(self, url):
+        bfmtv_id = self._match_id(url)
+        webpage = self._download_webpage(url, bfmtv_id)
+        return self._extract_video(self._search_regex(
+            self._VIDEO_BLOCK_REGEX, webpage, 'video block'))
 
 
 class BFMTVArticleIE(BFMTVBaseIE):
@@ -102,18 +114,16 @@ class BFMTVArticleIE(BFMTVBaseIE):
         },
     }]
 
+    def _entries(self, webpage):
+        for video_block_el in re.findall(self._VIDEO_BLOCK_REGEX, webpage):
+            video = self._extract_video(video_block_el, fatal=False)
+            if video:
+                yield video
+
     def _real_extract(self, url):
         bfmtv_id = self._match_id(url)
         webpage = self._download_webpage(url, bfmtv_id)
 
-        entries = []
-        for video_block_el in re.findall(self._VIDEO_BLOCK_REGEX, webpage):
-            video_block = extract_attributes(video_block_el)
-            video_id = video_block.get('videoid')
-            if not video_id:
-                continue
-            entries.append(self._brightcove_url_result(video_id, video_block))
-
         return self.playlist_result(
-            entries, bfmtv_id, self._og_search_title(webpage, fatal=False),
+            self._entries(webpage), bfmtv_id, self._og_search_title(webpage, fatal=False),
             self._html_search_meta(['og:description', 'description'], webpage))

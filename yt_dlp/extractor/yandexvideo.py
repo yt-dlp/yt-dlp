@@ -2,15 +2,17 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    bug_reports_message,
     determine_ext,
-    extract_attributes,
     int_or_none,
     lowercase_escape,
     parse_qs,
-    traverse_obj,
+    qualities,
     try_get,
+    update_url_query,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class YandexVideoIE(InfoExtractor):
@@ -186,7 +188,22 @@ class YandexVideoPreviewIE(InfoExtractor):
         return self.url_result(data_json['video']['url'])
 
 
-class ZenYandexIE(InfoExtractor):
+class ZenYandexBaseIE(InfoExtractor):
+    def _fetch_ssr_data(self, url, video_id):
+        webpage = self._download_webpage(url, video_id)
+        redirect = self._search_json(
+            r'(?:var|let|const)\s+it\s*=', webpage, 'redirect', video_id, default={}).get('retpath')
+        if redirect:
+            video_id = self._match_id(redirect)
+            webpage = self._download_webpage(redirect, video_id, note='Redirecting')
+        return video_id, self._search_json(
+            r'(?:var|let|const)\s+_params\s*=\s*\(', webpage, 'metadata', video_id,
+            contains_pattern=r'{["\']ssrData.+}')['ssrData']
+
+
+class ZenYandexIE(ZenYandexBaseIE):
+    IE_NAME = 'dzen.ru'
+    IE_DESC = 'Дзен (dzen) formerly Яндекс.Дзен (Yandex Zen)'
     _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
@@ -216,6 +233,7 @@ class ZenYandexIE(InfoExtractor):
             'timestamp': 1573465585,
         },
         'params': {'skip_download': 'm3u8'},
+        'skip': 'The page does not exist',
     }, {
         'url': 'https://zen.yandex.ru/video/watch/6002240ff8b1af50bb2da5e3',
         'info_dict': {
@@ -227,6 +245,9 @@ class ZenYandexIE(InfoExtractor):
             'uploader': 'TechInsider',
             'timestamp': 1611378221,
             'upload_date': '20210123',
+            'view_count': int,
+            'duration': 243,
+            'tags': ['опыт', 'эксперимент', 'огонь'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -240,6 +261,9 @@ class ZenYandexIE(InfoExtractor):
             'uploader': 'TechInsider',
             'upload_date': '20210123',
             'timestamp': 1611378221,
+            'view_count': int,
+            'duration': 243,
+            'tags': ['опыт', 'эксперимент', 'огонь'],
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -252,44 +276,56 @@ class ZenYandexIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        redirect = self._search_json(r'var it\s*=', webpage, 'redirect', id, default={}).get('retpath')
-        if redirect:
-            video_id = self._match_id(redirect)
-            webpage = self._download_webpage(redirect, video_id, note='Redirecting')
-        data_json = self._search_json(
-            r'("data"\s*:|data\s*=)', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
-        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)', webpage, 'server state')
-        uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
-                                      webpage, 'uploader', default='<a>')
-        uploader_name = extract_attributes(uploader).get('aria-label')
-        item_id = traverse_obj(data_json, (serverstate, 'videoViewer', 'openedItemId', {str}))
-        video_json = traverse_obj(data_json, (serverstate, 'videoViewer', 'items', item_id, {dict})) or {}
+        video_id, ssr_data = self._fetch_ssr_data(url, video_id)
+        video_data = ssr_data['videoMetaResponse']
 
         formats, subtitles = [], {}
-        for s_url in traverse_obj(video_json, ('video', 'streams', ..., {url_or_none})):
+        quality = qualities(('4', '0', '1', '2', '3', '5', '6', '7'))
+        # Deduplicate stream URLs. The "dzen_dash" query parameter is present in some URLs but can be omitted
+        stream_urls = set(traverse_obj(video_data, (
+            'video', ('id', ('streams', ...), ('mp4Streams', ..., 'url'), ('oneVideoStreams', ..., 'url')),
+            {url_or_none}, {update_url_query(query={'dzen_dash': []})})))
+        for s_url in stream_urls:
             ext = determine_ext(s_url)
-            if ext == 'mpd':
-                fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash')
-            elif ext == 'm3u8':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(s_url, video_id, 'mp4')
+            content_type = traverse_obj(parse_qs(s_url), ('ct', 0))
+            if ext == 'mpd' or content_type == '6':
+                fmts, subs = self._extract_mpd_formats_and_subtitles(s_url, video_id, mpd_id='dash', fatal=False)
+            elif ext == 'm3u8' or content_type == '8':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(s_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
+            elif content_type == '0':
+                format_type = traverse_obj(parse_qs(s_url), ('type', 0))
+                formats.append({
+                    'url': s_url,
+                    'format_id': format_type,
+                    'ext': 'mp4',
+                    'quality': quality(format_type),
+                })
+                continue
+            else:
+                self.report_warning(f'Unsupported stream URL: {s_url}{bug_reports_message()}')
+                continue
             formats.extend(fmts)
-            subtitles = self._merge_subtitles(subtitles, subs)
+            self._merge_subtitles(subs, target=subtitles)
+
         return {
             'id': video_id,
-            'title': video_json.get('title') or self._og_search_title(webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'duration': int_or_none(video_json.get('duration')),
-            'view_count': int_or_none(video_json.get('views')),
-            'timestamp': int_or_none(video_json.get('publicationDate')),
-            'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
-            'description': video_json.get('description') or self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
+            **traverse_obj(video_data, {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+                'thumbnail': ('image', {url_or_none}),
+                'duration': ('video', 'duration', {int_or_none}),
+                'view_count': ('video', 'views', {int_or_none}),
+                'timestamp': ('publicationDate', {int_or_none}),
+                'tags': ('tags', ..., {str}),
+                'uploader': ('source', 'title', {str}),
+            }),
         }
 
 
-class ZenYandexChannelIE(InfoExtractor):
+class ZenYandexChannelIE(ZenYandexBaseIE):
+    IE_NAME = 'dzen.ru:channel'
     _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
         'url': 'https://zen.yandex.ru/tok_media',
@@ -323,8 +359,8 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/jony_me',
         'info_dict': {
             'id': 'jony_me',
-            'description': 'md5:ce0a5cad2752ab58701b5497835b2cc5',
-            'title': 'JONY ',
+            'description': 'md5:7c30d11dc005faba8826feae99da3113',
+            'title': 'JONY',
         },
         'playlist_count': 18,
     }, {
@@ -333,9 +369,8 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/tatyanareva',
         'info_dict': {
             'id': 'tatyanareva',
-            'description': 'md5:40a1e51f174369ec3ba9d657734ac31f',
+            'description': 'md5:92e56fa730a932ca2483ba5c2186ad96',
             'title': 'Татьяна Рева',
-            'entries': 'maxcount:200',
         },
         'playlist_mincount': 46,
     }, {
@@ -348,43 +383,31 @@ class ZenYandexChannelIE(InfoExtractor):
         'playlist_mincount': 657,
     }]
 
-    def _entries(self, item_id, server_state_json, server_settings_json):
-        items = (traverse_obj(server_state_json, ('feed', 'items', ...))
-                 or traverse_obj(server_settings_json, ('exportData', 'items', ...)))
-
-        more = (traverse_obj(server_state_json, ('links', 'more'))
-                or traverse_obj(server_settings_json, ('exportData', 'more', 'link')))
-
+    def _entries(self, feed_data, channel_id):
         next_page_id = None
         for page in itertools.count(1):
-            for item in items or []:
-                if item.get('type') != 'gif':
-                    continue
-                video_id = traverse_obj(item, 'publication_id', 'publicationId') or ''
-                yield self.url_result(item['link'], ZenYandexIE, video_id.split(':')[-1])
+            for item in traverse_obj(feed_data, (
+                (None, ('items', lambda _, v: v['tab'] in ('shorts', 'longs'))),
+                'items', lambda _, v: url_or_none(v['link']),
+            )):
+                yield self.url_result(item['link'], ZenYandexIE, item.get('id'), title=item.get('title'))
 
+            more = traverse_obj(feed_data, ('more', 'link', {url_or_none}))
             current_page_id = next_page_id
             next_page_id = traverse_obj(parse_qs(more), ('next_page_id', -1))
-            if not all((more, items, next_page_id, next_page_id != current_page_id)):
+            if not all((more, next_page_id, next_page_id != current_page_id)):
                 break
 
-            data = self._download_json(more, item_id, note=f'Downloading Page {page}')
-            items, more = data.get('items'), traverse_obj(data, ('more', 'link'))
+            feed_data = self._download_json(more, channel_id, note=f'Downloading Page {page}')
 
     def _real_extract(self, url):
-        item_id = self._match_id(url)
-        webpage = self._download_webpage(url, item_id)
-        redirect = self._search_json(
-            r'var it\s*=', webpage, 'redirect', item_id, default={}).get('retpath')
-        if redirect:
-            item_id = self._match_id(redirect)
-            webpage = self._download_webpage(redirect, item_id, note='Redirecting')
-        data = self._search_json(
-            r'("data"\s*:|data\s*=)', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
-        server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
-        server_settings_json = traverse_obj(data, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
+        channel_id = self._match_id(url)
+        channel_id, ssr_data = self._fetch_ssr_data(url, channel_id)
+        channel_data = ssr_data['exportResponse']
 
         return self.playlist_result(
-            self._entries(item_id, server_state_json, server_settings_json),
-            item_id, traverse_obj(server_state_json, ('channel', 'source', 'title')),
-            traverse_obj(server_state_json, ('channel', 'source', 'description')))
+            self._entries(channel_data['feedData'], channel_id),
+            channel_id, **traverse_obj(channel_data, ('channel', 'source', {
+                'title': ('title', {str}),
+                'description': ('description', {str}),
+            })))

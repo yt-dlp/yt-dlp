@@ -20,7 +20,9 @@ if __name__ == '__main__':
         '--changelog-path', type=Path, default=Path(__file__).parent.parent / 'Changelog.md',
         help='path to the Changelog file')
     args = parser.parse_args()
-    new_entry = create_changelog(args)
 
     header, sep, changelog = read_file(args.changelog_path).partition('\n### ')
-    write_file(args.changelog_path, f'{header}{sep}{read_version()}\n{new_entry}\n{sep}{changelog}')
+    current_version = read_version()
+    if current_version != changelog.splitlines()[0]:
+        new_entry = create_changelog(args)
+        write_file(args.changelog_path, f'{header}{sep}{current_version}\n{new_entry}\n{sep}{changelog}')

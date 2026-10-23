@@ -22,7 +22,7 @@ class TestVerboseOutput(unittest.TestCase):
                 '--username', 'johnsmith@gmail.com',
                 '--password', 'my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        _, serr = outp.communicate()
         self.assertTrue(b'--username' in serr)
         self.assertTrue(b'johnsmith' not in serr)
         self.assertTrue(b'--password' in serr)
@@ -36,7 +36,7 @@ class TestVerboseOutput(unittest.TestCase):
                 '-u', 'johnsmith@gmail.com',
                 '-p', 'my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        _, serr = outp.communicate()
         self.assertTrue(b'-u' in serr)
         self.assertTrue(b'johnsmith' not in serr)
         self.assertTrue(b'-p' in serr)
@@ -50,7 +50,7 @@ class TestVerboseOutput(unittest.TestCase):
                 '--username=johnsmith@gmail.com',
                 '--password=my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        _, serr = outp.communicate()
         self.assertTrue(b'--username' in serr)
         self.assertTrue(b'johnsmith' not in serr)
         self.assertTrue(b'--password' in serr)
@@ -64,7 +64,7 @@ class TestVerboseOutput(unittest.TestCase):
                 '-u=johnsmith@gmail.com',
                 '-p=my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sout, serr = outp.communicate()
+        _, serr = outp.communicate()
         self.assertTrue(b'-u' in serr)
         self.assertTrue(b'johnsmith' not in serr)
         self.assertTrue(b'-p' in serr)

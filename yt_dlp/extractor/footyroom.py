@@ -12,14 +12,6 @@ class FootyRoomIE(InfoExtractor):
         },
         'playlist_count': 2,
         'add_ie': [StreamableIE.ie_key()],
-    }, {
-        'url': 'http://footyroom.com/matches/75817984/georgia-vs-germany/review',
-        'info_dict': {
-            'id': '75817984',
-            'title': 'VIDEO Georgia 0 - 2 Germany',
-        },
-        'playlist_count': 1,
-        'add_ie': ['Playwire'],
     }]
 
     def _real_extract(self, url):
@@ -38,13 +30,6 @@ class FootyRoomIE(InfoExtractor):
             payload = video.get('payload')
             if not payload:
                 continue
-            playwire_url = self._html_search_regex(
-                r'data-config="([^"]+)"', payload,
-                'playwire url', default=None)
-            if playwire_url:
-                entries.append(self.url_result(self._proto_relative_url(
-                    playwire_url, 'http:'), 'Playwire'))
-
             streamable_url = StreamableIE._extract_url(payload)
             if streamable_url:
                 entries.append(self.url_result(

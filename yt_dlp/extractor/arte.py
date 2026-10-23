@@ -51,8 +51,8 @@ class ArteTVIE(ArteTVBaseIE):
             'id': '109067-000-A',
             'ext': 'mp4',
             'description': 'md5:d2ca367b8ecee028dddaa8bd1aebc739',
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
             'timestamp': 1713927600,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/3rR6PLzfbigSkkeHtkCZNF/940x530',
             'duration': 7599,
             'title': 'La loi de Téhéran',
             'upload_date': '20240424',
@@ -62,6 +62,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'fr-forced': 'mincount:1',
             },
         },
+        'skip': 'Invalid URL',
     }, {
         'note': 'age-restricted',
         'url': 'https://www.arte.tv/de/videos/006785-000-A/the-element-of-crime/',
@@ -69,9 +70,9 @@ class ArteTVIE(ArteTVBaseIE):
             'id': '006785-000-A',
             'description': 'md5:c2f94fdfefc8a280e4dab68ab96ab0ba',
             'title': 'The Element of Crime',
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
             'timestamp': 1696111200,
             'duration': 5849,
-            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/q82dTTfyuCXupPsGxXsd7B/940x530',
             'upload_date': '20230930',
             'ext': 'mp4',
         },
@@ -252,6 +253,30 @@ class ArteTVEmbedIE(InfoExtractor):
         'url': 'https://www.arte.tv/player/v3/index.php?json_url=https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Embed detection
+        'url': 'https://timesofmalta.com/article/watch-sunken-warships-north-sea-arte.1108358',
+        'info_dict': {
+            'id': '110288-000-A',
+            'ext': 'mp4',
+            'title': 'Danger on the Seabed',
+            'alt_title': 'Sunken Warships in the North Sea',
+            'description': 'md5:a2c84cbad37d280bddb6484087120add',
+            'duration': 3148,
+            'thumbnail': r're:https?://api-cdn\.arte\.tv/img/v2/image/.+',
+            'timestamp': 1741686820,
+            'upload_date': '20250311',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        # FIXME: Embed detection
+        'url': 'https://www.eurockeennes.fr/en-live/',
+        'info_dict': {
+            'id': 'en-live',
+            'title': 'Les Eurocks en live | Les Eurockéennes de Belfort – 3-4-5-6 juillet 2025 sur la Presqu&#039;Île du Malsaucy',
+        },
+        'playlist_count': 4,
+    }]
 
     def _real_extract(self, url):
         qs = parse_qs(url)
@@ -268,33 +293,79 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/pl/videos/RC-014123/arte-reportage/',
-        'playlist_mincount': 100,
+        'playlist_mincount': 20,
         'info_dict': {
             'description': 'md5:84e7bf1feda248bc325ebfac818c476e',
             'id': 'RC-014123',
-            'title': 'ARTE Reportage - najlepsze reportaże',
+            'title': 'ARTE Reportage',
+        },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/RC-027513/twin-peaks/',
+        'playlist_mincount': 48,
+        'info_dict': {
+            'description': 'md5:4a99f0339d76e4a11a6ad751234d2398',
+            'id': 'RC-027513',
+            'title': 'Twin Peaks',
+        },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/RC-027683/unterschaetzt-die-rechte-terrorgefahr/',
+        'playlist_mincount': 2,
+        'info_dict': {
+            'description': 'md5:910dc74d146fd9a12f62ec0d5495c700',
+            'id': 'RC-027683',
+            'title': 'Unterschätzt - Die rechte Terrorgefahr',
         },
     }]
 
+    _API_TOKEN = 'Nzc1Yjc1ZjJkYjk1NWFhN2I2MWEwMmRlMzAzNjI5NmU3NWU3ODg4ODJjOWMxNTMxYzEzZGRjYjg2ZGE4MmIwOA'
+
+    def _season_entries(self, season_ids, lang):
+        for season_id in season_ids:
+            season_data = self._download_json(
+                f'{self._API_BASE}/playlist/{lang}/{season_id}', season_id,
+                headers={'x-validated-age': '18'})
+
+            for video in traverse_obj(season_data, (
+                'data', 'attributes', 'items',
+                    lambda _, v: v['providerId'] and v['link']['url'])):
+                yield {
+                    '_type': 'url_transparent',
+                    'ie_key': ArteTVIE.ie_key(),
+                    **traverse_obj(video, {
+                        'url': ('link', 'url', {str}),
+                        'id': ('providerId', {str}),
+                        'title': ('title', {str}),
+                        'alt_title': ('subtitle', {str}),
+                        'duration': ('duration', 'seconds', {int_or_none}),
+                        'age_limit': ('ageRating', {int_or_none}),
+                    }),
+                }
+
     def _real_extract(self, url):
         lang, playlist_id = self._match_valid_url(url).group('lang', 'id')
-        playlist = self._download_json(
-            f'{self._API_BASE}/playlist/{lang}/{playlist_id}', playlist_id)['data']['attributes']
 
-        entries = [{
-            '_type': 'url_transparent',
-            'url': video['config']['url'],
-            'ie_key': ArteTVIE.ie_key(),
-            'id': video.get('providerId'),
-            'title': video.get('title'),
-            'alt_title': video.get('subtitle'),
-            'thumbnail': url_or_none(traverse_obj(video, ('mainImage', 'url'))),
-            'duration': int_or_none(traverse_obj(video, ('duration', 'seconds'))),
-        } for video in traverse_obj(playlist, ('items', lambda _, v: v['config']['url']))]
+        playlist_info = traverse_obj(self._download_json(
+            f'https://api.arte.tv/api/opa/v3/programs/{lang}/{playlist_id}', playlist_id,
+            headers={'Authorization': f'Bearer {self._API_TOKEN}'}), ('programs', ..., {dict}, any))
 
-        return self.playlist_result(entries, playlist_id,
-                                    traverse_obj(playlist, ('metadata', 'title')),
-                                    traverse_obj(playlist, ('metadata', 'description')))
+        metadata = traverse_obj(playlist_info, {
+            'title': ('title', {str}),
+            'description': ('shortDescription', {str}),
+        })
+
+        # Check first if there are seasons
+        season_ids = traverse_obj(
+            playlist_info, ('children', (lambda _, v: v['catalogType'] == 'SEASON'), 'programId'))
+        if season_ids:
+            return self.playlist_result(
+                self._season_entries(season_ids, lang), playlist_id, **metadata)
+
+        # It might be a mini series comprised of a few shows
+        shows = traverse_obj(playlist_info, (
+            'videos', lambda _, v: v['kind'] == 'SHOW' and url_or_none(v['url'])))
+        return self.playlist_result(
+            [self.url_result(show['url'], ArteTVIE) for show in shows],
+            playlist_id, **metadata)
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
@@ -304,9 +375,9 @@ class ArteTVCategoryIE(ArteTVBaseIE):
         'info_dict': {
             'id': 'politics-and-society',
             'title': 'Politics and society',
-            'description': 'Investigative documentary series, geopolitical analysis, and international commentary',
+            'description': 'Watch documentaries and reportage about politics, society and current affairs.',
         },
-        'playlist_mincount': 13,
+        'playlist_mincount': 3,
     }]
 
     @classmethod

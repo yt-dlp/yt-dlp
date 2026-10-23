@@ -1,4 +1,3 @@
-import functools
 import re
 
 from .brightcove import BrightcoveNewIE
@@ -68,7 +67,7 @@ class TVAIE(InfoExtractor):
             'episode': episode,
             **traverse_obj(entity, {
                 'description': ('longDescription', {str}),
-                'duration': ('durationMillis', {functools.partial(float_or_none, scale=1000)}),
+                'duration': ('durationMillis', {float_or_none(scale=1000)}),
                 'channel': ('knownEntities', 'channel', 'name', {str}),
                 'series': ('knownEntities', 'videoShow', 'name', {str}),
                 'season_number': ('slug', {lambda x: re.search(r'/s(?:ai|ea)son-(\d+)/', x)}, 1, {int_or_none}),

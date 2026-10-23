@@ -11,13 +11,12 @@ import codecs
 import subprocess
 
 from yt_dlp.aes import aes_encrypt, key_expansion
-from yt_dlp.utils import intlist_to_bytes
 
 secret_msg = b'Secret message goes here'
 
 
 def hex_str(int_list):
-    return codecs.encode(intlist_to_bytes(int_list), 'hex')
+    return codecs.encode(bytes(int_list), 'hex')
 
 
 def openssl_encode(algo, key, iv):

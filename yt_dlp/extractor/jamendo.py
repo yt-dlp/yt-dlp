@@ -2,10 +2,12 @@ import hashlib
 import random
 
 from .common import InfoExtractor
+from ..networking import HEADRequest
 from ..utils import (
     clean_html,
     int_or_none,
     try_get,
+    urlhandle_detect_ext,
 )
 
 
@@ -27,7 +29,7 @@ class JamendoIE(InfoExtractor):
             'ext': 'flac',
             # 'title': 'Maya Filipič - Stories from Emona I',
             'title': 'Stories from Emona I',
-            'artist': 'Maya Filipič',
+            'artists': ['Maya Filipič'],
             'album': 'Between two worlds',
             'track': 'Stories from Emona I',
             'duration': 210,
@@ -93,9 +95,15 @@ class JamendoIE(InfoExtractor):
                 if not cover_url or cover_url in urls:
                     continue
                 urls.append(cover_url)
+                urlh = self._request_webpage(
+                    HEADRequest(cover_url), track_id, 'Checking thumbnail extension',
+                    errnote=False, fatal=False)
+                if not urlh:
+                    continue
                 size = int_or_none(cover_id.lstrip('size'))
                 thumbnails.append({
                     'id': cover_id,
+                    'ext': urlhandle_detect_ext(urlh, default='jpg'),
                     'url': cover_url,
                     'width': size,
                     'height': size,

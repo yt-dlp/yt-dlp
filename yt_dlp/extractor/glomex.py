@@ -112,16 +112,17 @@ class GlomexIE(GlomexBaseIE):
 
     _TESTS = [{
         'url': 'https://video.glomex.com/sport/v-cb24uwg77hgh-nach-2-0-sieg-guardiola-mit-mancity-vor-naechstem-titel',
-        'md5': 'cec33a943c4240c9cb33abea8c26242e',
         'info_dict': {
             'id': 'v-cb24uwg77hgh',
             'ext': 'mp4',
-            'title': 'md5:38a90cedcfadd72982c81acf13556e0c',
+            'title': 'Nach 2:0-Sieg: Guardiola mit ManCity vor nächstem Titel',
             'description': 'md5:1ea6b6caff1443fcbbba159e432eedb8',
             'duration': 29600,
+            'thumbnail': r're:https?://i[a-z0-9]thumbs\.glomex\.com/.+',
             'timestamp': 1619895017,
             'upload_date': '20210501',
         },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -140,16 +141,17 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     _TESTS = [{
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?integrationId=4059a013k56vb2yd&playlistId=v-cfa6lye0dkdd-sf',
-        'md5': '68f259b98cc01918ac34180142fce287',
         'info_dict': {
             'id': 'v-cfa6lye0dkdd-sf',
             'ext': 'mp4',
+            'title': 'Φώφη Γεννηματά: Ο επικήδειος λόγος του 17χρονου γιου της, Γιώργου',
+            'thumbnail': r're:https?://i[a-z0-9]thumbs\.glomex\.com/.+',
             'timestamp': 1635337199,
             'duration': 133080,
             'upload_date': '20211027',
             'description': 'md5:e741185fc309310ff5d0c789b437be66',
-            'title': 'md5:35647293513a6c92363817a0fb0a7961',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?origin=fullpage&integrationId=19syy24xjn1oqlpc&playlistId=rl-vcb49w1fb592p&playlistIndex=0',
         'info_dict': {
@@ -157,11 +159,26 @@ class GlomexEmbedIE(GlomexBaseIE):
         },
         'playlist_count': 100,
     }, {
+        # Geo-restricted
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?playlistId=cl-bgqaata6aw8x&integrationId=19syy24xjn1oqlpc',
         'info_dict': {
             'id': 'cl-bgqaata6aw8x',
         },
         'playlist_mincount': 2,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
+        'info_dict': {
+            'id': 'v-ch2nkhcirwc9-sf',
+            'ext': 'mp4',
+            'title': 'Ιατρικός Σύλλογος Τουρκίας: Το Turkovac είναι ένα απλό διάλυμα –Ερντογάν: Είστε απατεώνες και ψεύτες',
+            'description': 'md5:8b517a61d577efe7e36fde72fd535995',
+            'duration': 460000,
+            'thumbnail': r're:https?://i[a-z0-9]thumbs\.glomex\.com/.+',
+            'timestamp': 1641885019,
+            'upload_date': '20220111',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     @classmethod
