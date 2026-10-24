@@ -270,13 +270,13 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'Patron-only content',
     }, {
-        # multiple attachments/embeds
+        # attachment and json content inline video embed
         'url': 'https://www.patreon.com/GirlMeetsTV/posts/deep-space-nine-172527548',
         'playlist_count': 2,
         'info_dict': {
             'id': '172527548',
             'title': 'Deep Space Nine | 2x13 | Armageddon Game',
-            'description': 'md5:cad61de8679b3e10e5f7f7969b94bbde',
+            'description': 'md5:cbed368f901ebef27b8db316e384fb62',
             'uploader': 'Girl Meets TV',
             'uploader_id': '198733113',
             'uploader_url': 'https://www.patreon.com/GirlMeetsTV',
@@ -290,6 +290,27 @@ class PatreonIE(PatreonBaseIE):
             'tags': ['Deep Space Nine', 'sync reactions'],
         },
         'skip': 'Patron-only content',
+    }, {
+        # multiple json content inline audio embeds
+        'url': 'https://www.patreon.com/michaelorbit/posts/bye-and-stuff-158148287',
+        'playlist_count': 11,
+        'info_dict': {
+            'id': '158148287',
+            'title': '"Bye and Stuff" breakdown and production notes',
+            'description': 'md5:f5021333ed6aacb507cebaa6e4010d1f',
+            'uploader': 'Michael Orbit',
+            'uploader_id': '73767903',
+            'uploader_url': 'https://www.patreon.com/michaelorbit',
+            'channel_id': '8648412',
+            'channel_url': 'https://www.patreon.com/michaelorbit',
+            'timestamp': 1778827446,
+            'upload_date': '20260515',
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https?://.+',
+            'channel_follower_count': 72,
+            'tags': ['ScottPilgrim'],
+        },
     }, {
         # Contains a comment reply in the 'included' section
         'url': 'https://www.patreon.com/posts/114721679',
@@ -513,30 +534,23 @@ class PatreonIE(PatreonBaseIE):
             if media_id := traverse_obj(post_file, ('media_id', {int}, {str_or_none})):
                 seen_media_ids.add(media_id)
 
-        for media_id in traverse_obj(attributes, (
+        embedded_media_ids = traverse_obj(attributes, (
             'content', {find_elements(attr='data-media-id', value=r'\d+', regex=True, html=True)},
-            ..., {extract_attributes}, 'data-media-id',
-        )):
+            ..., {extract_attributes}, 'data-media-id'))
+
+        if json_content_str := attributes.get('content_json_string'):
+            json_content = self._parse_json(json_content_str, video_id)
+            embedded_media_ids.extend(traverse_obj(json_content, (
+                'content', lambda _, v: v['type'] in ('video', 'audio'), 'attrs', 'media_id',
+                {str_or_none})))
+
+        for media_id in embedded_media_ids:
             # Inlined media may be duplicates of what was extracted above
             if media_id in seen_media_ids:
                 continue
             if media := self._extract_from_media_api(media_id):
                 entries.append(media)
                 seen_media_ids.add(media_id)
-
-        if json_content_str := attributes.get('content_json_string'):
-            json_content = self._parse_json(json_content_str, video_id)
-
-            for media_id in traverse_obj(
-                json_content.get('content'), (lambda _, v: v.get('type') == 'video'),
-                expected_type=lambda x: str_or_none(x.get('attrs').get('media_id')),
-            ):
-                # Inlined media may be duplicates of what was extracted above
-                if media_id in seen_media_ids:
-                    continue
-                if media := self._extract_from_media_api(media_id):
-                    entries.append(media)
-                    seen_media_ids.add(media_id)
 
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
         comments = None
