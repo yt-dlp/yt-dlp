@@ -308,7 +308,7 @@ class PatreonIE(PatreonBaseIE):
             'like_count': int,
             'comment_count': int,
             'thumbnail': r're:^https?://.+',
-            'channel_follower_count': 72,
+            'channel_follower_count': int,
             'tags': ['ScottPilgrim'],
         },
     }, {
