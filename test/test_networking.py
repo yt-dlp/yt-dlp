@@ -180,6 +180,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Location', '/a/b/./../../headers')
             self.send_header('Content-Length', '0')
             self.end_headers()
+        elif self.path == '/a/b/redirect_relative_dotsegments':
+            self.send_response(301)
+            self.send_header('Location', '../../headers')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         elif self.path == '/redirect_dotsegments_absolute':
             self.send_response(301)
             # redirect to /headers but with dot segments before - absolute url
@@ -412,6 +417,7 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
     @pytest.mark.parametrize('path', [
         '/a/b/./../../headers',
         '/redirect_dotsegments',
+        '/a/b/redirect_relative_dotsegments',
         # https://github.com/yt-dlp/yt-dlp/issues/9020
         '/redirect_dotsegments_absolute',
     ])
@@ -984,28 +990,15 @@ class TestUrllibRequestHandler(TestRequestHandlerBase):
             ):
                 validate_and_send(rh, Request(f'https://127.0.0.1:{self.https_port}/headers'))
 
-    @pytest.mark.parametrize('req,match,version_check', [
+    @pytest.mark.parametrize('req,match', [
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1256
-        # bpo-39603: Check implemented in 3.7.9+, 3.8.5+
-        (
-            Request('http://127.0.0.1', method='GET\n'),
-            'method can\'t contain control characters',
-            lambda v: v < (3, 7, 9) or (3, 8, 0) <= v < (3, 8, 5),
-        ),
+        (Request('http://127.0.0.1', method='GET\n'), 'method can\'t contain control characters'),
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1265
-        # bpo-38576: Check implemented in 3.7.8+, 3.8.3+
-        (
-            Request('http://127.0.0. 1', method='GET'),
-            'URL can\'t contain control characters',
-            lambda v: v < (3, 7, 8) or (3, 8, 0) <= v < (3, 8, 3),
-        ),
+        (Request('http://127.0.0. 1', method='GET'), 'URL can\'t contain control characters'),
         # https://github.com/python/cpython/blob/987b712b4aeeece336eed24fcc87a950a756c3e2/Lib/http/client.py#L1288C31-L1288C50
-        (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name', None),
+        (Request('http://127.0.0.1', headers={'foo\n': 'bar'}), 'Invalid header name'),
     ])
-    def test_httplib_validation_errors(self, handler, req, match, version_check):
-        if version_check and version_check(sys.version_info):
-            pytest.skip(f'Python {sys.version} version does not have the required validation for this test.')
-
+    def test_httplib_validation_errors(self, handler, req, match):
         with handler() as rh:
             with pytest.raises(RequestError, match=match) as exc_info:
                 validate_and_send(rh, req)
@@ -1690,8 +1683,7 @@ class TestYoutubeDLNetworking:
 
     def test_compat_opener(self):
         with FakeYDL() as ydl:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', category=DeprecationWarning)
+            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
                 assert isinstance(ydl._opener, urllib.request.OpenerDirector)
 
     @pytest.mark.parametrize('proxy,expected', [
@@ -1710,8 +1702,7 @@ class TestYoutubeDLNetworking:
             urllib_req = urllib.request.Request('http://foo.bar', data=b'test', method='PUT', headers={'X-Test': '1'})
             urllib_req.add_unredirected_header('Cookie', 'bob=bob')
             urllib_req.timeout = 2
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore', category=DeprecationWarning)
+            with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
                 req = ydl.urlopen(urllib_req).request
                 assert req.url == urllib_req.get_full_url()
                 assert req.data == urllib_req.data
@@ -2130,8 +2121,7 @@ class TestResponse:
 
     def test_compat(self):
         res = Response(io.BytesIO(b''), url='test://', status=404, headers={'test': 'test'})
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=DeprecationWarning)
+        with warnings.catch_warnings(action='ignore', category=DeprecationWarning):
             assert res.code == res.getcode() == res.status
             assert res.geturl() == res.url
             assert res.info() is res.headers
