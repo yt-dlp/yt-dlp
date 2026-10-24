@@ -73,6 +73,13 @@ def process_request(self, request):
         response = self.protocol.accept(request)
         response.headers['Set-Cookie'] = 'test=ytdlp'
         return response
+    elif request.path.startswith('/multi_value_headers'):
+        response = self.protocol.accept(request)
+        response.headers['Set-Cookie'] = 'test=ytdlp'
+        response.headers['Set-Cookie'] = 'test2=ytdlp2'
+        response.headers['Test'] = 'test1'
+        response.headers['Test'] = 'test2'
+        return response
     return self.protocol.accept(request)
 
 
@@ -361,6 +368,13 @@ class TestWebsSocketRequestHandlerConformance:
             assert 'x-TeSt1' in headers
             assert 'x-TeSt2' in headers
 
+    def test_multi_value_headers(self, handler):
+        with handler() as rh:
+            ws = ws_validate_and_send(rh, Request(f'{self.ws_base_url}/multi_value_headers'))
+            assert ws.headers.get_all('Set-Cookie') == ['test=ytdlp', 'test2=ytdlp2']
+            assert ws.get_header('Test') == 'test1, test2'
+            ws.close()
+
     @pytest.mark.parametrize('client_cert', (
         {'client_certificate': os.path.join(MTLS_CERT_DIR, 'clientwithkey.crt')},
         {
@@ -432,7 +446,7 @@ def create_fake_ws_connection(raised):
         def __init__(self, *args, **kwargs):
             class FakeResponse:
                 body = b''
-                headers = {}
+                headers = websockets.datastructures.Headers()
                 status_code = 101
                 reason_phrase = 'test'
 
