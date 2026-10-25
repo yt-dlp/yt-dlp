@@ -256,7 +256,7 @@ class PanoptoIE(PanoptoBaseIE):
         invocation_id = delivery_info.get('InvocationId')
         stream_id = traverse_obj(delivery_info, ('Delivery', 'Streams', ..., 'PublicID'), get_all=False, expected_type=str)
         if invocation_id and stream_id and duration:
-            timestamp_str = f'/Date({calendar.timegm(dt.datetime.now(dt.timezone.utc).timetuple())}000)/'
+            timestamp_str = f'/Date({calendar.timegm(dt.datetime.now(dt.UTC).timetuple())}000)/'
             data = {
                 'streamRequests': [
                     {
