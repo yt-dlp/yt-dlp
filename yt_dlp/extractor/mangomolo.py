@@ -37,10 +37,7 @@ class MangomoloBaseIE(InfoExtractor):
         m3u8_entry_protocol = 'm3u8' if self._IS_LIVE else 'm3u8_native'
 
         format_url = self._html_search_regex(
-            [
-                r'(?:file|src)\s*:\s*"(https?://[^"]+?/playlist\.m3u8)',
-                r'<a[^>]+href="(rtsp://[^"]+)"',
-            ], webpage, 'format url')
+            r'(?:file|src)\s*:\s*"(https?://[^"]+?/playlist\.m3u8)', webpage, 'format url')
         formats = self._extract_wowza_formats(
             format_url, page_id, m3u8_entry_protocol, ['smil'])
 
@@ -58,6 +55,18 @@ class MangomoloVideoIE(MangomoloBaseIE):
     _TYPE = 'video'
     IE_NAME = 'mangomolo:' + _TYPE
     _SLUG = r'video\?.*?\bid=(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://player.mangomolo.com/v1/video?id=29431242&user_id=168&signature=b40e58d964532fe09bf81fc08d850752&autoplay=true&fullscreen=yes&base_url=aHR0cHM6Ly9heW4ub20vdmlkZW8vMjk0MzEyNDIvJUQ4JUE3JUQ5JTg0JUQ4JUEzJUQ5JTg1JUQ5JTg2JUQ5JThBJUQ4JUE3JUQ4JUFBLSVEOCVBNyVEOSU4NCVEOCVCMyVEOCVBOCVEOCVCOS0lRDglQTclRDklODQlRDglQUQlRDklODQlRDklODIlRDglQTktOQ%3D%3D&vast=true&app_id=&zone=&filter=DENY&countries=Q0M%3D&language=ar&player_profile=',
+        'info_dict': {
+            'id': '29431242',
+            'ext': 'flv',
+            'title': '29431242',
+        },
+        'expected_warnings': [
+            'Failed to download m3u8 information',
+            'Failed to download MPD manifest',
+        ],
+    }]
 
     _IS_LIVE = False
 

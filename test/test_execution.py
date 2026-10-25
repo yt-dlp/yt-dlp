@@ -20,7 +20,12 @@ LAZY_EXTRACTORS = 'yt_dlp/extractor/lazy_extractors.py'
 class TestExecution(unittest.TestCase):
     def run_yt_dlp(self, exe=(sys.executable, 'yt_dlp/__main__.py'), opts=('--version', )):
         stdout, stderr, returncode = Popen.run(
-            [*exe, '--ignore-config', *opts], cwd=rootDir, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            [*exe, '--no-update', '--ignore-config', *opts],
+            cwd=rootDir,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         print(stderr, file=sys.stderr)
         self.assertEqual(returncode, 0)
         return stdout.strip(), stderr.strip()

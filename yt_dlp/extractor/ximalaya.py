@@ -36,11 +36,11 @@ class XimalayaIE(XimalayaBaseIE):
                 'thumbnail': r're:^https?://.*\.jpg',
                 'thumbnails': [
                     {
-                        'name': 'cover_url',
+                        'id': 'cover_url',
                         'url': r're:^https?://.*\.jpg',
                     },
                     {
-                        'name': 'cover_url_142',
+                        'id': 'cover_url_142',
                         'url': r're:^https?://.*\.jpg',
                         'width': 180,
                         'height': 180,
@@ -65,11 +65,11 @@ class XimalayaIE(XimalayaBaseIE):
                 'thumbnail': r're:^https?://.*\.jpg',
                 'thumbnails': [
                     {
-                        'name': 'cover_url',
+                        'id': 'cover_url',
                         'url': r're:^https?://.*\.jpg',
                     },
                     {
-                        'name': 'cover_url_142',
+                        'id': 'cover_url_142',
                         'url': r're:^https?://.*\.jpg',
                         'width': 180,
                         'height': 180,
@@ -172,7 +172,7 @@ class XimalayaIE(XimalayaBaseIE):
         for k in audio_info:
             # cover pics kyes like: cover_url', 'cover_url_142'
             if k.startswith('cover_url'):
-                thumbnail = {'name': k, 'url': audio_info[k]}
+                thumbnail = {'id': k, 'url': audio_info[k]}
                 if k == 'cover_url_142':
                     thumbnail['width'] = 180
                     thumbnail['height'] = 180
