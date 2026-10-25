@@ -725,7 +725,11 @@ class InstagramStoryIE(InstagramBaseIE):
     def _get_user_id(self, webpage):
         user_id = traverse_obj(re.findall(r'"user":\s*({.+?},(?:.+?}))?,?', webpage), (..., {json.loads}, ('user_id', 'instagram_pk'), {str}, any))
         if not user_id:
-            user_id = self._search_regex(r'"reel_ids_arr"\s*:\s*\[\s*"(\d+)"', None, 'User id', default=None)
+            user_id = self._search_regex(r'"(?:reel_ids_arr|profile_id|container_id)"\s*:\s*\[?\s*"(\d+)"', webpage, 'User id', default=None)
+        user_name = self._search_regex(r'https?://(?:www\.)?instagram.com/(?:stories)/([^/?#]+/?)', webpage, 'user name', None)
+        if not user_id and user_name:
+            user_webpage = self._download_webpage(f'{self._BASE_URL}{user_name}', None, 'Downloading user page')
+            user_id = self._get_user_id(user_webpage)
         return user_id
 
     def _real_extract(self, url):
@@ -735,19 +739,25 @@ class InstagramStoryIE(InstagramBaseIE):
         display_id = story_id or username
         story_webpage = self._download_webpage(url, display_id, impersonate=self._can_impersonate and self._is_web_app)
 
-        user_id = self._get_user_id(story_webpage)
+        user_id = None
         if username == 'highlights':
             story_info_url = f'highlight:{story_id}'
         else:
+            user_id = self._get_user_id(story_webpage)
             if not user_id:  # user id is only mandatory for non-highlights
                 raise ExtractorError('Unable to extract user id')
             story_info_url = user_id
 
-        videos = traverse_obj(self._yield_relay_data(display_id, story_webpage), (
-            ..., 'require', ..., ..., ..., '__bbox',
-            'require', ..., ..., ..., '__bbox',
-            'result', 'data', 'xdt_api__v1__feed__reels_media',
-            'reels_media', lambda _, v: v['id'] == user_id, any))
+        videos = traverse_obj(
+            self._yield_relay_data(display_id, story_webpage), (
+                ..., 'require', ..., ..., ..., '__bbox',
+                'require', ..., ..., ..., '__bbox',
+                'result', 'data',
+                ('xdt_api__v1__feed__reels_media', 'xdt_api__v1__feed__reels_media__connection'),
+                ('reels_media', 'edges'),
+                lambda _, v: story_id in v['node']['id'] or v['id'] == user_id,
+                ('node', None), any),
+        )
         if not videos:
             videos = traverse_obj(self._download_json(
                 f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
