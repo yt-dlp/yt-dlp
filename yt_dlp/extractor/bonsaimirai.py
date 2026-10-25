@@ -50,9 +50,14 @@ class BonsaiMiraiLiveIE(InfoExtractor):
         if "Sign Out" not in response and "sign out" not in response.lower():
             raise ExtractorError("Unable to log in", expected=True)
 
+    def _real_initialize(self):
+        self._login()
+
     def _is_homepage(self, webpage):
         """Check if the webpage is the homepage (not a video page)"""
-        return "Academy | Bonsai Mirai Live" in webpage or "<title>Academy | Bonsai Mirai Live</title>" in webpage
+        return ("Academy | Bonsai Mirai Live" in webpage
+                or "<title>Academy | Bonsai Mirai Live</title>" in webpage
+                or "Bonsai Mirai Live" in webpage and "library/video" not in webpage)
 
     def _extract_vimeo_urls(self, webpage):
         """Extract all Vimeo embed URLs from the webpage"""
@@ -88,10 +93,7 @@ class BonsaiMiraiLiveIE(InfoExtractor):
         
         # Check if we got the homepage instead of the video page (not logged in)
         if self._is_homepage(webpage):
-            self.raise_login_required(
-                "This video requires authentication. "
-                "Use --cookies-from-browser or --username/--password to log in.",
-                method="cookies")
+            self.raise_login_required(method="cookies")
         
         vimeo_urls = self._extract_vimeo_urls(webpage)
         
