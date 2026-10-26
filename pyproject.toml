@@ -248,7 +248,9 @@ python = [
 exclude-newer = "7 days"
 
 [tool.uv.exclude-newer-package]
-certifi = false
+brotli = false       # temporary
+certifi = false      # temporary
+curl-cffi = false    # temporary
 deno = false
 pip = false
 protobug = false
