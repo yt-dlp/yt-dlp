@@ -68,7 +68,7 @@ deno = [
 ]
 pin = [
     "brotli==1.2.1 ; implementation_name == 'cpython' and sys_platform != 'ios'",
-    "brotlicffi==1.2.0.2 ; implementation_name != 'cpython'",
+    "brotlicffi==1.2.1.0 ; implementation_name != 'cpython'",
     "certifi==2026.10.23",
     "charset-normalizer==3.5.2",
     "idna==3.20",
