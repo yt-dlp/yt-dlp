@@ -11,17 +11,10 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P7D"
 
 [options.exclude-newer-package]
-brotli = false
-brotlicffi = false
-certifi = false
-curl-cffi = false
-deno = false
 pip = false
 protobug = false
 pyinstaller = false
-setuptools = false
 uv = false
-virtualenv = false
 yt-dlp-ejs = false
 
 [[package]]

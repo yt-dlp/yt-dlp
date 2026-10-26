@@ -248,17 +248,10 @@ python = [
 exclude-newer = "7 days"
 
 [tool.uv.exclude-newer-package]
-brotli = false       # temporary
-brotlicffi = false   # temporary
-certifi = false      # temporary
-curl-cffi = false    # temporary
-deno = false         # temporary
 pip = false
 protobug = false
 pyinstaller = false
-setuptools = false   # temporary
 uv = false
-virtualenv = false   # temporary
 yt-dlp-ejs = false
 
 [tool.ruff]
