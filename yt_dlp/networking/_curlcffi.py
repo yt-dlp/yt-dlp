@@ -178,7 +178,7 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
     (0, 16, 1): {
         'chrome150': ImpersonateTarget('chrome', '150', 'macos', '26'),
     },
-    (0, 17, 0): {
+    (0, 17): {
         'chrome151': ImpersonateTarget('chrome', '151', 'windows', '10'),
         'chrome151_macos': ImpersonateTarget('chrome', '151', 'macos', '26'),
         'chrome152': ImpersonateTarget('chrome', '152', 'windows', '10'),
