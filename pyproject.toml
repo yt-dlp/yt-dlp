@@ -69,7 +69,7 @@ deno = [
 pin = [
     "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
     "brotlicffi==1.2.0.2 ; implementation_name != 'cpython'",
-    "certifi==2026.10.19",
+    "certifi==2026.10.23",
     "charset-normalizer==3.5.2",
     "idna==3.20",
     "mutagen==1.48.1",
@@ -81,7 +81,7 @@ pin = [
     "yt-dlp-ejs==0.8.0",
 ]
 pin-curl-cffi = [
-    "certifi==2026.10.19 ; implementation_name == 'cpython'",
+    "certifi==2026.10.23 ; implementation_name == 'cpython'",
     "cffi==2.1.1 ; implementation_name == 'cpython'",
     "curl-cffi==0.16.3 ; implementation_name == 'cpython'",
     "pycparser==3.11 ; implementation_name == 'cpython'",
