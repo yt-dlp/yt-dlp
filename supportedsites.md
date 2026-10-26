@@ -625,8 +625,10 @@ The only reliable way to check if a site is supported is to try it.
  - **Kenh14Video**
  - **khanacademy**
  - **khanacademy:unit**
+ - **kick:clip**
  - **kick:clips**
  - **kick:live**
+ - **kick:videos**
  - **kick:vod**
  - **Kicker**
  - **KickStarter**
@@ -883,6 +885,7 @@ The only reliable way to check if a site is supported is to try it.
  - **nhl.com**
  - **nick.com**
  - **niconico**: [*niconico*](## "netrc machine") ニコニコ動画
+ - **niconico:channel**: [*niconico*](## "netrc machine")
  - **niconico:history**: NicoNico user history or likes. Requires cookies.
  - **niconico:live**: [*niconico*](## "netrc machine") ニコニコ生放送
  - **niconico:playlist**
@@ -1429,7 +1432,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
- - **tubitv**: [*tubitv*](## "netrc machine")
+ - **tubitv**
  - **tubitv:series**
  - **Tumblr**: [*tumblr*](## "netrc machine")
  - **tunein:embed**
