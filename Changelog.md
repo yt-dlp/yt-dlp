@@ -10,7 +10,7 @@
 - Security: Old yt-dlp executables are vulnerable to man-in-the-middle attacks
     - A man-in-the-middle/MITM attack is when your internet traffic is intercepted by an attacker that impersonates the website(s) you browse and sends you malicious data instead.
     - If you think you may be targeted by such an attack, it is strongly recommended to avoid using the self-updater (e.g. the `-U`, `--update`, `--update-to` command-line options), and instead manually download and install this release's executable.
-    - For more details, see the [`certifi` security advisory](https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2)
+    - For more details, see the [`certifi` security advisory](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)
 
 #### Core changes
 - **update**
