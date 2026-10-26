@@ -45,7 +45,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         # Linux CPython 3.11 is covered by quick-test.yml
-        python-version: ['3.12', '3.13', '3.14', '3.15', pypy-3.11]
+        python-version: ['3.12', '3.13', '3.14', '3.15', pypy-3.11, pypy-3.12]
         include:
         - os: windows-latest
           python-version: '3.11'
