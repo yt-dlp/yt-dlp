@@ -138,18 +138,18 @@ class BlueBillywigIE(InfoExtractor):
             })
 
         return {
-            **traverse_obj(meta, {
-                'id': ('contentId',),
-                'title': ('clipData', 'title'),
-                'description': ('clipData', 'description'),
-                'duration': ('clipData', 'length', {int_or_none}),
-                'timestamp': ('clipData', 'createddate', {parse_iso8601}),
-                'release_timestamp': ('clipData', 'publisheddate', {parse_iso8601}),
-                'modified_timestamp': ('clipData', 'modifieddate', {parse_iso8601}),
-                'view_count': ('clipData', 'views', {int_or_none}),
-                'uploader': ('clipData', 'author'),
-                'categories': ('clipData', 'cat'),
-            }),
+            'id': meta.get('contentId'),
+            **traverse_obj(meta, ('clipData', {
+                'title': 'title',
+                'description': 'description',
+                'duration': ('length', {int_or_none}),
+                'timestamp': ('createddate', {parse_iso8601}),
+                'release_timestamp': ('publisheddate', {parse_iso8601}),
+                'modified_timestamp': ('modifieddate', {parse_iso8601}),
+                'view_count': ('views', {int_or_none}),
+                'uploader': 'author',
+                'categories': 'cat',
+            })),
             'is_live': is_live,
             'formats': formats,
             'subtitles': subtitles,
