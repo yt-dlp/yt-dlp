@@ -59,7 +59,7 @@ default = [
     "yt-dlp-ejs==0.8.0",
 ]
 curl-cffi = [
-    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.17 ; implementation_name == 'cpython'",
+    "curl-cffi>=0.5.10,!=0.6.*,!=0.7.*,!=0.8.*,!=0.9.*,<0.18 ; implementation_name == 'cpython'",
 ]
 secretstorage = [
     "secretstorage",
@@ -68,9 +68,9 @@ deno = [
     "deno>=2.9.8",
 ]
 pin = [
-    "brotli==1.2.0 ; implementation_name == 'cpython' and sys_platform != 'ios'",
-    "brotlicffi==1.2.0.2 ; implementation_name != 'cpython'",
-    "certifi==2026.10.19",
+    "brotli==1.2.1 ; implementation_name == 'cpython' and sys_platform != 'ios'",
+    "brotlicffi==1.2.1.0 ; implementation_name != 'cpython'",
+    "certifi==2026.10.23",
     "charset-normalizer==3.5.2",
     "idna==3.20",
     "mutagen==1.48.1",
@@ -79,13 +79,13 @@ pin = [
     "pycryptodomex==3.24.1",
     "requests==2.34.2",
     "urllib3==2.8.0",
-    "websockets==17.2",
+    "websockets==17.3",
     "yt-dlp-ejs==0.8.0",
 ]
 pin-curl-cffi = [
-    "certifi==2026.10.19 ; implementation_name == 'cpython'",
+    "certifi==2026.10.23 ; implementation_name == 'cpython'",
     "cffi==2.1.1 ; implementation_name == 'cpython'",
-    "curl-cffi==0.16.3 ; implementation_name == 'cpython'",
+    "curl-cffi==0.17.0 ; implementation_name == 'cpython'",
     "pycparser==3.11 ; implementation_name == 'cpython'",
 ]
 pin-secretstorage = [
@@ -106,7 +106,7 @@ build = [
 ]
 static-analysis = [
     "autopep8~=2.0",
-    "ruff~=0.16.0",
+    "ruff~=0.17.0",
 ]
 test = [
     "pytest~=9.0",
@@ -250,12 +250,17 @@ python = [
 exclude-newer = "7 days"
 
 [tool.uv.exclude-newer-package]
-certifi = false
-deno = false
+brotli = false       # temporary
+brotlicffi = false   # temporary
+certifi = false      # temporary
+curl-cffi = false    # temporary
+deno = false         # temporary
 pip = false
 protobug = false
 pyinstaller = false
+setuptools = false   # temporary
 uv = false
+virtualenv = false   # temporary
 yt-dlp-ejs = false
 
 [tool.ruff]
