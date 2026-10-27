@@ -206,9 +206,12 @@ def clean_headers(headers: HTTPHeaderDict):
 
 
 def remove_dot_segments(path):
-    # Implements RFC3986 5.2.4 remote_dot_segments
-    # Pseudo-code: https://tools.ietf.org/html/rfc3986#section-5.2.4
+    # Implements RFC 3986 5.2.4 remove_dot_segments
+    # https://www.rfc-editor.org/info/rfc3986/#section-5.2.4
     # https://github.com/urllib3/urllib3/blob/ba49f5c4e19e6bca6827282feb77a3c9f937e64b/src/urllib3/util/url.py#L263
+    if '/.' not in path and not path.startswith('.'):
+        return path
+
     output = []
     segments = path.split('/')
     for s in segments:
@@ -217,10 +220,10 @@ def remove_dot_segments(path):
         elif s == '..':
             if output:
                 output.pop()
+                if not output:
+                    output.append('')
         else:
             output.append(s)
-    if not segments[0] and (not output or output[0]):
-        output.insert(0, '')
     if segments[-1] in ('.', '..'):
         output.append('')
     return '/'.join(output)
