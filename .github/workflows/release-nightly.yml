@@ -82,7 +82,7 @@ jobs:
       prerelease: true
       source: ${{ (github.repository != 'yt-dlp/yt-dlp' && vars.NIGHTLY_ARCHIVE_REPO) || 'nightly' }}
       target: 'nightly'
-      verify_macos: github.event_name != 'schedule'
+      verify_macos: ${{ github.event_name != 'schedule' }}
     secrets:
       ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
