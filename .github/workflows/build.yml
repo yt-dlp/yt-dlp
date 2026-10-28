@@ -27,6 +27,9 @@ on:
       macos:
         default: true
         type: boolean
+      verify_macos:
+        default: true
+        type: boolean
       windows:
         default: true
         type: boolean
@@ -67,6 +70,10 @@ on:
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
+        default: true
+        type: boolean
+      verify_macos:
+        description: Verify the macOS build on arm64 (if UPDATE_TO_VERIFICATION is set)
         default: true
         type: boolean
       windows:
@@ -387,7 +394,7 @@ jobs:
   macos_verify:
     name: Verify macos arm64
     needs: [macos]
-    if: inputs.macos && vars.UPDATE_TO_VERIFICATION
+    if: inputs.verify_macos && vars.UPDATE_TO_VERIFICATION
     permissions:
       contents: read
     runs-on: macos-latest
