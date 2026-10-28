@@ -63,7 +63,7 @@ on:
         default: true
         type: boolean
       verify_macos:
-        description: Verify the macOS build on arm64 (if UPDATE_TO_VERIFICATION is set)
+        description: Verify the macOS build on arm64
         default: true
         type: boolean
       prerelease:
