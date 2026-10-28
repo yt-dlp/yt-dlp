@@ -775,9 +775,9 @@ class InstagramStoryIE(InstagramBaseIE):
                 ..., 'require', ..., ..., ..., '__bbox',
                 'require', ..., ..., ..., '__bbox',
                 'result', 'data',
-                ('xdt_api__v1__feed__reels_media', 'xdt_api__v1__feed__reels_media__connection'),
+                lambda x, _: x.startswith('xdt_api__v1'),
                 ('reels_media', 'edges'),
-                lambda _, v: story_id in v['node']['id'] or v['id'] == user_id,
+                lambda _, v: v['items'] or story_id in v['node']['id'] or v['id'] == user_id,
                 ('node', None), any),
         )
         if not videos:
