@@ -56,6 +56,7 @@ class InstagramBaseIE(InfoExtractor):
         'instagram.com',
         '.instagram.com',
     )
+    _DTSG = None
 
     @functools.cached_property
     def _can_impersonate(self):
@@ -105,6 +106,25 @@ class InstagramBaseIE(InfoExtractor):
             traverse_obj(media, ('dimensions', name), expected_type=int_or_none)
             or int_or_none(self._html_search_meta(
                 (f'og:video:{name}', f'video:{name}'), webpage or '', default=None)))
+
+    def _get_fb_dstg(self, webpage=None):
+        if self._DTSG:
+            return self._DTSG
+
+        if not webpage:
+            webpage = self._download_webpage(self._BASE_URL, None, 'Downloading main page')
+
+        self._DTSG = self._search_regex(
+            [
+                r'\bdtsg"\s*:\s*{\s*"token":\s*["\']([^"\']+)["\']',
+                r'\b(?:DTSGInitData|DTSGInitialData)",.+?"token":\s*"([^"]+)"',
+                r'"f":\s*"(\w+:\d+:\d+[^"]*)"',
+            ],
+            webpage,
+            'Fb Dtsg',
+            None,
+        )
+        return self._DTSG
 
     def _extract_nodes(self, nodes, is_direct=False):
         for idx, node in enumerate(nodes, start=1):
@@ -761,10 +781,36 @@ class InstagramStoryIE(InstagramBaseIE):
                 ('node', None), any),
         )
         if not videos:
-            videos = traverse_obj(self._download_json(
+            data = self._download_json(
                 f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
-                display_id, errnote=False, fatal=False, headers=self._api_headers,
-                impersonate=self._can_impersonate and self._is_web_app), 'reels')
+                display_id, headers=self._api_headers,
+                impersonate=self._can_impersonate and self._is_web_app, expected_status=500)
+            videos = traverse_obj(data, 'reel')
+            if not (videos or 'ok' in (data.get('status') or '')):
+                videos = traverse_obj(
+                    self._download_json(
+                        'https://www.instagram.com/graphql/query',
+                        display_id,
+                        headers={
+                            **self._api_headers,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'x-root-field-name': 'xdt_api__v1__feed__reels_media',
+                        },
+                        data=urlencode_postdata({
+                            'variables': json.dumps({
+                                'reel_ids_arr': [user_id],
+                                '__relay_internal__pv__PolarisCommunityNoteStoriesLabelEnabledrelayprovider': True,
+                            }, separators=(',', ':')),
+                            'doc_id': 29170422829314651,
+                            'fb_dtsg': self._get_fb_dstg(story_webpage),
+                        }),
+                        impersonate=self._can_impersonate and self._is_web_app,
+                        errnote=False,
+                        fatal=False,
+                    ),
+                    ('data', 'xdt_api__v1__feed__reels_media', 'reels_media', lambda _, x: x['items'], {dict}, any),
+                )
+
         if not videos:
             self.raise_login_required('You need to log in to access this content')
         user_info = traverse_obj(videos, (user_id, 'user', {dict})) or {}
