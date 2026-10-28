@@ -304,7 +304,7 @@ jobs:
     if: inputs.macos
     permissions:
       contents: read
-    runs-on: macos-15
+    runs-on: macos-15-intel
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -365,7 +365,7 @@ jobs:
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           python3 -m bundle.pyinstaller --target-architecture universal2
 
-      - name: Verify --update-to
+      - name: Verify --update-to (intel)
         if: vars.UPDATE_TO_VERIFICATION
         run: |
           chmod +x ./dist/yt-dlp_macos
@@ -385,12 +385,12 @@ jobs:
           compression-level: 0
 
   macos_verify:
-    name: Verify macos x86_64
+    name: Verify macos arm64
     needs: [macos]
     if: inputs.macos && vars.UPDATE_TO_VERIFICATION
     permissions:
       contents: read
-    runs-on: macos-15-intel
+    runs-on: macos-latest
     env:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
@@ -401,7 +401,7 @@ jobs:
           path: dist
           pattern: build-bin-macos
 
-      - name: Verify --update-to on x86_64 architecture
+      - name: Verify --update-to (arm64)
         run: |
           chmod +x ./dist/yt-dlp_macos
           cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
