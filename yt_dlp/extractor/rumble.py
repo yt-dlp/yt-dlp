@@ -385,12 +385,16 @@ class RumbleChannelIE(InfoExtractor):
         'playlist_mincount': 1160,
         'info_dict': {
             'id': 'Styxhexenhammer666',
+            'description': 'I make videos on a plethora of topics. Clank!',
+            'thumbnail': r're:https://.+\.jpg',
         },
     }, {
         'url': 'https://rumble.com/user/goldenpoodleharleyeuna',
         'playlist_mincount': 4,
         'info_dict': {
             'id': 'goldenpoodleharleyeuna',
+            'description': None,
+            'thumbnail': r're:https://.+\.jpg',
         },
     }]
 
@@ -409,4 +413,35 @@ class RumbleChannelIE(InfoExtractor):
 
     def _real_extract(self, url):
         url, playlist_id = self._match_valid_url(url).groups()
-        return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)
+        webpage = self._download_webpage(url, playlist_id)
+
+        thumbnail = self._search_regex(
+            r'<div[^>]+class="channel-header--thumb"[^>]*>.*?<img[^>]+src="([^"]+)"',
+            webpage,
+            'channel thumbnail',
+            fatal=False,
+        )
+
+        title = self._html_search_regex(
+            r'<title[^>]*>([^<]+)',
+            webpage,
+            'channel title',
+            default=playlist_id,
+        )
+
+        # Download the About page to get the description
+        about_url = f"{url.rstrip('/')}/about"
+        about_webpage = self._download_webpage(about_url, playlist_id, note='Downloading About page')
+        description_html = get_elements_html_by_class('channel-about--description', about_webpage)
+        description = None
+        if description_html:
+            p_tags = re.findall(r'<p[^>]*>(.*?)</p>', description_html[0], re.DOTALL)
+            description = '\n'.join(p.strip() for p in p_tags if p.strip())
+
+        return self.playlist_result(
+            self.entries(url, playlist_id),
+            playlist_id=playlist_id,
+            playlist_title=title,
+            description=description,
+            thumbnail=thumbnail,
+        )
