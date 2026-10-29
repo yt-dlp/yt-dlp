@@ -1,8 +1,11 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    orderedSet,
     parse_codecs,
     parse_qs,
     str_or_none,
@@ -36,6 +39,35 @@ class AcFunVideoBaseIE(InfoExtractor):
             'timestamp': int_or_none(video_info.get('uploadTime'), 1000),
             'http_headers': {'Referer': 'https://www.acfun.cn/'},
         }
+
+
+class AcFunAlbumIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.acfun\.cn/a/aa(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'https://www.acfun.cn/a/aa6005445',
+        'info_dict': {
+            'id': '6005445',
+            'title': 'md5:e2a0a32ac3f7e2ee162e08db71a49313',
+        },
+        'playlist_mincount': 2,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
+
+        entries = orderedSet(
+            m.group('video_id') for m in re.finditer(
+                r'(?:https?://www\.acfun\.cn)?/v/ac(?P<video_id>\d+)', webpage))
+
+        return self.playlist_from_matches(
+            entries, playlist_id,
+            getter=lambda video_id: f'https://www.acfun.cn/v/ac{video_id}',
+            ie=AcFunVideoIE,
+            playlist_title=self._og_search_title(webpage, default=None)
+            or self._html_extract_title(webpage, fatal=False),
+            playlist_description=self._og_search_description(webpage, default=None))
 
 
 class AcFunVideoIE(AcFunVideoBaseIE):
@@ -78,16 +110,24 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
             'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
         },
+    }, {
+        # multipart page
+        'url': 'https://www.acfun.cn/v/ac35468952',
+        'info_dict': {
+            'id': '35468952',
+            'title': '【动画剧集】Rocket & Groot Season 1（2022）/火箭浣熊与格鲁特第1季',
+        },
+        'playlist_count': 3,
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(url, video_id)
         json_all = self._search_json(r'window.videoInfo\s*=', webpage, 'videoInfo', video_id)
 
         title = json_all.get('title')
         video_list = json_all.get('videoList') or []
+
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
         if video_internal_id and len(video_list) > 1:
             part_idx, part_video_info = next(
