@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import http.server
 import threading
+import xml.etree.ElementTree
 
 from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
 from yt_dlp.compat import compat_etree_fromstring
@@ -1471,6 +1472,32 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
                 expect_value(self, subtitles, expected_subtitles, None)
+
+    def test_parse_mpd_frame_rate(self):
+        mpd = '''
+            <MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+                <Period>
+                    <AdaptationSet mimeType="video/mp4" frameRate="{frame_rate}">
+                        <Representation id="v" bandwidth="100000">
+                            <BaseURL>https://example.com/video.mp4</BaseURL>
+                        </Representation>
+                    </AdaptationSet>
+                </Period>
+            </MPD>
+        '''
+        for frame_rate, expected in (
+            ('30', 30),
+            ('30000/1001', 30000 / 1001),
+            ('30/1', 30),
+            ('0/1', 0),
+            ('30/0', None),
+            ('30/1/2', None),
+            ('', None),
+        ):
+            with self.subTest(frame_rate=frame_rate):
+                mpd_doc = xml.etree.ElementTree.fromstring(mpd.format(frame_rate=frame_rate))
+                formats, _ = self.ie._parse_mpd_formats_and_subtitles(mpd_doc)
+                self.assertEqual(formats[0]['fps'], expected)
 
     def test_parse_ism_formats(self):
         _TEST_CASES = [
