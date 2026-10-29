@@ -3,7 +3,7 @@ from ..utils import extract_attributes, url_or_none
 from ..utils.traversal import traverse_obj
 
 
-class StudyflixIE(InfoExtractor):
+class FilmzieIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?studyflix\.de/(?:.*)/(?:[^/?#]+-)?(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://studyflix.de/ingenieurwissenschaften/arbeit-und-energie-ii-371',
