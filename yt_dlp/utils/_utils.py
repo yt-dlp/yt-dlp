@@ -95,6 +95,7 @@ TIMEZONE_NAMES = {
     'MST': -7, 'MDT': -6,  # Mountain
     'PST': -8, 'PDT': -7,   # Pacific
 }
+_TIMEZONE_NAME_RE = re.compile(r'(?P<tz>(?<=[\d\s])[A-Za-z]+|(?<=\.)Z)$')
 
 # needed for sanitizing filenames in restricted mode
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
@@ -1194,32 +1195,31 @@ def is_path_like(f):
 def extract_timezone(date_str, default=None):
     m = re.search(
         r'''(?x)
-            ^.{8,}?                                              # >=8 char non-TZ prefix, if present
-            (?P<tz>Z|                                            # just the UTC Z, or
+            ^.{8,}?                                              # At least 8 characters before the timezone
+            (?P<tz>
                 (?:(?<=.\b\d{4}|\b\d{2}:\d\d)|                   # preceded by 4 digits or hh:mm or
                    (?<!.\b[a-zA-Z]{3}|[a-zA-Z]{4}|..\b\d\d))     # not preceded by 3 alpha word or >= 4 alpha or 2 digits
                    [ ]?                                          # optional space
-                (?P<sign>\+|-)                                   # +/-
+                (?P<sign>[+-])                                   # +/-
                 (?P<hours>[0-9]{2}):?(?P<minutes>[0-9]{2})       # hh[:]mm
-            $)
+            )$
         ''', date_str)
     timezone = None
 
-    if not m:
-        m = re.search(r'\d{1,2}:\d{1,2}(?:\.\d+)?(?P<tz>\s*[A-Z]+)$', date_str)
-        timezone = TIMEZONE_NAMES.get(m and m.group('tz').strip())
-        if timezone is not None:
-            date_str = date_str[:-len(m.group('tz'))]
-            timezone = dt.timedelta(hours=timezone)
+    if m:
+        sign = 1 if m.group('sign') == '+' else -1
+        timezone = dt.timedelta(
+            hours=sign * int(m.group('hours')),
+            minutes=sign * int(m.group('minutes')))
     else:
-        date_str = date_str[:-len(m.group('tz'))]
-        if m.group('sign'):
-            sign = 1 if m.group('sign') == '+' else -1
-            timezone = dt.timedelta(
-                hours=sign * int(m.group('hours')),
-                minutes=sign * int(m.group('minutes')))
+        m = _TIMEZONE_NAME_RE.search(date_str)
+        offset = TIMEZONE_NAMES.get(m and m.group('tz').upper())
+        if offset is not None:
+            timezone = dt.timedelta(hours=offset)
 
-    if timezone is None and default is not NO_DEFAULT:
+    if timezone is not None:
+        date_str = date_str[:m.start('tz')].rstrip()
+    elif default is not NO_DEFAULT:
         timezone = default or dt.timedelta()
 
     return timezone, date_str
@@ -1276,19 +1276,24 @@ def unified_timestamp(date_str, day_first=True, tz_offset=0):
         return None
 
     date_str = re.sub(r'\s+', ' ', re.sub(
-        r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str))
+        r'(?i)[,|]|(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?', '', date_str)).strip()
 
-    pm_delta = 12 if re.search(r'(?i)PM', date_str) else 0
-    timezone, date_str = extract_timezone(
-        date_str, default=dt.timedelta(hours=tz_offset) if tz_offset else None)
-
-    # Remove AM/PM + timezone
-    date_str = re.sub(r'(?i)\s*(?:AM|PM)(?:\s+[A-Z]+)?', '', date_str)
-
-    # Remove unrecognized timezones from ISO 8601 alike timestamps
-    m = re.search(r'\d{1,2}:\d{1,2}(?:\.\d+)?(?P<tz>\s*[A-Z]+)$', date_str)
+    m = re.search(r'(?i)(?<=\d)\s*(AM|PM)\b', date_str)
     if m:
-        date_str = date_str[:-len(m.group('tz'))]
+        date_str = date_str[:m.start()] + date_str[m.end():]
+    am_pm = m.group(1).lower() if m else None
+
+    def am_pm_delta(hour):
+        if am_pm == 'pm' and hour != 12:
+            return 12
+        if am_pm == 'am' and hour == 12:
+            return -12
+        return 0
+
+    timezone, date_str = extract_timezone(date_str, default=dt.timedelta(hours=tz_offset or 0))
+
+    # Remove unrecognized timezones
+    date_str = _TIMEZONE_NAME_RE.sub('', date_str).rstrip()
 
     # Python only supports microseconds, so remove nanoseconds
     m = re.search(r'^([0-9]{4,}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}\.[0-9]{6})[0-9]+$', date_str)
@@ -1297,12 +1302,14 @@ def unified_timestamp(date_str, day_first=True, tz_offset=0):
 
     for expression in date_formats(day_first):
         with contextlib.suppress(ValueError):
-            dt_ = dt.datetime.strptime(date_str, expression) - timezone + dt.timedelta(hours=pm_delta)
-            return calendar.timegm(dt_.timetuple())
+            dt_ = dt.datetime.strptime(date_str, expression)
+            dt_ += dt.timedelta(hours=am_pm_delta(dt_.hour))
+
+            return calendar.timegm((dt_ - timezone).timetuple())
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
-        return calendar.timegm(timetuple) + pm_delta * 3600 - int(timezone.total_seconds())
+        return calendar.timegm(timetuple) + am_pm_delta(timetuple[3]) * 3600 - int(timezone.total_seconds())
 
 
 @partial_application
