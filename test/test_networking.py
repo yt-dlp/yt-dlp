@@ -273,6 +273,12 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Set-Cookie', 'test=ytdlp; path=/')
             self.end_headers()
             self.finish()
+        elif self.path == '/multi_value_headers':
+            self.send_response(200)
+            self.send_header('Test', 'test1')
+            self.send_header('Test', 'test2')
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         else:
             self._status(404)
 
@@ -588,6 +594,11 @@ class TestHTTPRequestHandler(TestRequestHandlerBase):
             assert b'test2: changed' in data
             assert b'test2: test2' not in data
             assert b'test3: test3' in data
+
+    def test_multi_value_headers(self, handler):
+        with handler() as rh:
+            res = validate_and_send(rh, Request(f'http://127.0.0.1:{self.http_port}/multi_value_headers'))
+            assert res.get_header('Test') == 'test1, test2'
 
     def test_read_timeout(self, handler):
         with handler() as rh:
