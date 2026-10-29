@@ -2220,6 +2220,8 @@ from .vodplatform import VODPlatformIE
 from .voicy import (
     VoicyChannelIE,
     VoicyIE,
+    VoicyLiveIE,
+    VoicyTopicIE,
 )
 from .volejtv import (
     VolejTVCategoryPlaylistIE,
