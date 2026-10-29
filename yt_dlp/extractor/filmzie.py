@@ -23,18 +23,22 @@ class FilmzieIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        content_id = self._match_id(url)
+        webpage = self._download_webpage(url, content_id)
 
-        player_host = self._search_regex(r'(<div[^>]+class="video-player-host"[^>]+>)', webpage, 'player_host')
-        up_data = extract_attributes(player_host)['up-data']
-        up_info = self._parse_json(up_data, video_id)['video']
+        c_data = self._search_regex(r'window\[\'APP_STATE\'\]\s*=\s*(\{.*?\});', webpage, 'c_data')
+        c_data_content = self._parse_json(c_data, content_id)['contentPage']['content']
+
+        video_id = c_data_content['videos'][0]['id']
+        video_data = self._download_json(f'https://filmzie.com/api/v1/video/stream/{video_id}', content_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['data']['source']['hlsV2'], video_id)
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(up_info['stream_urls'][0], video_id),
-            **traverse_obj(up_info, {
-                'thumbnail': ('poster_url', {url_or_none}),
+            'formats': formats,
+            'subtitles': subtitles,
+            **traverse_obj(c_data_content, {
+                'description': ('description', {str}),
                 'title': ('title', {str}),
             }),
         }
