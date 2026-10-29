@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ctypes
 import pathlib
 import shlex
 import subprocess
+import sys
 import tempfile
 
 from yt_dlp.extractor.youtube.jsc._builtin.ejs import EJSBaseJCP
@@ -29,6 +31,25 @@ class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
         '{name} versions older than {version} are missing important optimizations '
         'and will solve the JS challenges very slowly. Consider upgrading.')
 
+    def _get_temp_dir(self):
+        res = None
+
+        # Cygwin uses POSIX paths (i.e. /tmp) that are not understood by native win32 apps (i.e. qjs.exe)
+        if sys.platform == 'cygwin':
+            _cygwin1 = ctypes.CDLL('cygwin1.dll')
+            # https://cygwin.com/cygwin-api/func-cygwin-create-path.html
+            _cygwin1.cygwin_create_path.restype = ctypes.c_void_p
+            # https://man7.org/linux/man-pages/man3/free.3p.html
+            _cygwin1.free.argtypes = [ctypes.c_void_p]
+
+            # Convert to NT path
+            buf = _cygwin1.cygwin_create_path(1,  # CCP_POSIX_TO_WIN_W
+                                              tempfile.gettempdirb())
+            res = ctypes.cast(buf, ctypes.c_wchar_p).value
+            _cygwin1.free(buf)
+
+        return res
+
     def _run_js_runtime(self, stdin: str, /) -> str:
         min_recommended_version = self._QJS_MIN_RECOMMENDED[self.runtime_info.name]
         if self.runtime_info.version_tuple < min_recommended_version:
@@ -37,7 +58,7 @@ class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
                 version='.'.join(map(str, min_recommended_version))))
 
         # QuickJS does not support reading from stdin, so we have to use a temp file
-        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')
+        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8', dir=self._get_temp_dir())
         try:
             temp_file.write(stdin)
             temp_file.close()
