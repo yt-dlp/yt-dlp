@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, url_or_none
 from ..utils.traversal import traverse_obj
 
 
