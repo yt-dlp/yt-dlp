@@ -1721,6 +1721,7 @@ from .shahid import (
 from .sharepoint import SharePointIE
 from .shemaroome import ShemarooMeIE
 from .shiey import ShieyIE
+from .shortmax import ShortMaxIE
 from .showroomlive import (
     ShowRoomLiveIE,
     ShowRoomVodIE,
