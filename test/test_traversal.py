@@ -1,4 +1,5 @@
 import http.cookies
+import dataclasses
 import re
 import xml.etree.ElementTree
 
@@ -439,6 +440,17 @@ class TestTraversal:
 
         assert traverse_obj(data, [..., filter]) == [True, 1, 1.1, 'str', {0: 0}, [1]], \
             '`filter` should filter falsy values'
+
+    def test_traversal_dataclass(self):
+        @dataclasses.dataclass
+        class _TestDataclass:
+            val: str
+
+        dc = _TestDataclass(val='yt-dlp')
+        assert traverse_obj(dc, 'val') == 'yt-dlp', \
+            'Dataclasses should be traversable'
+        assert traverse_obj({'dataclass': dc}, ('dataclass', 'val')) == 'yt-dlp', \
+            'Dataclasses inside other objects should be traversable'
 
 
 class TestTraversalHelpers:
