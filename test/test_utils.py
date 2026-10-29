@@ -423,6 +423,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(datetime_from_str('20210131+59day', precision='day'), datetime_from_str('20210131+2month', precision='auto'))
         self.assertEqual(datetime_from_str('now+1day', precision='hour'), datetime_from_str('now+24hours', precision='auto'))
         self.assertEqual(datetime_from_str('now+23hours', precision='hour'), datetime_from_str('now+23hours', precision='auto'))
+        self.assertEqual(datetime_from_str('20260101+1day+2hours'), dt.datetime(2026, 1, 2, 2, tzinfo=dt.timezone.utc))
+        self.assertRaises(ValueError, datetime_from_str, '20260101+1day_')
+        self.assertRaises(ValueError, datetime_from_str, '20260101+1day_+2hours')
+        self.assertRaises(ValueError, datetime_from_str, '20260101+1day\n')
 
     def test_datetime_round(self):
         self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
