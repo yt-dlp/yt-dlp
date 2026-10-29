@@ -3,7 +3,7 @@ from ..utils.traversal import traverse_obj
 
 
 class FilmzieIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?studyflix\.de/(?:.*)/(?:[^/?#]+-)?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?filmzie\.com/content/(?P<id>[a-zA-Z0-9-]+)'
     _TESTS = [{
         'url': 'https://filmzie.com/content/intermate-2019?sourceId=613744175971e8001d714ce7',
         'info_dict': {
