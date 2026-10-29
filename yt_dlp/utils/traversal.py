@@ -36,8 +36,9 @@ from ._utils import (
 
 
 def traverse_obj(
-        obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
-        casesense=True, is_user_input=NO_DEFAULT, traverse_string=False):
+        obj: _Traversable, *paths: _TraversePaths, default: typing.Any = NO_DEFAULT,
+        expected_type: typing.Callable[[typing.Any], typing.Any] | type | None = None,
+        get_all=True, casesense=True, is_user_input=NO_DEFAULT, traverse_string=False):
     """
     Safely traverse nested `dict`s and `Iterable`s
 
@@ -48,7 +49,7 @@ def traverse_obj(
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
     The next path will also be tested if the path branched but no results could be found.
     Supported values for traversal are `Mapping`, `Iterable`, `re.Match`,
-    `xml.etree.ElementTree` (xpath) and `http.cookies.Morsel`.
+    `xml.etree.ElementTree.Element` (xpath) and `http.cookies.Morsel`.
     Unhelpful values (`{}`, `None`) are treated as the absence of a value and discarded.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
@@ -475,3 +476,17 @@ def dict_get(d, key_or_keys, default=None, skip_false_values=True):
         if val is not None and (val or not skip_false_values):
             return val
     return default
+
+
+if typing.TYPE_CHECKING:
+    from types import EllipsisType
+    _Traversable: typing.TypeAlias = (
+        None | typing.Mapping | typing.Iterable | re.Match
+        | xml.etree.ElementTree.Element | http.cookies.Morsel)
+    _TraversePathComponent: typing.TypeAlias = (
+        None | set[typing.Callable[[typing.Any], typing.Any]] | set[type] | str
+        | int | float | slice | EllipsisType | tuple['_TraversePaths', ...]
+        | list['_TraversePaths'] | typing.Callable[[typing.Any, typing.Any], bool]  # filter function
+        | dict[typing.Any, '_TraversePaths']
+        | typing.Callable[[typing.Iterable], bool] | type[filter])  # for any/all/filter
+    _TraversePaths = typing.Iterable[_TraversePathComponent] | _TraversePathComponent
