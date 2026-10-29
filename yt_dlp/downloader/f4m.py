@@ -2,13 +2,13 @@ import base64
 import io
 import itertools
 import struct
-import time
 import urllib.parse
 
 from .fragment import FragmentFD
 from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import fix_xml_ampersands, xpath_text
+from ..utils.progress import sleep
 
 
 class DataTruncatedError(Exception):
@@ -281,7 +281,7 @@ class F4mFD(FragmentFD):
             fragments_list = [f for f in fragments_list if f[1] > latest_fragment]
             if not fragments_list:
                 # Retry after a while
-                time.sleep(5.0)
+                sleep(self.ydl, 5.0, 'Waiting for new fragments')
                 retries -= 1
 
         if not fragments_list:
