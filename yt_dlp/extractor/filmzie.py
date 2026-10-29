@@ -5,14 +5,22 @@ from ..utils.traversal import traverse_obj
 class FilmzieIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?filmzie\.com/content/(?P<id>[a-zA-Z0-9-]+)'
     _TESTS = [{
-        'url': 'https://filmzie.com/content/intermate-2019?sourceId=613744175971e8001d714ce7',
+        'url': 'https://filmzie.com/content/intermate-2019',
         'info_dict': {
-            'id': '371',
+            'id': '63a43a6c9b52a1714855eba0',
             'ext': 'mp4',
-            'thumbnail': r're:^https?://.*\.(?:png|jpg)',
-            'title': 'Arbeit und Energie Übung',
+            'description': 'md5:4dc313028ad2850aaea4084e1814da9e',
+            'title': 'Intermate',
         },
-    }
+    }, {
+        'url': 'https://filmzie.com/content/southern-star-2013',
+        'info_dict': {
+            'id': '62d10d24d68da3293a90bbc5',
+            'ext': 'mp4',
+            'description': 'md5:259be286dd434bc416841d6cc6abe30b',
+            'title': 'Southern Star',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
