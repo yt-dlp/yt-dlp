@@ -49,6 +49,22 @@ class ToutiaoIE(InfoExtractor):
             'uploader_id': 'MS4wLjABAAAA4f7d4mwtApALtHIiq-QM20dwXqe32NUz0DeWF7wbHKw',
             'view_count': int,
         },
+    }, {
+        'url': 'https://www.toutiao.com/video/6863662555659764228/',
+        'info_dict': {
+            'id': '6863662555659764228',
+            'ext': 'mp4',
+            'title': '机器学习，梯度下降算法，问题引入',
+            'comment_count': int,
+            'duration': 512.132,
+            'like_count': int,
+            'release_date': '20200822',
+            'release_timestamp': 1598070970,
+            'thumbnail': r're:https?://p\d+-sign\.toutiaoimg\.com/.+$',
+            'uploader': '动画讲编程',
+            'uploader_id': 'MS4wLjABAAAAUbAv6lV7flBtQQ985gWufzkO45WqoJdVL6KGJi--Mtg',
+            'view_count': int,
+        },
     }]
 
     def _real_initialize(self):
@@ -83,24 +99,46 @@ class ToutiaoIE(InfoExtractor):
         ))
 
         formats = []
-        for video in traverse_obj(video_data, (
-            'videoPlayInfo', 'video_list', lambda _, v: v['main_url'],
+        for path, override in (
+            (('video_list',), {}),
+            (('dynamic_video', 'dynamic_video_list'), {'acodec': 'none', 'ext': 'mp4'}),
+        ):
+            for video in traverse_obj(video_data, (
+                'videoPlayInfo', *path, lambda _, v: v['main_url'],
+            )):
+                formats.append({
+                    'url': video['main_url'],
+                    **traverse_obj(video, ('video_meta', {
+                        'acodec': ('audio_profile', {str}),
+                        'asr': ('audio_sample_rate', {int_or_none}),
+                        'audio_channels': ('audio_channels', {float_or_none}, {int_or_none}),
+                        'ext': ('vtype', {str}),
+                        'filesize': ('size', {int_or_none}),
+                        'format_id': ('definition', {str}),
+                        'fps': ('fps', {int_or_none}),
+                        'height': ('vheight', {int_or_none}),
+                        'tbr': ('real_bitrate', {float_or_none(scale=1000)}),
+                        'vcodec': ('codec_type', {str}),
+                        'width': ('vwidth', {int_or_none}),
+                    })),
+                    **override,
+                })
+
+        for audio in traverse_obj(video_data, (
+            'videoPlayInfo', 'dynamic_video', 'dynamic_audio_list',
+            lambda _, v: v['main_url'],
         )):
             formats.append({
-                'url': video['main_url'],
-                **traverse_obj(video, ('video_meta', {
-                    'acodec': ('audio_profile', {str}),
+                'url': audio['main_url'],
+                **traverse_obj(audio, ('audio_meta', {
+                    'abr': ('bitrate', {float_or_none(scale=1000)}),
                     'asr': ('audio_sample_rate', {int_or_none}),
-                    'audio_channels': ('audio_channels', {float_or_none}, {int_or_none}),
-                    'ext': ('vtype', {str}),
                     'filesize': ('size', {int_or_none}),
-                    'format_id': ('definition', {str}),
-                    'fps': ('fps', {int_or_none}),
-                    'height': ('vheight', {int_or_none}),
-                    'tbr': ('real_bitrate', {float_or_none(scale=1000)}),
-                    'vcodec': ('codec_type', {str}),
-                    'width': ('vwidth', {int_or_none}),
+                    'format_id': ('quality', {str}),
                 })),
+                'vcodec': 'none',
+                'ext': 'm4a',
+                'acodec': 'aac',  # 'codec_type' from JSON is h264, which is wrong
             })
 
         return {
