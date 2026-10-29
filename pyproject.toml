@@ -329,6 +329,7 @@ select = [
     "SIM",    # flake8-simplify
     "TID251", # banned-api
     "TD",     # flake8-todos
+    "TRY201", # verbose-raise
     "PLC",    # Pylint Convention
     "PLE",    # Pylint Error
     "PLW",    # Pylint Warning

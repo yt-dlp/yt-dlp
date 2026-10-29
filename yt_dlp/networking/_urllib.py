@@ -317,7 +317,7 @@ class UrllibResponseAdapter(Response):
             return data
         except Exception as e:
             handle_response_read_exceptions(e)
-            raise e
+            raise
 
 
 def handle_sslerror(e: ssl.SSLError):
