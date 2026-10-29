@@ -1,11 +1,7 @@
-import json
-
 from .common import InfoExtractor
-from .vimeo import VimeoIE
+from .mux import MuxIE
 from ..utils import (
     clean_html,
-    extract_attributes,
-    get_element_html_by_id,
     int_or_none,
     parse_duration,
     str_or_none,
@@ -19,17 +15,20 @@ from ..utils.traversal import traverse_obj
 class LaracastsBaseIE(InfoExtractor):
     def _get_prop_data(self, url, display_id):
         webpage = self._download_webpage(url, display_id)
-        return traverse_obj(
-            get_element_html_by_id('app', webpage),
-            ({extract_attributes}, 'data-page', {json.loads}, 'props'))
+        data = self._search_json(r'<script[^>]*data-page="app"[^>]*>',
+                                 webpage, 'data', display_id, end_pattern=r'</script>')
+        return traverse_obj(data, 'props')
 
     def _parse_episode(self, episode):
-        if not traverse_obj(episode, 'vimeoId'):
+        if not traverse_obj(episode, 'muxPlaybackId'):
             self.raise_login_required('This video is only available for subscribers.')
+
+        mux_playback_id = traverse_obj(episode, 'muxPlaybackId')
+        mux_playback_token = traverse_obj(episode, ('muxTokens', 'playback'))
+        # Using Mux Instead of Vimeo to extract video data
         return self.url_result(
-            VimeoIE._smuggle_referrer(
-                f'https://player.vimeo.com/video/{episode["vimeoId"]}', 'https://laracasts.com/'),
-            VimeoIE, url_transparent=True,
+            f'https://player.mux.com/{mux_playback_id}?playback-token={mux_playback_token}',
+            MuxIE, url_transparent=True,
             **traverse_obj(episode, {
                 'id': ('id', {int}, {str_or_none}),
                 'webpage_url': ('path', {urljoin('https://laracasts.com')}),
@@ -111,4 +110,4 @@ class LaracastsPlaylistIE(LaracastsBaseIE):
         }
 
         return self.playlist_result(traverse_obj(
-            series, ('chapters', ..., 'episodes', lambda _, v: v['vimeoId'], {self._parse_episode})), **metadata)
+            series, ('chapters', ..., 'episodes', lambda _, v: v['muxPlaybackId'], {self._parse_episode})), **metadata)
