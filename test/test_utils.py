@@ -527,6 +527,7 @@ class TestUtil(unittest.TestCase):
             <node x="a" y="c" />
             <node x="b" y="d" />
             <node x="" />
+            <node x="a'b&quot;c" y="1" />
         </root>'''
         doc = compat_etree_fromstring(testxml)
 
@@ -541,6 +542,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(find_xpath_attr(doc, './/node', 'y', 'c'), doc[2])
         self.assertEqual(find_xpath_attr(doc, './/node', 'y', 'd'), doc[3])
         self.assertEqual(find_xpath_attr(doc, './/node', 'x', ''), doc[4])
+        self.assertEqual(find_xpath_attr(doc, './/node', 'x', 'a\'b"c'), doc[5])
+        self.assertEqual(find_xpath_attr(doc, './/node', 'y', 1), doc[5])
 
     def test_xpath_with_ns(self):
         testxml = '''<root xmlns:media="http://example.com/">
