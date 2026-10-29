@@ -1546,21 +1546,24 @@ class DouyinIE(TikTokBaseIE):
         secsdk_signature = hashlib.md5(f'{uifid}_{timestamp}_{salt}_{encoded_query}'.encode()).hexdigest()
         return {**query, 'x-secsdk-web-signature': secsdk_signature}
 
+    def _get_aweme_detail(self, video_id):
+        return traverse_obj(self._download_json(
+            'https://www.douyin.com/aweme/v1/web/aweme/detail/', video_id,
+            'Downloading web detail JSON', 'Failed to download web detail JSON',
+            query=self._sign_query({'aweme_id': video_id, 'aid': self._AID}), fatal=False), ('aweme_detail', {dict}))
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         self.check_and_get_required_cookies()
-        detail = traverse_obj(self._download_json(
-            'https://www.douyin.com/aweme/v1/web/aweme/detail/', video_id,
-            'Downloading web detail JSON', 'Failed to download web detail JSON',
-            query=self._sign_query({'aweme_id': video_id, 'aid': self._AID}), fatal=False), ('aweme_detail', {dict}))
-        if not detail:
+        aweme_detail = self._get_aweme_detail(video_id)
+        if not aweme_detail:
             # TODO: Run verification challenge code to generate signature cookies
             raise ExtractorError(
                 'Fresh cookies (not necessarily logged in) are needed',
                 expected=not self._get_cookies(self._WEBPAGE_HOST).get('s_v_web_id'))
 
-        return {**self._parse_aweme_video_app(detail), 'http_headers': {'Referer': self._WEBPAGE_HOST}}
+        return {**self._parse_aweme_video_app(aweme_detail), 'http_headers': {'Referer': self._WEBPAGE_HOST}}
 
 
 class TikTokVMIE(InfoExtractor):
