@@ -85,6 +85,21 @@ class FranceTVIE(InfoExtractor):
         # france-3 live
         'url': 'francetv:SIM_France3',
         'only_matching': True,
+    },
+    {
+    'url': 'https://www.franceinfo.fr/faits-divers/terrorisme/attaques-du-13-novembre-a-paris/document-franceinfo-la-nuit-du-13-novembre-racontee-par-les-appels-au-samu-jai-vu-un-mec-avec-une-kalachnikov-sortir-dune-voiture_4750613.html',
+    'info_dict': {
+        'id': 'k7bZhznaaDgn6uxakWe',
+        'ext': 'mp4',
+        'title': 'Attentats du 13-Novembre : la nuit racontée par les appels au Samu',
+        'uploader': 'Franceinfo',
+        'uploader_id': 'x32q6s',
+        'upload_date': '20210908',
+    },
+    'params': {
+        'skip_download': True,
+    },
+    'add_ie': ['Dailymotion'],
     }]
 
     def _extract_video(self, video_id, hostname=None):
@@ -481,7 +496,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
             or self._search_regex(
                 (r'player\.load[^;]+src:\s*["\']([^"\']+)',
                  r'id-video=([^@]+@[^"]+)',
-                 r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)"',
+                 r'<a[^>]+href="(?:https?:)?//videos\.francetv\.fr/video/([^@]+@[^"]+)',
                  r'(?:data-id|<figure[^<]+\bid)=["\']([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'),
                 webpage, 'video id')
         )
