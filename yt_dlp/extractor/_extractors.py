@@ -580,6 +580,7 @@ from .filmon import (
     FilmOnIE,
 )
 from .filmweb import FilmwebIE
+from .filmzie import FilmzieIE
 from .firsttv import (
     FirstTVIE,
     FirstTVLiveIE,
