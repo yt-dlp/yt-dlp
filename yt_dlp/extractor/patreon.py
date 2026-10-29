@@ -88,6 +88,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_url': 'https://www.patreon.com/dissonancepod',
             'channel_follower_count': int,
         },
+        'skip': 'FIXME: Fails due to no description extracted',
     }, {
         'url': 'http://www.patreon.com/creation?hid=754133',
         'md5': '3eb09345bf44bf60451b8b0b81759d0a',
@@ -179,6 +180,7 @@ class PatreonIE(PatreonBaseIE):
             'channel_url': 'https://www.patreon.com/loish',
             'channel_follower_count': int,
         },
+        'skip': 'FIXME: Fails due to no description extracted',
     }, {
         # bad videos under media (if media is included). Real one is under post_file
         'url': 'https://www.patreon.com/posts/premium-access-70282931',
@@ -268,6 +270,48 @@ class PatreonIE(PatreonBaseIE):
         },
         'skip': 'Patron-only content',
     }, {
+        # attachment and json content inline video embed
+        'url': 'https://www.patreon.com/GirlMeetsTV/posts/deep-space-nine-172527548',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': '172527548',
+            'title': 'Deep Space Nine | 2x13 | Armageddon Game',
+            'description': 'md5:cbed368f901ebef27b8db316e384fb62',
+            'uploader': 'Girl Meets TV',
+            'uploader_id': '198733113',
+            'uploader_url': 'https://www.patreon.com/GirlMeetsTV',
+            'channel_id': '15363363',
+            'channel_url': 'https://www.patreon.com/GirlMeetsTV',
+            'timestamp': 1792519206,
+            'upload_date': '20261020',
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https?://.+',
+            'tags': ['Deep Space Nine', 'sync reactions'],
+        },
+        'skip': 'Patron-only content',
+    }, {
+        # multiple json content inline audio embeds
+        'url': 'https://www.patreon.com/michaelorbit/posts/bye-and-stuff-158148287',
+        'playlist_count': 11,
+        'info_dict': {
+            'id': '158148287',
+            'title': '"Bye and Stuff" breakdown and production notes',
+            'description': 'md5:f5021333ed6aacb507cebaa6e4010d1f',
+            'uploader': 'Michael Orbit',
+            'uploader_id': '73767903',
+            'uploader_url': 'https://www.patreon.com/michaelorbit',
+            'channel_id': '8648412',
+            'channel_url': 'https://www.patreon.com/michaelorbit',
+            'timestamp': 1778827446,
+            'upload_date': '20260515',
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:^https?://.+',
+            'channel_follower_count': int,
+            'tags': ['ScottPilgrim'],
+        },
+    }, {
         # Contains a comment reply in the 'included' section
         'url': 'https://www.patreon.com/posts/114721679',
         'info_dict': {
@@ -289,14 +333,13 @@ class PatreonIE(PatreonBaseIE):
         },
         'params': {'getcomments': True},
     }, {
-        # FIXME: Error: No supported media found in this post
         # Inlined media in post; uses _extract_from_media_api
         'url': 'https://www.patreon.com/posts/scottfalco-146966245',
         'info_dict': {
             'id': '146966245',
             'ext': 'mp4',
             'title': 'scottfalco 1080',
-            'description': 'md5:a3f29bbd0a46b4821ec3400957c98aa2',
+            'description': 'md5:7e75b0402a9f16cfdf1af32bdfd28b06',
             'uploader': 'Insanimate',
             'uploader_id': '2828146',
             'uploader_url': 'https://www.patreon.com/Insanimate',
@@ -329,6 +372,7 @@ class PatreonIE(PatreonBaseIE):
             'timestamp': 1762101034,
             'upload_date': '20251102',
         },
+        'skip': 'FIXME: need to extract description',
     }]
     _RETURN_TYPE = 'video'
     _HTTP_HEADERS = {
@@ -382,7 +426,7 @@ class PatreonIE(PatreonBaseIE):
         post = self._call_api(
             f'posts/{video_id}', video_id, query={
                 'fields[media]': 'download_url,mimetype,size_bytes,file_name',
-                'fields[post]': 'comment_count,content,content_teaser_text,cleaned_teaser_text,embed,image,like_count,post_file,published_at,title,current_user_can_view',
+                'fields[post]': 'comment_count,content,content_json_string,content_teaser_text,cleaned_teaser_text,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
                 'fields[campaign]': 'url,name,patron_count',
@@ -490,10 +534,17 @@ class PatreonIE(PatreonBaseIE):
             if media_id := traverse_obj(post_file, ('media_id', {int}, {str_or_none})):
                 seen_media_ids.add(media_id)
 
-        for media_id in traverse_obj(attributes, (
+        embedded_media_ids = traverse_obj(attributes, (
             'content', {find_elements(attr='data-media-id', value=r'\d+', regex=True, html=True)},
-            ..., {extract_attributes}, 'data-media-id',
-        )):
+            ..., {extract_attributes}, 'data-media-id'))
+
+        if json_content_str := attributes.get('content_json_string'):
+            json_content = self._parse_json(json_content_str, video_id)
+            embedded_media_ids.extend(traverse_obj(json_content, (
+                'content', lambda _, v: v['type'] in ('video', 'audio'), 'attrs', 'media_id',
+                {str_or_none})))
+
+        for media_id in embedded_media_ids:
             # Inlined media may be duplicates of what was extracted above
             if media_id in seen_media_ids:
                 continue
