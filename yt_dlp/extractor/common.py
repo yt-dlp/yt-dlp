@@ -1959,7 +1959,8 @@ class InfoExtractor:
             formats[:] = filter(
                 lambda f: self._is_valid_url(
                     f['url'], video_id,
-                    item='{} video format'.format(f.get('format_id')) if f.get('format_id') else 'video'),
+                    item='{} video format'.format(f.get('format_id')) if f.get('format_id') else 'video',
+                    headers=f.get('http_headers')),
                 formats)
 
     @staticmethod
