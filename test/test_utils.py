@@ -565,12 +565,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(xpath_element(doc, ['div/bar', 'div/p']), p)
         self.assertEqual(xpath_element(doc, 'div/bar', default='default'), 'default')
         self.assertEqual(xpath_element(doc, ['div/bar'], default='default'), 'default')
+        self.assertEqual(xpath_element(doc, [], default='default'), 'default')
+        self.assertEqual(xpath_element(doc, [], fatal=True, default='default'), 'default')
         self.assertTrue(xpath_element(doc, 'div/bar') is None)
         self.assertTrue(xpath_element(doc, ['div/bar']) is None)
         self.assertTrue(xpath_element(doc, ['div/bar'], 'div/baz') is None)
+        self.assertTrue(xpath_element(doc, []) is None)
         self.assertRaises(ExtractorError, xpath_element, doc, 'div/bar', fatal=True)
         self.assertRaises(ExtractorError, xpath_element, doc, ['div/bar'], fatal=True)
         self.assertRaises(ExtractorError, xpath_element, doc, ['div/bar', 'div/baz'], fatal=True)
+        self.assertRaises(ExtractorError, xpath_element, doc, [], fatal=True)
 
     def test_xpath_text(self):
         testxml = '''<root>
