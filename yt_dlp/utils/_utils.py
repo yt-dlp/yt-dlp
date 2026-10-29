@@ -199,16 +199,11 @@ def write_json_file(obj, fn):
     try:
         with tf:
             json.dump(obj, tf, ensure_ascii=False)
-        if sys.platform == 'win32':
-            # Need to remove existing file on Windows, else os.rename raises
-            # WindowsError or FileExistsError.
-            with contextlib.suppress(OSError):
-                os.unlink(fn)
         with contextlib.suppress(OSError):
             mask = os.umask(0)
             os.umask(mask)
             os.chmod(tf.name, 0o666 & ~mask)
-        os.rename(tf.name, fn)
+        os.replace(tf.name, fn)
     except Exception:
         with contextlib.suppress(OSError):
             os.remove(tf.name)
