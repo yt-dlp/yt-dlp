@@ -2333,6 +2333,7 @@ from .xnxx import XNXXIE
 from .xvideos import (
     XVideosIE,
     XVideosQuickiesIE,
+    XVideosUserIE,
 )
 from .xxxymovies import XXXYMoviesIE
 from .yahoo import (
