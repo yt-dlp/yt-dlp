@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+Version information:
+Axinom.MediaProcessing v3.0.0 targeting General Purpose Media Format specification v7
+ffmpeg version N-81423-g61fac0e Copyright (c) 2000-2016 the FFmpeg developers
+x265 [info]: HEVC encoder version 2.0+12-49a0d1176aef5bc6
+x264 0.148.2705 3f5ed56
+MP4Box - GPAC version 0.6.2-DEV-rev683-g7b29fbe-master
+MediaInfoLib - v0.7.87
+
+For more info about this video, see https://github.com/Axinom/dash-test-vectors
+-->
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" minBufferTime="PT1.500S" type="static" mediaPresentationDuration="PT0H12M14.000S" maxSegmentDuration="PT0H0M4.000S" profiles="urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264" xmlns:cenc="urn:mpeg:cenc:2013" xmlns:clearkey="http://dashif.org/guidelines/clearKey">
+	<Period duration="PT0H12M14.000S">
+		<AdaptationSet segmentAlignment="true" group="1" maxWidth="1920" maxHeight="1080" maxFrameRate="24" par="16:9" lang="und">
+			<ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011" value="cenc" cenc:default_KID="9eb4050d-e44b-4802-932e-27d75083e266" />
+			<ContentProtection value="ClearKey1.0" schemeIdUri="urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e">
+				<clearkey:Laurl Lic_type="EME-1.0">https://drm-clearkey-testvectors.axtest.net/AcquireLicense</clearkey:Laurl>
+			</ContentProtection>
+			<Role schemeIdUri="urn:mpeg:dash:role:2011" value="main" />
+			<SegmentTemplate timescale="24" media="$RepresentationID$/$Number%04d$.m4s" startNumber="1" duration="96" initialization="$RepresentationID$/init.mp4" />
+			<Representation id="1" mimeType="video/mp4" codecs="avc1.64001f" width="512" height="288" frameRate="24" sar="1:1" startWithSAP="1" bandwidth="389802"></Representation>
+			<Representation id="2" mimeType="video/mp4" codecs="avc1.64001f" width="640" height="360" frameRate="24" sar="1:1" startWithSAP="1" bandwidth="764935"></Representation>
+			<Representation id="3" mimeType="video/mp4" codecs="avc1.640028" width="852" height="480" frameRate="24" sar="640:639" startWithSAP="1" bandwidth="1120439"></Representation>
+			<Representation id="4" mimeType="video/mp4" codecs="avc1.640032" width="1280" height="720" frameRate="24" sar="1:1" startWithSAP="1" bandwidth="1945258"></Representation>
+			<Representation id="5" mimeType="video/mp4" codecs="avc1.640033" width="1920" height="1080" frameRate="24" sar="1:1" startWithSAP="1" bandwidth="2726377"></Representation>
+		</AdaptationSet>
+	</Period>
+</MPD>
