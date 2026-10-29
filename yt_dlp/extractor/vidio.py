@@ -290,7 +290,7 @@ class VidioLiveIE(VidioBaseIE):
                 pass
             if stream_meta.get('stream_url'):
                 formats.extend(self._extract_m3u8_formats(
-                    stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
+                    stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native', fatal=False))
 
         return {
             'id': video_id,
