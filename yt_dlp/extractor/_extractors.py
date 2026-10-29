@@ -233,6 +233,7 @@ from .bloomberg import BloombergIE
 from .bluesky import BlueskyIE
 from .bongacams import BongaCamsIE
 from .boosty import BoostyIE
+from .bonsaimirai import BonsaiMiraiLiveIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
 from .boxcast import BoxCastVideoIE
@@ -2475,3 +2476,5 @@ from .zoom import (
     ZoomIE,
 )
 from .zype import ZypeIE
+
+
