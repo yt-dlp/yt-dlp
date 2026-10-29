@@ -873,6 +873,12 @@ def create_parser():
         dest='client_certificate_password', metavar='PASSWORD',
         help='Password for client certificate private key, if encrypted. '
              'If not provided, and the key is encrypted, yt-dlp will ask interactively')
+    authentication.add_option(
+        '--cookie-reload', action='store_true', dest='cookie_reload', default=False,
+        help='Reload cookies if auth cookies are rotated/invalid')
+    authentication.add_option(
+        '--no-cookie-reload', action='store_false', dest='cookie_reload',
+        help='Do not reload cookies if auth cookies are rotated/invalid (default)')
 
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(

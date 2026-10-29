@@ -838,7 +838,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         # Check that we are still logged-in and cookies have not rotated after every request
         if getattr(self, '_passed_auth_cookies', None) and not self._has_auth_cookies:
-            # Try reloading cookies if t
+            # Try reloading cookies if they become invalid
             if self._downloader.reload_cookies() and self._has_auth_cookies:
                 raise ReExtractInfo('Cookies reloaded', expected=True)
 

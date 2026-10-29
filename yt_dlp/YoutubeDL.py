@@ -1890,6 +1890,8 @@ class YoutubeDL:
             return ie_result
 
     def reload_cookies(self):
+        if not self.params.get('cookie_reload', True):
+            return False
         if self._cookie_reload_trial:
             self.write_debug('Automatic cookie reloading failed to obtain working cookies')
             return False
