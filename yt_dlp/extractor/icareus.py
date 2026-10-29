@@ -18,63 +18,34 @@ from ..utils import (
 
 class IcareusIE(InfoExtractor):
     _DOMAINS = '|'.join(map(re.escape, (
-        'asahitv.fi',
-        'helsinkikanava.fi',
-        'hyvinvointitv.fi',
-        'inez.fi',
-        'permanto.fi',
         'suite.icareus.com',
         'videos.minifiddlers.org',
     )))
     _VALID_URL = rf'(?P<base_url>https?://(?:www\.)?(?:{_DOMAINS}))/[^?#]+/player/[^?#]+\?(?:[^#]+&)?(?:assetId|eventId)=(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://www.helsinkikanava.fi/fi_FI/web/helsinkikanava/player/vod?assetId=68021894',
-        'md5': 'ca0b62ffc814a5411dfa6349cf5adb8a',
+        'url': 'https://suite.icareus.com/fi/web/helsinkikanava/player/vod?assetId=68021894',
+        'md5': '3e048a91cd6be16d34b98a1548ceed27',
         'info_dict': {
             'id': '68021894',
             'ext': 'mp4',
             'title': 'Perheiden parhaaksi',
             'description': 'md5:295785ea408e5ac00708766465cc1325',
-            'thumbnail': 'https://www.helsinkikanava.fi/image/image_gallery?img_id=68022501',
+            'thumbnail': 'https://suite.icareus.com/image/image_gallery?img_id=68022501',
             'upload_date': '20200924',
             'timestamp': 1600938300,
         },
     }, {  # Recorded livestream
-        'url': 'https://www.helsinkikanava.fi/fi/web/helsinkikanava/player/event/view?eventId=76241489',
-        'md5': '014327e69dfa7b949fcc861f6d162d6d',
+        'url': 'https://suite.icareus.com/fi/web/helsinkikanava/player/event/view?eventId=76241489',
+        'md5': 'a063a7ef36969ced44af9fe3d10a7f47',
         'info_dict': {
             'id': '76258304',
             'ext': 'mp4',
             'title': 'Helsingin kaupungin ja HUSin tiedotustilaisuus koronaepidemiatilanteesta 24.11.2020',
             'description': 'md5:3129d041c6fbbcdc7fe68d9a938fef1c',
-            'thumbnail': 'https://icareus-suite.secure2.footprint.net/image/image_gallery?img_id=76288630',
+            'thumbnail': 'https://dvcf59enpgt5y.cloudfront.net/image/image_gallery?img_id=76288630',
             'upload_date': '20201124',
             'timestamp': 1606206600,
         },
-    }, {  # Non-m3u8 stream
-        'url': 'https://suite.icareus.com/fi/web/westend-indians/player/vod?assetId=47567389',
-        'md5': '72fc04ee971bbedc44405cdf16c990b6',
-        'info_dict': {
-            'id': '47567389',
-            'ext': 'mp4',
-            'title': 'Omatoiminen harjoittelu - Laukominen',
-            'description': '',
-            'thumbnail': 'https://suite.icareus.com/image/image_gallery?img_id=47568162',
-            'upload_date': '20200319',
-            'timestamp': 1584658080,
-        },
-    }, {
-        'url': 'https://asahitv.fi/fi/web/asahi/player/vod?assetId=89415818',
-        'only_matching': True,
-    }, {
-        'url': 'https://hyvinvointitv.fi/fi/web/hyvinvointitv/player/vod?assetId=89149730',
-        'only_matching': True,
-    }, {
-        'url': 'https://inez.fi/fi/web/inez-media/player/vod?assetId=71328822',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.permanto.fi/fi/web/alfatv/player/vod?assetId=135497515',
-        'only_matching': True,
     }, {
         'url': 'https://videos.minifiddlers.org/web/international-minifiddlers/player/vod?assetId=1982759',
         'only_matching': True,
@@ -97,10 +68,12 @@ class IcareusIE(InfoExtractor):
                 'token': self._search_regex(r"_icareus\['token'\]\s*=\s*'([a-f0-9]+)'", webpage, 'icareus_token'),
             }))
 
-        subtitles = {
-            remove_end(sdesc.split(' ')[0], ':'): [{'url': url_or_none(surl)}]
-            for _, sdesc, surl in assets.get('subtitles') or []
-        }
+        subtitles = {}
+
+        for sub_info in assets.get('subtitles') or []:
+            _, sdesc, surl = sub_info[:3]
+            sub_name = remove_end(sdesc.split(' ')[0], ':')
+            subtitles[sub_name] = [{'url': url_or_none(surl)}]
 
         formats = [{
             'format': item.get('name'),
