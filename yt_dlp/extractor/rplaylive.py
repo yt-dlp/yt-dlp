@@ -14,6 +14,7 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     traverse_obj,
+    try_call,
     url_or_none,
 )
 
@@ -23,6 +24,7 @@ class RPlayBaseIE(InfoExtractor):
     _user_id = None
     _refresh_token = None
     _jwt_token = None
+    _cf_turnstile_pass = None
 
     @property
     def user_id(self):
@@ -40,6 +42,47 @@ class RPlayBaseIE(InfoExtractor):
             'requestorOid': self.user_id,
             'loginType': 'rplay',
         } if self.user_id else {}
+
+    @property
+    def cf_turnstile_pass(self):
+        if not self._cf_turnstile_pass and (stored := self.cache.load('rplaylive', 'cf_pass')):
+            self._cf_turnstile_pass = stored
+        if self._cf_turnstile_pass:
+            if (try_call(lambda: int(self._cf_turnstile_pass.split('.')[0])) or 0) < time.time() * 1000:
+                self._cf_turnstile_pass = None
+        return self._cf_turnstile_pass
+
+    @cf_turnstile_pass.setter
+    def cf_turnstile_pass(self, new_pass: str):
+        self.cache.store('rplaylive', 'cf_pass', new_pass)
+        self._cf_turnstile_pass = new_pass
+
+    def _request_turnstile_token(self):
+        if token := self._configuration_arg('turnstile_token', ie_key='rplaylive', casesense=True, default=[None])[0]:
+            return token
+        elif provider := self._configuration_arg('turnstile_solver', ie_key='rplaylive', default=[None])[0]:
+            query = {'url': 'https://rplay.live', 'sitekey': '0x4AAAAAAFpJTWip4zXSkTi4'}
+            if token := self._download_json(provider, 'turnstile solver', query=query,
+                                            note='request turnstile solver', fatal=False):
+                return token
+            else:
+                self.report_warning('Failed to get turnstile token')
+
+    def _download_turnstile_json(self, url_or_request, video_id, *args, headers={}, **kwargs):
+        if self.cf_turnstile_pass:
+            headers['x-browser-pass'] = self.cf_turnstile_pass
+        elif token := self._request_turnstile_token():
+            headers['x-turnstile-token'] = token
+        else:
+            self.report_warning(
+                'Request may fail due to turnstile challenge. '
+                'Use --extractor-args "rplaylive:turnstile_token=XXXXXX" to provide challenge token, '
+                'or use --extractor-args "rplaylive:turnstile_solver=http://XXXX" to a deployed challenge solver, '
+                'or edit ~/.cache/yt-dlp/rplaylive/cf_pass.json to store browser pass')
+        data, urlh = self._download_json_handle(url_or_request, video_id, *args, headers=headers, **kwargs)
+        if new_pass := urlh.headers.get('x-browser-pass'):
+            self.cf_turnstile_pass = new_pass
+        return data
 
     @property
     def refresh_token_header(self):
@@ -169,7 +212,7 @@ class RPlayVideoIE(RPlayBaseIE):
             'thumbnail': 'https://pb.rplay.live/thumbnail/682065da13ed2c564c77d8f7',
             'uploader': 'Seldea',
             'uploader_id': '64d483add2c96306099ef734',
-            'tags': ['셀데아', '무료', 'Free', '無料', 'セルデア'],
+            'tags': 'count:4',
             'like_count': int,
             'view_count': int,
             'location': 'KR',
@@ -385,8 +428,8 @@ class RPlayLiveIE(RPlayBaseIE):
             'customUrl' if short == 'c' else 'userOid': user_id})
         user_id = user_info['_id']
 
-        live_info = self._download_json('https://api.rplay.live/live/play', user_id, query={
-            'creatorOid': user_id, **self.requestor_query}, headers=self.jwt_header)
+        live_info = self._download_turnstile_json('https://api.rplay.live/live/play', user_id, query={
+            'creatorOid': user_id, 'platformType': 'rplay', 'key': '', **self.requestor_query}, headers=self.jwt_header)
 
         stream_state = live_info['streamState']
         if stream_state == 'offline':
