@@ -445,14 +445,22 @@ class RPlayLiveIE(RPlayBaseIE):
                 if traverse_obj(live_info, ('tierHashes', lambda _, v: v == 'free', any)):
                     raise ExtractorError('The livestream requires a free subscription to access', expected=True)
                 raise ExtractorError('You do not have access to the livestream', expected=True)
-            key2 = traverse_obj(self._download_json(
-                'https://api.rplay.live/live/key2', user_id, 'getting live key',
-                headers=self.jwt_header, query=self.requestor_query), ('authKey', {str})) if self.user_id else ''
-            if key2 is None:
-                raise ExtractorError('Failed to get playlist key')
-            formats = self._extract_m3u8_formats(
-                'https://api.rplay.live/live/stream/playlist.m3u8', user_id,
-                query={'creatorOid': user_id, 'key2': key2}, headers={'Referer': 'https://rplay.live'})
+
+            if live_info.get('bytePlusPlaybackUrl') or 'byteplus-' in live_info.get('streamId', ''):
+                urls = self._download_json('https://api.rplay.live/live/bytedance/play-urls', user_id, query={
+                    'creatorId': user_id, 'userId': self.user_id or '', 'platformType': 'rplay',
+                    **({'token': self.jwt_token} if self.jwt_token else {}),
+                }, headers=self.jwt_header, note='Downloading playurls')['playUrls']
+                formats = [{'format_id': k, 'url': v} for k, v in urls.items()]
+            else:
+                key2 = traverse_obj(self._download_json(
+                    'https://api.rplay.live/live/key2', user_id, 'getting live key',
+                    headers=self.jwt_header, query=self.requestor_query), ('authKey', {str})) if self.user_id else ''
+                if key2 is None:
+                    raise ExtractorError('Failed to get playlist key')
+                formats = self._extract_m3u8_formats(
+                    'https://api.rplay.live/live/stream/playlist.m3u8', user_id,
+                    query={'creatorOid': user_id, 'key2': key2}, headers={'Referer': 'https://rplay.live'})
 
             return {
                 'id': live_info.get('oid') or user_id,
