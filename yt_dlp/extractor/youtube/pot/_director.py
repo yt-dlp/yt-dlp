@@ -6,6 +6,7 @@ import dataclasses
 import datetime as dt
 import hashlib
 import json
+import re
 import traceback
 import typing
 import urllib.parse
@@ -63,9 +64,9 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.DEBUG:
             self.__ie.write_debug(self._format_msg(message), only_once=once)
 
-    def info(self, message: str):
+    def info(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.INFO:
-            self.__ie.to_screen(self._format_msg(message))
+            self.__ie.to_screen(self._format_msg(message), only_once=once)
 
     def warning(self, message: str, *, once=False):
         if self.log_level <= self.LogLevel.WARNING:
@@ -75,7 +76,7 @@ class YoutubeIEContentProviderLogger(IEContentProviderLogger):
         if self.log_level <= self.LogLevel.ERROR:
             self.__ie._downloader.report_error(
                 self._format_msg(message), is_error=False,
-                tb=''.join(traceback.format_exception(None, cause, cause.__traceback__)) if cause else None)
+                tb=''.join(traceback.format_exception(cause)) if cause else None)
 
 
 class PoTokenCache:
@@ -218,7 +219,7 @@ class PoTokenCache:
         cache_key = self._generate_key(self._generate_key_bindings(spec))
         self.logger.trace(f'Attempting to access PO Token cache using key: {cache_key}')
 
-        default_expires_at = int(dt.datetime.now(dt.timezone.utc).timestamp()) + spec.default_ttl
+        default_expires_at = int(dt.datetime.now(dt.UTC).timestamp()) + spec.default_ttl
         cache_response = dataclasses.replace(response, expires_at=response.expires_at or default_expires_at)
 
         write_policy = write_policy or spec.write_policy
@@ -433,9 +434,15 @@ def provider_display_list(providers: Iterable[IEContentProvider]):
 def clean_pot(po_token: str):
     # Clean and validate the PO Token. This will strip invalid characters off
     # (e.g. additional url params the user may accidentally include)
+    mobj = re.match(r'([^?&#]+)', urllib.parse.unquote(po_token))
+    if not mobj:
+        raise ValueError('Invalid PO Token')
+
+    # compat: <=py3.14: padded was added in 3.15 and the default for urlsafe is false
+    data = mobj.group(1).translate(str.maketrans('-_', '+/'))
     try:
         return base64.urlsafe_b64encode(
-            base64.urlsafe_b64decode(urllib.parse.unquote(po_token))).decode()
+            base64.b64decode(data)).decode()
     except (binascii.Error, ValueError):
         raise ValueError('Invalid PO Token')
 
@@ -456,7 +463,7 @@ def validate_response(response: PoTokenResponse | None):
     if not isinstance(response.expires_at, int):
         return response.expires_at is None
 
-    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.timezone.utc).timestamp())
+    return response.expires_at <= 0 or response.expires_at > int(dt.datetime.now(dt.UTC).timestamp())
 
 
 def validate_cache_spec(spec: PoTokenCacheSpec):

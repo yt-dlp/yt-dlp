@@ -1,6 +1,7 @@
 import collections
 import hashlib
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
@@ -8,6 +9,7 @@ from .odnoklassniki import OdnoklassnikiIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
+from ..jsinterp import JSInterpreter
 from ..utils import (
     ExtractorError,
     UserNotLive,
@@ -36,16 +38,38 @@ class VKBaseIE(InfoExtractor):
 
     def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
         response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
-        challenge_url, cookie = response[1].url if response else '', None
-        if challenge_url.startswith('https://vk.com/429.html?'):
-            cookie = self._get_cookies(challenge_url).get('hash429')
-        if not cookie:
+        if response is False:
             return response
 
-        hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
+        webpage, urlh = response
+        challenge_url = urlh.url
+        if urllib.parse.urlparse(challenge_url).path != '/challenge.html':
+            return response
+
+        self.to_screen(join_nonempty(
+            video_id and f'[{video_id}]',
+            'Received a JS challenge response',
+            delim=' '))
+
+        challenge_hash = traverse_obj(challenge_url, (
+            {parse_qs}, 'hash429', -1, {require('challenge hash')}))
+
+        func_code = self._search_regex(
+            r'(?s)var\s+salt\s*=\s*\(\s*function\s*\(\)\s*(\{.+?\})\s*\)\(\);\s*var\s+hash',
+            webpage, 'JS challenge salt function')
+
+        jsi = JSInterpreter(f'function salt() {func_code}')
+        salt = jsi.extract_function('salt')([])
+        self.write_debug(f'Generated salt with native JS interpreter: {salt}')
+
+        key_hash = hashlib.md5(f'{challenge_hash}:{salt}'.encode()).hexdigest()
+        self.write_debug(f'JS challenge key hash: {key_hash}')
+
+        # Request with the challenge key and the response should set a 'solution429' cookie
         self._request_webpage(
-            update_url_query(challenge_url, {'key': hash429}), video_id, fatal=fatal,
-            note='Resolving WAF challenge', errnote='Failed to bypass WAF challenge')
+            update_url_query(challenge_url, {'key': key_hash}), video_id,
+            'Submitting JS challenge solution', 'Unable to solve JS challenge', fatal=True)
+
         return super()._download_webpage_handle(url_or_request, video_id, *args, fatal=True, **kwargs)
 
     def _perform_login(self, username, password):

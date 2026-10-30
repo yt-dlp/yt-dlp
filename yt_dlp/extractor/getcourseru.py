@@ -59,7 +59,7 @@ class GetCourseRuIE(InfoExtractor):
         'marafon.mani-beauty.com',
         'on.psbook.ru',
     ]
-    _BASE_URL_RE = rf'https?://(?:(?!player02\.)[^.]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
+    _BASE_URL_RE = rf'https?://(?:(?!player02\.)[a-zA-Z0-9-]+\.getcourse\.(?:ru|io)|{"|".join(map(re.escape, _DOMAINS))})'
     _VALID_URL = [
         rf'{_BASE_URL_RE}/(?!pl/|teach/)(?P<id>[^?#]+)',
         rf'{_BASE_URL_RE}/(?:pl/)?teach/control/lesson/view\?(?:[^#]+&)?id=(?P<id>\d+)',
