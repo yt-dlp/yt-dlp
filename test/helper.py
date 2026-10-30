@@ -140,7 +140,7 @@ def _iter_differences(got, expected, field):
             return
 
         if op == 'contains':
-            if not val in got:
+            if val not in got:
                 yield field, f'should contain {val!r}, got {got!r}'
             return
 
