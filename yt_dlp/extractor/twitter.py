@@ -1596,7 +1596,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
 
 class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13,15})'
 
     _TESTS = [{
         'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
@@ -1711,7 +1711,7 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
-        space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
+        space_data = self._call_graphql_api('zm3JmUpYWDXIUsf_33-ZrA/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
 
