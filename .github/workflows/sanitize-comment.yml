@@ -2,7 +2,7 @@ name: Sanitize comment
 
 on:
   issue_comment:
-    types: [created, edited]  # zizmor: ignore[dangerous-triggers]
+    types: [created, edited]
 
 permissions: {}
 

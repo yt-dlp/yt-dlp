@@ -106,7 +106,7 @@ jobs:
           import os
           import re
           INPUTS = json.loads(os.environ['INPUTS'])
-          timestamp = dt.datetime.now(tz=dt.UTC).strftime('%Y.%m.%d.%H%M%S.%f')
+          timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime('%Y.%m.%d.%H%M%S.%f')
           version = INPUTS.get('version')
           if version and '.' not in version:
               # build.yml was dispatched with only a revision as the version input value
@@ -207,9 +207,9 @@ jobs:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
 
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: '3.14'
+          python-version: "3.10"
 
       - name: Install Requirements
         run: |
@@ -236,7 +236,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -272,7 +272,7 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.qemu_platform
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1  # v4.4.0
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8  # v4.2.0
         with:
           image: tonistiigi/binfmt:qemu-v10.0.4-56@sha256:30cc9a4d03765acac9be2ed0afc23af1ad018aed2c28ea4be8c2eb9afe03fbd1
           cache-image: false
@@ -298,7 +298,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -383,7 +383,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -403,7 +403,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           path: dist
           pattern: build-bin-macos
@@ -430,10 +430,13 @@ jobs:
         include:
         - arch: 'x64'
           runner: windows-2025
+          python_version: '3.10'
         - arch: 'x86'
           runner: windows-2025
+          python_version: '3.10'
         - arch: 'arm64'
           runner: windows-11-arm
+          python_version: '3.13'  # arm64 only has Python >= 3.11 available
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -446,11 +449,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
-          python-version: '3.14'
+          python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.arch }}
-          check-latest: true
 
       - name: Install Requirements
         env:
@@ -503,7 +505,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -524,7 +526,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           path: artifact
           pattern: build-bin-*
@@ -555,8 +557,6 @@ jobs:
           lock 2025.08.11 darwin_legacy_exe .+
           lock 2025.08.27 linux_armv7l_exe .+
           lock 2025.10.14 zip Python 3\.9
-          lock 2026.10.21 zip Python 3\.10
-          lock 2026.10.21 win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           lockV2 yt-dlp/yt-dlp 2022.08.18.36 .+ Python 3\.6
           lockV2 yt-dlp/yt-dlp 2023.11.16 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp 2023.11.16 win_x86_exe .+ Windows-(?:Vista|2008Server)
@@ -566,8 +566,6 @@ jobs:
           lockV2 yt-dlp/yt-dlp 2025.08.11 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp 2025.08.27 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp 2025.10.14 zip Python 3\.9
-          lockV2 yt-dlp/yt-dlp 2026.10.21 zip Python 3\.10
-          lockV2 yt-dlp/yt-dlp 2026.10.21 win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp-nightly-builds 2023.11.15.232826 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-nightly-builds 2024.10.22.051025 py2exe .+
@@ -576,8 +574,6 @@ jobs:
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.12.233030 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.08.30.232839 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-nightly-builds 2025.10.14.232845 zip Python 3\.9
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2026.10.21.202512 zip Python 3\.10
-          lockV2 yt-dlp/yt-dlp-nightly-builds 2026.10.21.202512 win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 zip Python 3\.7
           lockV2 yt-dlp/yt-dlp-master-builds 2023.11.15.232812 win_x86_exe .+ Windows-(?:Vista|2008Server)
           lockV2 yt-dlp/yt-dlp-master-builds 2024.10.22.045052 py2exe .+
@@ -586,8 +582,6 @@ jobs:
           lockV2 yt-dlp/yt-dlp-master-builds 2025.08.12.232447 darwin_legacy_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2025.09.05.212910 linux_armv7l_exe .+
           lockV2 yt-dlp/yt-dlp-master-builds 2025.10.14.232330 zip Python 3\.9
-          lockV2 yt-dlp/yt-dlp-master-builds 2026.10.21.213530 zip Python 3\.10
-          lockV2 yt-dlp/yt-dlp-master-builds 2026.10.21.213530 win(?:_x86)?_exe Python .+ Windows-(?:8|2012Server)
           EOF
 
       - name: Sign checksum files
@@ -601,7 +595,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: build-${{ github.job }}
           path: |
