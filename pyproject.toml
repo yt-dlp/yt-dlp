@@ -476,7 +476,7 @@ select = [
 ]
 exclude = "*/extractor/lazy_extractors.py,*venv*,*/test/testdata/sigs/player-*.js,.idea,.vscode"
 
-[tool.pytest]
+[tool.pytest.ini_options]
 addopts = [
     "-ra",  # summary: all except passed
     "--tb=short",
