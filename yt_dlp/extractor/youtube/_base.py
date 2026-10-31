@@ -125,6 +125,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
                 'clientVersion': '2.20260708.00.00',
+                'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15,gzip(gfe)',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
@@ -225,6 +226,7 @@ INNERTUBE_CLIENTS = {
     # "Made for kids" videos aren't available with this client
     # Using a clientVersion>1.65 may return SABR streams only
     # Since 2026.07, intermittent/selective POT enforcement has been observed for non-HLS formats
+    # Since 2026.08.17, ALL formats (including live HLS and itag 18) are 403'd with version 1.65.10
     'android_vr': {
         'INNERTUBE_CONTEXT': {
             'client': {
@@ -357,6 +359,21 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'TVHTML5',
                 'clientVersion': '5.20260707',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'SUPPORTS_COOKIES': True,
+    },
+    'tv_samsung': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5',
+                'clientVersion': '5.20260707',
+                'deviceMake': 'Samsung',
+                'deviceModel': 'UKS9800',
+                'userAgent': 'Mozilla/5.0 (SMART-TV; Linux; Tizen 2.4.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/2.4.0 TV Safari/538.1',
+                'osName': 'Tizen',
+                'osVersion': '2.4.0',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
@@ -705,6 +722,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 f'Login details are needed to download this content. {self._youtube_login_hint}', method=None)
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
+    _YT_INITIAL_DATA_ALT_RE = r'<script\b(?!-)[^>]+(?<!-)\bid=["\']yt-initial-data["\'][^>]*>'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
@@ -848,6 +866,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }, cndn=lambda _, v: v))
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
+        if data := self._search_json(self._YT_INITIAL_DATA_ALT_RE, webpage, 'data', item_id, default=None):
+            self.write_debug('Parsed initial data from dedicated script element')
+            return data
+
         return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
 
     @staticmethod

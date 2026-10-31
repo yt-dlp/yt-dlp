@@ -140,11 +140,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('visionos', 'android_vr', 'web')
-    _DEFAULT_JSLESS_CLIENTS = ('visionos', 'android_vr')
-    _DEFAULT_AUTHED_CLIENTS = ('tv_downgraded', 'web')
+    _DEFAULT_CLIENTS = ('tv_samsung', 'visionos', 'web')
+    _DEFAULT_JSLESS_CLIENTS = ('visionos',)
+    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_samsung', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('tv_downgraded', 'web_creator', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_samsung', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
     _DEFAULT_WEBPAGE_CLIENT = 'web'
 
@@ -1600,13 +1600,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'info_dict': {
             'id': 'brhfDfLdDZ8',
             'ext': 'mp4',
-            'title': 'This is the WORST Movie Science We\'ve Ever Seen',
+            'title': 'Scientists React to Terrible Movie Science | Moonfall (2021)',
             'description': 'md5:8afd0a3cd69ec63438fc573580436f92',
             'media_type': 'video',
-            'uploader': 'Open Sauce',
-            'uploader_id': '@opensaucelive',
-            'uploader_url': 'https://www.youtube.com/@opensaucelive',
-            'channel': 'Open Sauce',
+            'uploader': 'Sauce +',
+            'uploader_id': '@sauceplusofficial',
+            'uploader_url': 'https://www.youtube.com/@sauceplusofficial',
+            'channel': 'Sauce +',
             'channel_id': 'UC2EiGVmCeD79l_vZ204DUSw',
             'channel_url': 'https://www.youtube.com/channel/UC2EiGVmCeD79l_vZ204DUSw',
             'comment_count': int,
@@ -1614,15 +1614,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'like_count': int,
             'age_limit': 0,
             'duration': 1664,
-            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/hqdefault.jpg',
+            'thumbnail': 'https://i.ytimg.com/vi/brhfDfLdDZ8/sddefault.jpg',
             'categories': ['Entertainment'],
             'tags': ['Moonfall', 'Bad Science', 'Open Sauce', 'Sauce+', 'The Backyard Scientist', 'William Osman', 'Allen Pan'],
-            'creators': ['Open Sauce', 'William Osman 2'],
+            'creators': ['Sauce +', 'William Osman 2'],
             'timestamp': 1759452918,
             'upload_date': '20251003',
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'channel_follower_count': int,
+            'heatmap': 'count:100',
         },
         'params': {'skip_download': True},
     }, {
@@ -1656,6 +1658,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': True,
             'availability': 'public',
             'live_status': 'not_live',
+            'channel_follower_count': int,
         },
         'params': {'skip_download': True},
     }, {
@@ -3147,7 +3150,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # ...and is a JS runtime is available?
                 and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
-                append_client('tv_downgraded')
+                append_client('web_embedded')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
@@ -3636,7 +3639,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     f['source_preference'] = -1
 
                 # Deprioritize since its pre-merged m3u8 formats may have lower quality audio streams
-                if client_name == 'web_safari' and proto == 'hls' and live_status != 'is_live':
+                if client_name in ('web_safari', 'web_embedded') and proto == 'hls' and live_status != 'is_live':
                     f['source_preference'] -= 1
 
                 if missing_pot:
@@ -4046,8 +4049,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pemr = get_first(
                 playability_statuses,
                 ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
-            reason = self._get_text(pemr, 'reason') or get_first(playability_statuses, 'reason')
-            subreason = clean_html(self._get_text(pemr, 'subreason') or '')
+            ivm = get_first(
+                playability_statuses,
+                ('errorScreen', 'playerInterstitialRenderer', 'content', 'interstitialViewModel', {dict})) or {}
+            reason = (
+                self._get_text(pemr, 'reason')
+                or get_first(playability_statuses, 'reason')
+                or traverse_obj(ivm, ('title', 'content', {str}))
+                or '')
+            subreason = clean_html(self._get_text(pemr, 'subreason')) or traverse_obj(ivm, ('description', 'content', {clean_html}))
             if subreason:
                 if subreason.startswith('The uploader has not made this video available in your country'):
                     countries = get_first(microformats, 'availableCountries')
@@ -4055,7 +4065,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
                     self.raise_geo_restricted(subreason, countries, metadata_available=True)
-                reason += f'. {subreason}'
+                if subreason != reason:
+                    reason += f'. {subreason}'
             if reason:
                 if 'sign in' in reason.lower():
                     reason = remove_end(reason, 'This helps protect our community. Learn more')
@@ -4468,13 +4479,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
-            collaborators = traverse_obj(vor, (
+            collab_view_models = traverse_obj(vor, (
                 'attributedTitle', 'commandRuns', ..., 'onTap', 'innertubeCommand', 'showDialogCommand',
                 'panelLoadingStrategy', 'inlineContent', 'dialogViewModel', 'customContent', 'listViewModel',
-                'listItems', ..., 'listItemViewModel', 'title', 'content', {str}))
+                'listItems', ..., 'listItemViewModel', {dict}))
+            collaborators = traverse_obj(collab_view_models, (..., 'title', 'content', {str}))
             info.update({
                 'channel': self._get_text(vor, 'title') or (collaborators[0] if collaborators else None),
-                'channel_follower_count': self._get_count(vor, 'subscriberCountText'),
+                'channel_follower_count': (
+                    self._get_count(vor, 'subscriberCountText')
+                    or traverse_obj(collab_view_models, (0, 'rendererContext', 'accessibilityContext', 'label', {parse_count}))),
                 'creators': collaborators if collaborators else None,
             })
 
@@ -4527,7 +4541,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
         )
         upload_date = (
-            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            dt.datetime.fromtimestamp(timestamp, dt.UTC).strftime('%Y%m%d') if timestamp else
             (
                 unified_strdate(get_first(microformats, 'uploadDate'))
                 or unified_strdate(search_meta('uploadDate'))
@@ -4547,7 +4561,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.UTC)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
                     if fmt.get('protocol') == 'm3u8_native':

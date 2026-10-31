@@ -23,9 +23,10 @@ import time
 import tokenize
 import traceback
 import unicodedata
+import urllib.parse
+import urllib.request
 
 from .cache import Cache
-from .compat import urllib  # isort: split
 from .compat import urllib_req_to_req
 from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -140,7 +141,6 @@ from .utils import (
     locked_file,
     make_archive_id,
     make_parent_dirs,
-    number_of_digits,
     orderedSet,
     orderedSet_from_options,
     parse_filesize,
@@ -673,7 +673,6 @@ class YoutubeDL:
         except Exception as e:
             self.write_debug(f'Failed to enable VT mode: {e}')
 
-        # hehe "immutable" namespace
         self._out_files.console = next(filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
 
         if self.params.get('no_color'):
@@ -1082,13 +1081,13 @@ class YoutubeDL:
         """
         if message is not None:
             self.to_stderr(message)
+        error = sys.exception()
         if self.params.get('verbose'):
             if tb is None:
-                if sys.exc_info()[0]:  # if .trouble has been called from an except block
-                    tb = ''
-                    if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                        tb += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
-                    tb += encode_compat_str(traceback.format_exc())
+                if error is not None:  # if .trouble has been called from an except block
+                    exc_info = getattr(error, 'exc_info', None)
+                    tb = ''.join(traceback.format_exception(*exc_info)) if exc_info and exc_info[0] else ''
+                    tb += ''.join(traceback.format_exception(error))
                 else:
                     tb_data = traceback.format_list(traceback.extract_stack())
                     tb = ''.join(tb_data)
@@ -1097,11 +1096,8 @@ class YoutubeDL:
         if not is_error:
             return
         if not self.params.get('ignoreerrors'):
-            if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                exc_info = sys.exc_info()[1].exc_info
-            else:
-                exc_info = sys.exc_info()
-            raise DownloadError(message, exc_info)
+            exc_info = getattr(error, 'exc_info', None)
+            raise DownloadError(message, exc_info if exc_info and exc_info[0] else sys.exc_info())
         self._download_retcode = 1
 
     Styles = Namespace(
@@ -1286,8 +1282,8 @@ class YoutubeDL:
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
         field_size_compat_map = {
-            'playlist_index': number_of_digits(info_dict.get('__last_playlist_index') or 0),
-            'playlist_autonumber': number_of_digits(info_dict.get('n_entries') or 0),
+            'playlist_index': len(str(info_dict.get('__last_playlist_index') or 0)),
+            'playlist_autonumber': len(str(info_dict.get('n_entries') or 0)),
             'autonumber': self.params.get('autonumber_size') or 5,
         }
 
@@ -2399,8 +2395,7 @@ class YoutubeDL:
             selectors = []
             current_selector = None
             for type_, string_, start, _, _ in tokens:
-                # ENCODING is only defined in Python 3.x
-                if type_ == getattr(tokenize, 'ENCODING', None):
+                if type_ == tokenize.ENCODING:
                     continue
                 elif type_ in [tokenize.NAME, tokenize.NUMBER]:
                     current_selector = FormatSelector(SINGLE, string_, [])
