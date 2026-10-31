@@ -695,6 +695,24 @@ class ZDFChannelIE(ZDFBaseIE):
         },
         'playlist_mincount': 1,
         'playlist_maxcount': 365,
+    }, {
+        # Collection type HYBRID_BINGE_SERIES, all seasons
+        'url': 'https://www.zdf.de/serien/die-bergretter-104',
+        'info_dict': {
+            'id': 'die-bergretter-104',
+            'title': 'Die Bergretter',
+            'description': 'md5:d6c7bad59d610f2ff42aada775cdfd80',
+        },
+        'playlist_mincount': 8,
+    }, {
+        # Collection type HYBRID_BINGE_SERIES, only selected season
+        'url': 'https://www.zdf.de/serien/die-bergretter-104?staffel=18',
+        'info_dict': {
+            'id': 'die-bergretter-104-s18',
+            'title': 'Die Bergretter - Season 18',
+            'description': 'md5:d6c7bad59d610f2ff42aada775cdfd80',
+        },
+        'playlist_count': 7,
     }]
 
     _PAGE_SIZE = 24
@@ -716,7 +734,7 @@ class ZDFChannelIE(ZDFBaseIE):
                 'extensions': json.dumps({
                     'persistedQuery': {
                         'version': 1,
-                        'sha256Hash': '9412a0f4ac55dc37d46975d461ec64bfd14380d815df843a1492348f77b5c99a',
+                        'sha256Hash': '729eaf9b7dc4d3b4540366dec086729b56b467fd45a4ff900a260d739004ba11',
                     },
                 }),
             })['data']['smartCollectionByCanonical']
@@ -770,7 +788,7 @@ class ZDFChannelIE(ZDFBaseIE):
                 'extensions': json.dumps({
                     'persistedQuery': {
                         'version': 1,
-                        'sha256Hash': 'cb49420e133bd668ad895a8cea0e65cba6aa11ac1cacb02341ff5cf32a17cd02',
+                        'sha256Hash': 'f9cd12864be90dd97d015b59fb515ea9d464b14db543ae349fc474a96e49de0b',
                     },
                 }),
             })['data']['smartCollectionByCanonical']
