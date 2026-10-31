@@ -69,13 +69,14 @@ class AudiomackBaseIE(InfoExtractor):
             for key in keys
         )
 
-    def _get_next_data(self, webpage):
-        return merge_dicts(
+    def _get_next_data(self, webpage, key=None):
+        data = merge_dicts(
             *traverse_obj(
                 self._search_nextjs_v13_data(webpage, None),
-                (..., lambda _, x: self.is_available('uploader', 'artist', obj=x, types=dict), {dict}),
+                ((..., None), lambda _, x: self.is_available('uploader', 'artist', 'music', obj=x, types=dict), {dict}),
             ),
         )
+        return data[key] if key else data
 
     def _parse_metadata(self, data, display_id=None):
         return filter_dict({
@@ -101,11 +102,11 @@ class AudiomackBaseIE(InfoExtractor):
 
     def _get_audio_info(self, data, slug=None):
         song_id = traverse_obj(data, 'id', 'song_id')
-        slug = slug or traverse_obj(data, ('links', 'self', {lambda x: urllib.parse.urlparse(x).path}, {str}))
+        slug = slug or traverse_obj(data, 'href', 'playerPageHref', expected_type=str)
         if not slug:
             slug = traverse_obj(data, (
-                {operator.itemgetter('uploader_url_slug', 'url_slug')},
-                {lambda ss: f'/{ss[0]}/song/{ss[1]}'}, {require('Song slug')},
+                {operator.itemgetter('artistHref', 'urlSlug')},
+                {lambda ss: f'{ss[0]}/song/{ss[1]}'}, {require('Song slug')},
             ))
 
         api_url = f'https://api.audiomack.com/v1/music/play/{song_id}'
@@ -182,8 +183,7 @@ class AudiomackIE(AudiomackBaseIE):
     def _real_extract(self, url):
         slug = self._match_id(url)
         song_id = slug.split('/')[-1]
-
-        data = self._get_next_data(self._download_webpage(url, song_id))
+        data = self._get_next_data(self._download_webpage(url, song_id), key='music')
 
         return {
             'display_id': song_id,
@@ -278,10 +278,14 @@ class AudiomackAlbumIE(AudiomackBaseIE):
         slug = self._match_id(url)
         playlist_id = slug.split('/')[-1]
 
-        data = self._get_next_data(self._download_webpage(url, playlist_id))
+        data = self._get_next_data(self._download_webpage(url, playlist_id), key='music')
 
         def entries(data):
             for track in traverse_obj(data, ('tracks', lambda _, x: self.is_available('song_id', 'id', obj=x))) or []:
+                song_id = traverse_obj(data, 'id', 'song_id')
+                if track.get('isBlockedInUserCountry'):
+                    self.report_warning(f'song {song_id} is geo blocked', song_id)
+                    continue
                 yield {
                     **self._parse_metadata(track),
                     **self._get_audio_info(track),
