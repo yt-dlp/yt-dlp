@@ -110,9 +110,14 @@ class YtDlpGui(tk.Tk):
         self.format_choice = tk.StringVar(value='Bestes Video')
         self.playlist = tk.BooleanVar(value=True)
         self.subtitles = tk.BooleanVar(value=False)
+        self.subtitle_language = tk.StringVar(value='Alle Sprachen')
         self.thumbnail = tk.BooleanVar(value=False)
         self.metadata = tk.BooleanVar(value=False)
         self.info_json = tk.BooleanVar(value=False)
+        self.chapters = tk.BooleanVar(value=False)
+        self.description = tk.BooleanVar(value=False)
+        self.comments = tk.BooleanVar(value=False)
+        self.audio_quality = tk.StringVar(value='192 kbps')
         self.status = tk.StringVar(value='Bereit')
         self.detail = tk.StringVar(value='Noch kein Download gestartet')
         self.progress = tk.DoubleVar()
@@ -159,14 +164,36 @@ class YtDlpGui(tk.Tk):
         options.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(0, 5))
         options.columnconfigure(0, weight=1)
         options.columnconfigure(1, weight=1)
-        ttk.Checkbutton(options, text='Untertitel mit herunterladen', variable=self.subtitles).grid(
-            row=0, column=0, sticky='w', padx=4, pady=2)
+        ttk.Checkbutton(options, text='Untertitel herunterladen', variable=self.subtitles).grid(
+            row=0, column=0, sticky='w', padx=4, pady=(2, 0))
+        ttk.Combobox(options, textvariable=self.subtitle_language,
+                     values=('Alle Sprachen', 'Deutsch', 'Englisch', 'Deutsch und Englisch'),
+                     state='readonly', width=22).grid(row=0, column=1, sticky='w', padx=4, pady=2)
+        ttk.Label(options, text='Untertitel werden als separate Dateien gespeichert.', style='Hint.TLabel').grid(
+            row=1, column=0, columnspan=2, sticky='w', padx=4)
         ttk.Checkbutton(options, text='Vorschaubild speichern', variable=self.thumbnail).grid(
-            row=0, column=1, sticky='w', padx=4, pady=2)
+            row=2, column=0, sticky='w', padx=4, pady=(5, 0))
         ttk.Checkbutton(options, text='Metadaten in Datei schreiben', variable=self.metadata).grid(
-            row=1, column=0, sticky='w', padx=4, pady=2)
+            row=2, column=1, sticky='w', padx=4, pady=(5, 0))
+        ttk.Label(options, text='Titel, Künstler und weitere Informationen ergänzen.', style='Hint.TLabel').grid(
+            row=3, column=0, columnspan=2, sticky='w', padx=4)
         ttk.Checkbutton(options, text='Info-Datei (.json) speichern', variable=self.info_json).grid(
-            row=1, column=1, sticky='w', padx=4, pady=2)
+            row=4, column=0, sticky='w', padx=4, pady=(5, 0))
+        ttk.Checkbutton(options, text='Kapitelinformationen übernehmen', variable=self.chapters).grid(
+            row=4, column=1, sticky='w', padx=4, pady=(5, 0))
+        ttk.Label(options, text='Technische Zusatzinformationen für spätere Verarbeitung.', style='Hint.TLabel').grid(
+            row=5, column=0, columnspan=2, sticky='w', padx=4)
+        ttk.Checkbutton(options, text='Beschreibung als .txt speichern', variable=self.description).grid(
+            row=6, column=0, sticky='w', padx=4, pady=(5, 0))
+        ttk.Checkbutton(options, text='Kommentare speichern', variable=self.comments).grid(
+            row=6, column=1, sticky='w', padx=4, pady=(5, 0))
+        ttk.Label(options, text='Speichert zusätzliche Textinformationen neben dem Video.', style='Hint.TLabel').grid(
+            row=7, column=0, columnspan=2, sticky='w', padx=4)
+        ttk.Label(options, text='MP3-Qualität:', style='Card.TLabel').grid(
+            row=8, column=0, sticky='w', padx=4, pady=(5, 2))
+        ttk.Combobox(options, textvariable=self.audio_quality,
+                     values=('128 kbps', '192 kbps', '256 kbps', '320 kbps'),
+                     state='readonly', width=22).grid(row=8, column=1, sticky='w', padx=4, pady=2)
 
         buttons = ttk.Frame(frame)
         buttons.grid(row=7, column=0, columnspan=3, sticky='ew', pady=(8, 10))
@@ -241,7 +268,13 @@ class YtDlpGui(tk.Tk):
             'no_warnings': False,
         }
         if self.subtitles.get():
-            options.update(writesubtitles=True, subtitleslangs=['all'])
+            languages = {
+                'Alle Sprachen': ['all'],
+                'Deutsch': ['de'],
+                'Englisch': ['en'],
+                'Deutsch und Englisch': ['de', 'en'],
+            }
+            options.update(writesubtitles=True, subtitleslangs=languages[self.subtitle_language.get()])
         if self.thumbnail.get():
             options['writethumbnail'] = True
             postprocessors.append({'key': 'EmbedThumbnail'})
@@ -249,13 +282,20 @@ class YtDlpGui(tk.Tk):
             postprocessors.append({'key': 'FFmpegMetadata'})
         if self.info_json.get():
             options['writeinfojson'] = True
+        if self.chapters.get():
+            options['embedchapters'] = True
+        if self.description.get():
+            options['writedescription'] = True
+        if self.comments.get():
+            options['writecomments'] = True
         filename = direct_filename(source_url)
         if filename:
             options['outtmpl'] = str(output_dir / filename)
         if choice == 'Nur Audio (MP3)':
             options['format'] = 'ba/b'
             postprocessors.append({
-                'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192',
+                'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3',
+                'preferredquality': self.audio_quality.get().split()[0],
             })
         elif choice == 'Bestes Video ohne Zusammenführen':
             options['format'] = 'bv*'
