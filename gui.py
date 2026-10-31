@@ -88,7 +88,7 @@ class YtDlpGui(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('yt-dlp Downloader')
-        self.geometry('820x600')
+        self.geometry('1000x600')
         self.minsize(700, 500)
         self.configure(background='#f3f4f6')
         self.style = ttk.Style(self)
