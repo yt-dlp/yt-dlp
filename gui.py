@@ -126,7 +126,7 @@ class YtDlpGui(tk.Tk):
         self.after(100, self.process_events)
 
     def create_widgets(self):
-        outer = ttk.Frame(self, padding=(28, 22))
+        outer = ttk.Frame(self, padding=(20, 12))
         outer.pack(fill='both', expand=True)
         outer.columnconfigure(0, weight=1)
         outer.rowconfigure(2, weight=1)
@@ -134,9 +134,9 @@ class YtDlpGui(tk.Tk):
         ttk.Label(outer, text='yt-dlp Downloader', style='Title.TLabel').grid(
             row=0, column=0, sticky='w')
         ttk.Label(outer, text='Videos und Audios unkompliziert herunterladen', style='Subtitle.TLabel').grid(
-            row=1, column=0, sticky='w', pady=(2, 16))
+            row=1, column=0, sticky='w', pady=(2, 8))
 
-        frame = ttk.Frame(outer, style='Card.TFrame', padding=20)
+        frame = ttk.Frame(outer, style='Card.TFrame', padding=14)
         frame.grid(row=2, column=0, sticky='nsew')
         frame.columnconfigure(1, weight=1)
         frame.columnconfigure(3, weight=1)
@@ -145,11 +145,11 @@ class YtDlpGui(tk.Tk):
         ttk.Label(frame, text='Video- oder Playlist-URL', style='Card.TLabel',
                   font=('Segoe UI', 11, 'bold')).grid(row=0, column=0, columnspan=4,
                                                        sticky='w', pady=(0, 5))
-        self.url = tk.Text(frame, height=3, wrap='word', relief='solid', borderwidth=1,
+        self.url = tk.Text(frame, height=2, wrap='word', relief='solid', borderwidth=1,
                            font=('Segoe UI', 10))
         self.url.grid(row=1, column=0, columnspan=4, sticky='ew')
         ttk.Label(frame, text='Video-, Audio- und Playlist-Links werden unterstützt.',
-                  style='Hint.TLabel').grid(row=2, column=0, columnspan=4, sticky='w', pady=(4, 14))
+                  style='Hint.TLabel').grid(row=2, column=0, columnspan=4, sticky='w', pady=(3, 8))
 
         ttk.Label(frame, text='Format:', style='Card.TLabel').grid(row=3, column=0, sticky='w', padx=(0, 12), pady=5)
         formats = ('Bestes Video', 'Nur Audio (MP3)', 'Bestes Video ohne Zusammenführen')
@@ -217,7 +217,7 @@ class YtDlpGui(tk.Tk):
         ttk.Label(frame, textvariable=self.detail, style='Hint.TLabel').grid(
             row=11, column=0, columnspan=4, sticky='w')
 
-        self.log = tk.Text(frame, height=10, state='disabled', wrap='word')
+        self.log = tk.Text(frame, height=5, state='disabled', wrap='word')
         self.log.grid(row=12, column=0, columnspan=4, sticky='nsew', pady=(12, 0))
         frame.rowconfigure(12, weight=1)
 
