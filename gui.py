@@ -153,11 +153,11 @@ class YtDlpGui(tk.Tk):
 
         ttk.Label(frame, text='Format:', style='Card.TLabel').grid(row=3, column=0, sticky='w', padx=(0, 12), pady=5)
         formats = ('Bestes Video', 'Nur Audio (MP3)', 'Bestes Video ohne Zusammenführen')
-        ttk.Combobox(frame, textvariable=self.format_choice, values=formats, state='readonly').grid(
-            row=3, column=1, columnspan=2, sticky='ew', pady=5)
+        ttk.Combobox(frame, textvariable=self.format_choice, values=formats, state='readonly', width=42).grid(
+            row=3, column=1, columnspan=2, sticky='w', pady=5)
 
         ttk.Label(frame, text='Speicherort:', style='Card.TLabel').grid(row=4, column=0, sticky='w', padx=(0, 12), pady=5)
-        ttk.Entry(frame, textvariable=self.output_dir).grid(row=4, column=1, sticky='ew', pady=5)
+        ttk.Entry(frame, textvariable=self.output_dir, width=42).grid(row=4, column=1, sticky='w', pady=5)
         ttk.Button(frame, text='Durchsuchen …', command=self.choose_directory).grid(row=4, column=2, padx=(8, 0), pady=5)
         ttk.Checkbutton(frame, text='Playlists herunterladen', variable=self.playlist).grid(
             row=5, column=1, columnspan=2, sticky='w', pady=(4, 10))
