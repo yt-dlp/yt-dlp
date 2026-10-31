@@ -109,6 +109,10 @@ class YtDlpGui(tk.Tk):
         self.output_dir = tk.StringVar(value=str(Path.home() / 'Downloads'))
         self.format_choice = tk.StringVar(value='Bestes Video')
         self.playlist = tk.BooleanVar(value=True)
+        self.subtitles = tk.BooleanVar(value=False)
+        self.thumbnail = tk.BooleanVar(value=False)
+        self.metadata = tk.BooleanVar(value=False)
+        self.info_json = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value='Bereit')
         self.detail = tk.StringVar(value='Noch kein Download gestartet')
         self.progress = tk.DoubleVar()
@@ -129,7 +133,7 @@ class YtDlpGui(tk.Tk):
         frame = ttk.Frame(outer, style='Card.TFrame', padding=20)
         frame.grid(row=2, column=0, sticky='nsew')
         frame.columnconfigure(1, weight=1)
-        frame.rowconfigure(10, weight=1)
+        frame.rowconfigure(11, weight=1)
 
         ttk.Label(frame, text='Video- oder Playlist-URL', style='Card.TLabel',
                   font=('Segoe UI', 11, 'bold')).grid(row=0, column=0, columnspan=3,
@@ -151,23 +155,36 @@ class YtDlpGui(tk.Tk):
         ttk.Checkbutton(frame, text='Playlists herunterladen', variable=self.playlist).grid(
             row=5, column=1, columnspan=2, sticky='w', pady=(4, 10))
 
+        options = ttk.LabelFrame(frame, text='Weitere Optionen', padding=(10, 5))
+        options.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(0, 5))
+        options.columnconfigure(0, weight=1)
+        options.columnconfigure(1, weight=1)
+        ttk.Checkbutton(options, text='Untertitel mit herunterladen', variable=self.subtitles).grid(
+            row=0, column=0, sticky='w', padx=4, pady=2)
+        ttk.Checkbutton(options, text='Vorschaubild speichern', variable=self.thumbnail).grid(
+            row=0, column=1, sticky='w', padx=4, pady=2)
+        ttk.Checkbutton(options, text='Metadaten in Datei schreiben', variable=self.metadata).grid(
+            row=1, column=0, sticky='w', padx=4, pady=2)
+        ttk.Checkbutton(options, text='Info-Datei (.json) speichern', variable=self.info_json).grid(
+            row=1, column=1, sticky='w', padx=4, pady=2)
+
         buttons = ttk.Frame(frame)
-        buttons.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(8, 10))
+        buttons.grid(row=7, column=0, columnspan=3, sticky='ew', pady=(8, 10))
         self.download_button = ttk.Button(buttons, text='▶  Download starten', style='Primary.TButton', command=self.start_download)
         self.download_button.pack(side='left')
         self.cancel_button = ttk.Button(buttons, text='Abbrechen', command=self.cancel_download, state='disabled')
         self.cancel_button.pack(side='left', padx=8)
 
         ttk.Label(frame, textvariable=self.status, style='Card.TLabel', font=('Segoe UI', 10, 'bold')).grid(
-            row=7, column=0, columnspan=3, sticky='w', pady=(0, 5))
+            row=8, column=0, columnspan=3, sticky='w', pady=(0, 5))
         ttk.Progressbar(frame, variable=self.progress, maximum=100).grid(
-            row=8, column=0, columnspan=3, sticky='ew', pady=(0, 3))
+            row=9, column=0, columnspan=3, sticky='ew', pady=(0, 3))
         ttk.Label(frame, textvariable=self.detail, style='Hint.TLabel').grid(
-            row=9, column=0, columnspan=3, sticky='w')
+            row=10, column=0, columnspan=3, sticky='w')
 
         self.log = tk.Text(frame, height=10, state='disabled', wrap='word')
-        self.log.grid(row=10, column=0, columnspan=3, sticky='nsew', pady=(12, 0))
-        frame.rowconfigure(10, weight=1)
+        self.log.grid(row=11, column=0, columnspan=3, sticky='nsew', pady=(12, 0))
+        frame.rowconfigure(11, weight=1)
 
     def choose_directory(self):
         directory = filedialog.askdirectory(initialdir=self.output_dir.get())
@@ -214,6 +231,7 @@ class YtDlpGui(tk.Tk):
             return
         if source_url != url:
             self.events.put(('log', f'Videoquelle erkannt: {source_url}'))
+        postprocessors = []
         options = {
             'outtmpl': str(output_dir / '%(title)s [%(id)s].%(ext)s'),
             'logger': GuiLogger(lambda message: self.events.put(('log', message))),
@@ -222,17 +240,29 @@ class YtDlpGui(tk.Tk):
             'quiet': True,
             'no_warnings': False,
         }
+        if self.subtitles.get():
+            options.update(writesubtitles=True, subtitleslangs=['all'])
+        if self.thumbnail.get():
+            options['writethumbnail'] = True
+            postprocessors.append({'key': 'EmbedThumbnail'})
+        if self.metadata.get():
+            postprocessors.append({'key': 'FFmpegMetadata'})
+        if self.info_json.get():
+            options['writeinfojson'] = True
         filename = direct_filename(source_url)
         if filename:
             options['outtmpl'] = str(output_dir / filename)
         if choice == 'Nur Audio (MP3)':
-            options.update(format='ba/b', postprocessors=[{
+            options['format'] = 'ba/b'
+            postprocessors.append({
                 'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192',
-            }])
+            })
         elif choice == 'Bestes Video ohne Zusammenführen':
             options['format'] = 'bv*'
         else:
             options['format'] = 'bv*+ba/b'
+        if postprocessors:
+            options['postprocessors'] = postprocessors
 
         ffmpeg = bundled_path('ffmpeg.exe')
         if ffmpeg.exists():

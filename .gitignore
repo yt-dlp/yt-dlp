@@ -116,6 +116,7 @@ yt-dlp.zip
 *.exe
 
 # Text Editor / IDE
+.vs/
 .idea
 *.iml
 .vscode

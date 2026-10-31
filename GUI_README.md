@@ -22,6 +22,7 @@ Die fertige Datei liegt anschließend unter `dist\yt-dlp-GUI.exe`.
 - Auswahl des Ausgabeordners
 - Fortschritt, Geschwindigkeit und ETA
 - Abbrechen laufender Downloads
+- Optionale Untertitel, Vorschaubilder, Metadaten und JSON-Infos
 - Keine separate Installation auf dem Zielcomputer
 
 Die Nutzung muss den Bedingungen der jeweiligen Plattform und den Rechten am heruntergeladenen Inhalt entsprechen. FFmpeg wird unter dessen eigener Lizenz weitergegeben; die zugehörigen Lizenzinformationen sollten beim Verteilen der EXE mitgeliefert werden.
