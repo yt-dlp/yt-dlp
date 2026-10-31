@@ -1596,7 +1596,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
 
 class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13,15})'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]+)'
 
     _TESTS = [{
         'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
