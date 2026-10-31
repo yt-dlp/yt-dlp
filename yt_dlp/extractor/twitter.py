@@ -1596,7 +1596,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
 
 class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]+)'
 
     _TESTS = [{
         'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
@@ -1711,7 +1711,7 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
-        space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
+        space_data = self._call_graphql_api('zm3JmUpYWDXIUsf_33-ZrA/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
 
@@ -1759,10 +1759,10 @@ class TwitterSpacesIE(TwitterBaseIE):
                 'release_timestamp': (('started_at', 'scheduled_start'), {int_or_none(scale=1000)}, any),
                 'timestamp': ('created_at', {int_or_none(scale=1000)}),
             }),
-            **traverse_obj(metadata, ('creator_results', 'result', 'legacy', {
-                'uploader': ('name', {str}),
-                'uploader_id': ('screen_name', {str_or_none}),
-                'thumbnail': ('profile_image_url_https', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
+            **traverse_obj(metadata, ('creator_results', 'result', {
+                'uploader': ('core', 'name', {str}),
+                'uploader_id': ('core', 'screen_name', {str_or_none}),
+                'thumbnail': ('banner', 'image_url', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
             })),
         }
 
