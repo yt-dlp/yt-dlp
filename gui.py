@@ -118,6 +118,7 @@ class YtDlpGui(tk.Tk):
         self.description = tk.BooleanVar(value=False)
         self.comments = tk.BooleanVar(value=False)
         self.audio_quality = tk.StringVar(value='192 kbps')
+        self.fragment_count = tk.IntVar(value=1)
         self.status = tk.StringVar(value='Bereit')
         self.detail = tk.StringVar(value='Noch kein Download gestartet')
         self.progress = tk.DoubleVar()
@@ -138,16 +139,17 @@ class YtDlpGui(tk.Tk):
         frame = ttk.Frame(outer, style='Card.TFrame', padding=20)
         frame.grid(row=2, column=0, sticky='nsew')
         frame.columnconfigure(1, weight=1)
-        frame.rowconfigure(11, weight=1)
+        frame.columnconfigure(3, weight=1)
+        frame.rowconfigure(12, weight=1)
 
         ttk.Label(frame, text='Video- oder Playlist-URL', style='Card.TLabel',
-                  font=('Segoe UI', 11, 'bold')).grid(row=0, column=0, columnspan=3,
+                  font=('Segoe UI', 11, 'bold')).grid(row=0, column=0, columnspan=4,
                                                        sticky='w', pady=(0, 5))
         self.url = tk.Text(frame, height=3, wrap='word', relief='solid', borderwidth=1,
                            font=('Segoe UI', 10))
-        self.url.grid(row=1, column=0, columnspan=3, sticky='ew')
+        self.url.grid(row=1, column=0, columnspan=4, sticky='ew')
         ttk.Label(frame, text='Video-, Audio- und Playlist-Links werden unterstützt.',
-                  style='Hint.TLabel').grid(row=2, column=0, columnspan=3, sticky='w', pady=(4, 14))
+                  style='Hint.TLabel').grid(row=2, column=0, columnspan=4, sticky='w', pady=(4, 14))
 
         ttk.Label(frame, text='Format:', style='Card.TLabel').grid(row=3, column=0, sticky='w', padx=(0, 12), pady=5)
         formats = ('Bestes Video', 'Nur Audio (MP3)', 'Bestes Video ohne Zusammenführen')
@@ -161,7 +163,7 @@ class YtDlpGui(tk.Tk):
             row=5, column=1, columnspan=2, sticky='w', pady=(4, 10))
 
         options = ttk.LabelFrame(frame, text='Weitere Optionen', padding=(10, 5))
-        options.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(0, 5))
+        options.grid(row=3, column=3, rowspan=5, sticky='nsew', padx=(18, 0), pady=(0, 5))
         options.columnconfigure(0, weight=1)
         options.columnconfigure(1, weight=1)
         ttk.Checkbutton(options, text='Untertitel herunterladen', variable=self.subtitles).grid(
@@ -194,24 +196,30 @@ class YtDlpGui(tk.Tk):
         ttk.Combobox(options, textvariable=self.audio_quality,
                      values=('128 kbps', '192 kbps', '256 kbps', '320 kbps'),
                      state='readonly', width=22).grid(row=8, column=1, sticky='w', padx=4, pady=2)
+        ttk.Label(options, text='Gleichzeitige Fragmente:', style='Card.TLabel').grid(
+            row=9, column=0, sticky='w', padx=4, pady=(8, 2))
+        ttk.Spinbox(options, from_=1, to=10, textvariable=self.fragment_count,
+                    width=20).grid(row=9, column=1, sticky='w', padx=4, pady=(8, 2))
+        ttk.Label(options, text='Mehrere Stream-Teile parallel laden (max. 10).', style='Hint.TLabel').grid(
+            row=10, column=0, columnspan=2, sticky='w', padx=4)
 
         buttons = ttk.Frame(frame)
-        buttons.grid(row=7, column=0, columnspan=3, sticky='ew', pady=(8, 10))
+        buttons.grid(row=8, column=0, columnspan=4, sticky='ew', pady=(8, 10))
         self.download_button = ttk.Button(buttons, text='▶  Download starten', style='Primary.TButton', command=self.start_download)
         self.download_button.pack(side='left')
         self.cancel_button = ttk.Button(buttons, text='Abbrechen', command=self.cancel_download, state='disabled')
         self.cancel_button.pack(side='left', padx=8)
 
         ttk.Label(frame, textvariable=self.status, style='Card.TLabel', font=('Segoe UI', 10, 'bold')).grid(
-            row=8, column=0, columnspan=3, sticky='w', pady=(0, 5))
+            row=9, column=0, columnspan=4, sticky='w', pady=(0, 5))
         ttk.Progressbar(frame, variable=self.progress, maximum=100).grid(
-            row=9, column=0, columnspan=3, sticky='ew', pady=(0, 3))
+            row=10, column=0, columnspan=4, sticky='ew', pady=(0, 3))
         ttk.Label(frame, textvariable=self.detail, style='Hint.TLabel').grid(
-            row=10, column=0, columnspan=3, sticky='w')
+            row=11, column=0, columnspan=4, sticky='w')
 
         self.log = tk.Text(frame, height=10, state='disabled', wrap='word')
-        self.log.grid(row=11, column=0, columnspan=3, sticky='nsew', pady=(12, 0))
-        frame.rowconfigure(11, weight=1)
+        self.log.grid(row=12, column=0, columnspan=4, sticky='nsew', pady=(12, 0))
+        frame.rowconfigure(12, weight=1)
 
     def choose_directory(self):
         directory = filedialog.askdirectory(initialdir=self.output_dir.get())
@@ -251,6 +259,10 @@ class YtDlpGui(tk.Tk):
 
     def download(self, url, output_dir):
         choice = self.format_choice.get()
+        try:
+            fragments = max(1, min(int(self.fragment_count.get()), 10))
+        except (TypeError, ValueError):
+            fragments = 1
         source_url = resolve_video_page(url)
         if is_voe_mirror(url) and source_url == url:
             self.events.put(('error', 'Diese neue VOE-Domain benötigt noch einen eigenen VOE-Resolver. '
@@ -266,6 +278,7 @@ class YtDlpGui(tk.Tk):
             'noplaylist': not self.playlist.get(),
             'quiet': True,
             'no_warnings': False,
+            'concurrent_fragment_downloads': fragments,
         }
         if self.subtitles.get():
             languages = {

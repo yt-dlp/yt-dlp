@@ -24,6 +24,7 @@ Die fertige Datei liegt anschließend unter `dist\yt-dlp-GUI.exe`.
 - Abbrechen laufender Downloads
 - Optionale Untertitel mit Sprachauswahl, Vorschaubilder, Metadaten und JSON-Infos
 - Kapitel, Beschreibung, Kommentare und wählbare MP3-Qualität
+- Kompaktes festes Layout mit bis zu 10 parallelen Stream-Fragmenten
 - Keine separate Installation auf dem Zielcomputer
 
 Die Nutzung muss den Bedingungen der jeweiligen Plattform und den Rechten am heruntergeladenen Inhalt entsprechen. FFmpeg wird unter dessen eigener Lizenz weitergegeben; die zugehörigen Lizenzinformationen sollten beim Verteilen der EXE mitgeliefert werden.
