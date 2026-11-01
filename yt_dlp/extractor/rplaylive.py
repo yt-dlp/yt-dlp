@@ -49,6 +49,7 @@ class RPlayBaseIE(InfoExtractor):
             self._cf_turnstile_pass = stored
         if self._cf_turnstile_pass:
             if (try_call(lambda: int(self._cf_turnstile_pass.split('.')[0])) or 0) < time.time() * 1000:
+                self.write_debug('removing expired turnstile browser pass')
                 self._cf_turnstile_pass = None
         return self._cf_turnstile_pass
 
@@ -72,16 +73,23 @@ class RPlayBaseIE(InfoExtractor):
         if self.cf_turnstile_pass:
             headers['x-browser-pass'] = self.cf_turnstile_pass
         elif token := self._request_turnstile_token():
-            headers['x-turnstile-token'] = token
+            if re.match(r'\d{13}\.[\da-f]{64}', token):
+                self.report_warning('Expected turnstile token but browser pass found, trying to use for pass')
+                self.cf_turnstile_pass = token
+                headers['x-browser-pass'] = self.cf_turnstile_pass
+            else:
+                headers['x-turnstile-token'] = token
         else:
             self.report_warning(
                 'Request may fail due to turnstile challenge. '
-                'Use --extractor-args "rplaylive:turnstile_token=XXXXXX" to provide challenge token, '
-                'or use --extractor-args "rplaylive:turnstile_solver=http://XXXX" to a deployed challenge solver, '
+                'Use --extractor-args "rplaylive:turnstile_token=1.XXXXXX" to provide challenge token, '
+                'or use --extractor-args "rplaylive:turnstile_solver=http://XXXX" to use a deployed challenge solver, '
                 'or edit ~/.cache/yt-dlp/rplaylive/cf_pass.json to store browser pass')
         data, urlh = self._download_json_handle(url_or_request, video_id, *args, headers=headers, **kwargs)
         if new_pass := urlh.headers.get('x-browser-pass'):
             self.cf_turnstile_pass = new_pass
+        elif 'x-turnstile-token' in headers:
+            self.report_warning('x-browser-pass absent from response, possibly invalid token or was rejected as bot')
         return data
 
     @property
