@@ -2811,6 +2811,14 @@ def js_to_json(code, vars={}, *, strict=False):
                 i = int(im.group(1), base)
                 return f'"{i}":' if v.endswith(':') else str(i)
 
+        if re.fullmatch(r'(?i)[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?', v):
+            try:
+                number = float(v)
+            except (ValueError, OverflowError):
+                pass
+            else:
+                return f'"{int(number) if number.is_integer() else number}"'
+
         if v in vars:
             try:
                 if not strict:
@@ -2841,7 +2849,7 @@ def js_to_json(code, vars={}, *, strict=False):
         {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
         \b(?:0[xX][0-9a-fA-F]+|(?<!\.)0+[0-7]+)(?:{SKIP_RE}:)?|
-        [0-9]+(?={SKIP_RE}:)|
+        (?<![0-9a-zA-Z_.$])[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?(?={SKIP_RE}:)|
         !+
         ''', fix_kv, code)
 

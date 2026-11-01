@@ -1283,6 +1283,15 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('{42:42}')
         self.assertEqual(json.loads(on), {'42': 42})
 
+        on = js_to_json('{1e3:123}')
+        self.assertEqual(json.loads(on), {'1000': 123})
+
+        on = js_to_json('{1.5e2:123}')
+        self.assertEqual(json.loads(on), {'150': 123})
+
+        on = js_to_json('{1.5:123}')
+        self.assertEqual(json.loads(on), {'1.5': 123})
+
         on = js_to_json('{/*comment\n*/42/*comment\n*/:/*comment\n*/42/*comment\n*/}')
         self.assertEqual(json.loads(on), {'42': 42})
 
