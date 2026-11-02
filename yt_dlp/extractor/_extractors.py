@@ -898,11 +898,7 @@ from .kuwo import (
     KuwoMvIE,
     KuwoSingerIE,
 )
-from .la7 import (
-    LA7IE,
-    LA7PodcastEpisodeIE,
-    LA7PodcastIE,
-)
+from .la7 import LA7IE
 from .laracasts import (
     LaracastsIE,
     LaracastsPlaylistIE,
