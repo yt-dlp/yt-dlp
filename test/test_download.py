@@ -55,7 +55,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
 
 def _file_md5(fn):
     with open(fn, 'rb') as f:
-        return hashlib.md5(f.read()).hexdigest()
+        return hashlib.file_digest(f, hashlib.md5).hexdigest()
 
 
 normal_test_cases = gettestcases()

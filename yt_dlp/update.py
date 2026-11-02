@@ -165,7 +165,7 @@ def _get_binary_name():
 
 
 def _get_system_deprecation():
-    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 10), (3, 11)
+    MIN_SUPPORTED, MIN_RECOMMENDED = (3, 11), (3, 11)
 
     if sys.version_info > MIN_RECOMMENDED:
         return None
@@ -175,18 +175,6 @@ def _get_system_deprecation():
 
     if sys.version_info < MIN_SUPPORTED:
         return f'Python version {major}.{minor} is no longer supported! {PYTHON_MSG}'
-
-    # Temporary until Windows builds use 3.14, which will drop support for Win8.x and 2012Server
-    if detect_variant() in ('win_exe', 'win_x86_exe'):
-        # Do not inappropriately warn for unofficial/third-party binaries
-        if not ORIGIN.startswith('yt-dlp/'):
-            return None
-        if platform.platform().startswith(('Windows-8', 'Windows-2012Server')):
-            return (
-                'Support for Windows 8.x and Windows Server 2012 has been deprecated. '
-                'See  https://github.com/yt-dlp/yt-dlp/issues/16917  for details.\n'
-                'You may stop receiving updates on this version at any time!')
-        return None
 
     return f'Support for Python version {major}.{minor} has been deprecated. {PYTHON_MSG}'
 
@@ -198,7 +186,7 @@ def _get_outdated_warning():
 
     with contextlib.suppress(Exception):
         last_updated = dt.date(*version_tuple(__version__)[:3])
-        if last_updated < dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=90):
+        if last_updated < dt.datetime.now(dt.UTC).date() - dt.timedelta(days=90):
             return ('\n         '.join((
                 f'Your yt-dlp version ({__version__}) is older than 90 days!',
                 'It is strongly recommended to always use the latest version.',
@@ -208,12 +196,8 @@ def _get_outdated_warning():
 
 
 def _sha256_file(path):
-    h = hashlib.sha256()
-    mv = memoryview(bytearray(128 * 1024))
     with open(os.path.realpath(path), 'rb', buffering=0) as f:
-        for n in iter(lambda: f.readinto(mv), 0):
-            h.update(mv[:n])
-    return h.hexdigest()
+        return hashlib.file_digest(f, hashlib.sha256).hexdigest()
 
 
 def _make_label(origin, tag, version=None):
