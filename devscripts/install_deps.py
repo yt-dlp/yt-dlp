@@ -1,25 +1,18 @@
 #!/usr/bin/env python3
 
-# Allow execution from anywhere
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import argparse
 import re
 import subprocess
+import sys
+import tomllib
 
 from pathlib import Path
-
-from devscripts.tomlparse import parse_toml
-from devscripts.utils import read_file
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Install dependencies for yt-dlp')
     parser.add_argument(
-        'input', nargs='?', metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
+        'input', nargs='?', type=Path, metavar='TOMLFILE', default=Path(__file__).parent.parent / 'pyproject.toml',
         help='input file (default: %(default)s)')
     parser.add_argument(
         '-e', '--exclude-dependency', metavar='DEPENDENCY', action='append',
@@ -50,7 +43,8 @@ def uniq(arg) -> dict[str, None]:
 
 def main():
     args = parse_args()
-    toml_data = parse_toml(read_file(args.input))
+    with args.input.open('rb') as file:
+        toml_data = tomllib.load(file)
     project_table = toml_data['project']
     recursive_pattern = re.compile(rf'{project_table["name"]}\[(?P<extra_name>[\w-]+)\]')
     extras = project_table['optional-dependencies']
