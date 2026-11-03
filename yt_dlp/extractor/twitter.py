@@ -1762,7 +1762,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             **traverse_obj(metadata, ('creator_results', 'result', {
                 'uploader': ('core', 'name', {str}),
                 'uploader_id': ('core', 'screen_name', {str_or_none}),
-                'thumbnail': ('banner', 'image_url', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
+                'thumbnail': ('avatar', 'image_url', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
             })),
         }
 
