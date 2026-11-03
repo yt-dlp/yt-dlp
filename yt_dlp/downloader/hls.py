@@ -84,7 +84,7 @@ class HlsFD(FragmentFD):
             s_bytes = urlh.read()
             if self.params.get('write_pages'):
                 dump_filename = _request_dump_filename(
-                    man_url, info_dict['id'], None,
+                    man_url, info_dict.get('id'), None,
                     trim_length=self.params.get('trim_file_name'))
                 self.to_screen(f'[{self.FD_NAME}] Saving request to {dump_filename}')
                 with open(dump_filename, 'wb') as outf:
