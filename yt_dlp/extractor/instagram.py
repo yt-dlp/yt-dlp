@@ -777,7 +777,7 @@ class InstagramStoryIE(InstagramBaseIE):
                 'result', 'data',
                 lambda x, _: x.startswith('xdt_api__v1'),
                 ('reels_media', 'edges'),
-                lambda _, v: v['items'] or story_id in v['node']['id'] or v['id'] == user_id,
+                lambda _, v: v.get('items') or (v.get('id') or '') == user_id or story_id in v['node']['id'],
                 ('node', None), any),
         )
         if not videos:
@@ -798,10 +798,10 @@ class InstagramStoryIE(InstagramBaseIE):
                         },
                         data=urlencode_postdata({
                             'variables': json.dumps({
-                                'reel_ids_arr': [user_id],
+                                'reel_ids_arr': [story_info_url],
                                 '__relay_internal__pv__PolarisCommunityNoteStoriesLabelEnabledrelayprovider': True,
                             }, separators=(',', ':')),
-                            'doc_id': 29170422829314651,
+                            'doc_id': 29341065465524437,
                             'fb_dtsg': self._get_fb_dstg(story_webpage),
                         }),
                         impersonate=self._can_impersonate and self._is_web_app,
