@@ -18,6 +18,10 @@ on:
         required: false
         default: false
         type: boolean
+      verify_macos:
+        required: false
+        default: false
+        type: boolean
       prerelease:
         required: false
         default: true
@@ -56,6 +60,10 @@ on:
         type: string
       linux_armv7l:
         description: Include linux_armv7l
+        default: true
+        type: boolean
+      verify_macos:
+        description: Verify the macOS build on arm64
         default: true
         type: boolean
       prerelease:
@@ -161,6 +169,7 @@ jobs:
       channel: ${{ needs.prepare.outputs.channel }}
       origin: ${{ needs.prepare.outputs.target_repo }}
       linux_armv7l: ${{ inputs.linux_armv7l }}
+      verify_macos: ${{ inputs.verify_macos }}
     secrets:
       GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 

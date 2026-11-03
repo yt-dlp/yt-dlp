@@ -1,7 +1,7 @@
 name: Test and lint workflows
 on:
   push:
-    branches: ['master']
+    branches: ['**']
   # This workflow contains required checks and needs to run for EVERY pull_request
   pull_request:
     branches: ['**']
