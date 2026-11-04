@@ -113,7 +113,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                             player(?:/[\da-z]+)?\.html\?(?:video|(?P<is_playlist>playlist))=
                         )
                     )
-                    (?P<id>[^/?_&#]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
+                    (?P<id>[^/?_&#'"]+)(?:[\w-]*\?playlist=(?P<playlist_id>x[0-9a-z]+))?
     '''
     IE_NAME = 'dailymotion'
     _EMBED_REGEX = [rf'(?ix)<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)["\'](?P<url>{_VALID_URL[5:]})']
