@@ -53,8 +53,7 @@ if brotli:
 def _create_http_connection(http_class, source_address, *args, **kwargs):
     hc = http_class(*args, **kwargs)
 
-    if hasattr(hc, '_create_connection'):
-        hc._create_connection = create_connection
+    hc._create_connection = create_connection
 
     if source_address is not None:
         hc.source_address = (source_address, 0)
@@ -175,8 +174,6 @@ def make_socks_conn_class(base_class, socks_proxy):
     proxy_args = make_socks_proxy_opts(socks_proxy)
 
     class SocksConnection(base_class):
-        _create_connection = create_connection
-
         def connect(self):
             self.sock = create_connection(
                 (proxy_args['addr'], proxy_args['port']),
