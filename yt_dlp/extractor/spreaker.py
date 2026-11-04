@@ -2,13 +2,14 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
-    filter_dict,
+    ExtractorError,
     float_or_none,
     int_or_none,
     parse_qs,
     str_or_none,
     try_get,
     unified_timestamp,
+    update_url_query,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -39,7 +40,7 @@ def _extract_episode(data, episode_id=None):
     return {
         'id': str(episode_id or data['episode_id']),
         'url': download_url,
-        'display_id': str_or_none(data.get('permalink')),
+        'display_id': str_or_none(data.get('permalink') or data.get('slug')),
         'title': title,
         'description': data.get('description'),
         'timestamp': unified_timestamp(data.get('published_at')),
@@ -78,7 +79,6 @@ class SpreakerIE(InfoExtractor):
             'uploader': 'SWM',
             'uploader_id': '9780658',
             'duration': 1063.42,
-            'view_count': int,
             'like_count': int,
             'comment_count': int,
             'series': 'Success With Music | SWM',
@@ -93,87 +93,158 @@ class SpreakerIE(InfoExtractor):
         'only_matching': True,
     }, {
         'note': 'episode',
-        'url': 'https://www.spreaker.com/episode/grunge-music-origins-the-raw-sound-that-defined-a-generation--60269615',
+        'url': 'https://www.spreaker.com/episode/the-state-of-our-substrate-what-is-drought-doing-to-our-soil--73576793',
         'info_dict': {
-            'id': '60269615',
-            'display_id': 'grunge-music-origins-the-raw-sound-that-',
+            'id': '73576793',
+            'display_id': 'the-state-of-our-substrate-what-is-drought-doing-to-our-soil',
             'ext': 'mp3',
-            'title': 'Grunge Music Origins - The Raw Sound that Defined a Generation',
+            'title': 'The state of our substrate: What is drought doing to our soil?',
             'description': str,
-            'timestamp': 1717468905,
-            'upload_date': '20240604',
-            'uploader': 'Katie Brown 2',
-            'uploader_id': '17733249',
-            'duration': 818.83,
-            'view_count': int,
+            'timestamp': 1786046400,
+            'upload_date': '20260806',
+            'uploader': 'BBC Inside Science',
+            'uploader_id': '19031000',
+            'duration': 1588.74,
             'like_count': int,
             'comment_count': int,
-            'series': '90s Grunge',
-            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/bb0d4178f7cf57cc8786dedbd9c5d969.jpg',
-            'creators': ['Katie Brown 2'],
+            'series': 'BBC Inside Science',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/t_square_limited_160/images.spreaker.com/original/133416e81425fad73cef9fd4609f8f10.jpg',
+            'creators': ['BBC Inside Science'],
         },
     }, {
         'url': 'https://www.spreaker.com/episode/60269615',
         'only_matching': True,
     }]
+    _NETRC_MACHINE = 'spreaker'
+    additional_api_query = {}
+
+    def _perform_login(self, username, password):
+        if username != 'oauth':
+            raise ExtractorError('Login using username and password is not currently supported. '
+                                 'Set your username to "oauth" and the password to an OAuth token to login using that. '
+                                 f'{self._login_hint("password")}', expected=True)
+
+        self._download_json(f'https://api.spreaker.com/v2/me?oauth2_access_token={password}', None,
+                            note='Verifying OAuth token...', errnote='Provided OAuth token is not valid')
+
+        # If the OAuth token is not valid, yt-dlp terminates before this line with exit code 1
+        # so if we got here, it means that the token is valid
+        self.additional_api_query.update({'oauth2_access_token': password})
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
+        self.additional_api_query.update(traverse_obj(parse_qs(url), {'key': ('key', 0)}) or {})
+
         data = self._download_json(
             f'https://api.spreaker.com/v2/episodes/{episode_id}', episode_id,
-            query=traverse_obj(parse_qs(url), {'key': ('key', 0)}))['response']['episode']
+            query=self.additional_api_query)['response']['episode']
         return _extract_episode(data, episode_id)
 
 
 class SpreakerShowIE(InfoExtractor):
     _VALID_URL = [
-        r'https?://api\.spreaker\.com/show/(?P<id>\d+)',
+        r'https?://api\.spreaker\.com/(?:v2/)shows?/(?P<id>\d+)',
         r'https?://(?:www\.)?spreaker\.com/podcast/[\w-]+--(?P<id>[\d]+)',
         r'https?://(?:www\.)?spreaker\.com/show/(?P<id>\d+)/episodes/feed',
     ]
     _TESTS = [{
-        'url': 'https://api.spreaker.com/show/4652058',
+        'url': 'https://api.spreaker.com/v2/shows/4652058',
         'info_dict': {
-            'id': '4652058',
+            'id': 4652058,
+            'display_id': '3-ninjas-podcast',
+            'title': 'The Dojo w/ Domino & Hesh Jones',
+            'description': 'md5:d3277d9d3264b85a56f34de37820af95',
+            'uploader': 'The Dojo w/ Domino & Hesh Jone',
+            'uploader_id': 13414919,
+            'uploader_url': 'https://www.spreaker.com/user/the-dojo-w-domino-hesh-jone--13414919',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/images.spreaker.com/original/2808a2bb63a36549ca25b9a72492c70a.jpg',
+            'categories': ['Comedy', 'Animation & Manga', 'Video Games'],
         },
         'playlist_mincount': 118,
     }, {
         'url': 'https://www.spreaker.com/podcast/health-wealth--5918323',
         'info_dict': {
-            'id': '5918323',
+            'id': 5918323,
+            'display_id': 'itpodradio-health-wealth',
+            'title': 'Health Wealth',
+            'description': 'md5:6949ac55c44955b1ce2c7075ec81052f',
+            'uploader': 'India Today Podcast',
+            'uploader_id': 15714861,
+            'uploader_url': 'https://www.spreaker.com/user/india-today-podcast--15714861',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/images.spreaker.com/original/fff804fbf74f7f92d5194bc00715841c.jpg',
+            'categories': ['Health & Fitness'],
         },
         'playlist_mincount': 60,
     }, {
         'url': 'https://www.spreaker.com/show/5887186/episodes/feed',
         'info_dict': {
-            'id': '5887186',
+            'id': 5887186,
+            'display_id': 'orbinea',
+            'title': 'Orbinéa Le Monde des Odyssées| Documentaire Podcast Histoire pour dormir Livre Audio Enfant & Adulte',
+            'description': 'md5:79101727388ece4114ae4fabc8861bb5',
+            'uploader': 'Orbinea Studio',
+            'uploader_id': 17206155,
+            'uploader_url': 'https://www.spreaker.com/user/orbinea-studio--17206155',
+            'thumbnail': 'https://d3wo5wojvuv7l.cloudfront.net/images.spreaker.com/original/0d755be30d97fb65f8a8f2803a5edb57.jpg',
+            'categories': ['Science', 'Documentary', 'Education'],
         },
         'playlist_mincount': 290,
     }]
+    _NETRC_MACHINE = 'spreaker'
+    additional_api_query = {}
 
-    def _entries(self, show_id, key=None):
-        for page_num in itertools.count(1):
-            episodes = self._download_json(
-                f'https://api.spreaker.com/show/{show_id}/episodes',
-                show_id, note=f'Downloading JSON page {page_num}', query=filter_dict({
-                    'page': page_num,
-                    'max_per_page': 100,
-                    'key': key,
-                }))
-            pager = try_get(episodes, lambda x: x['response']['pager'], dict)
-            if not pager:
-                break
-            results = pager.get('results')
-            if not results or not isinstance(results, list):
-                break
-            for result in results:
-                if not isinstance(result, dict):
-                    continue
-                yield _extract_episode(result)
-            if page_num == pager.get('last_page'):
-                break
+    def _perform_login(self, username, password):
+        if username != 'oauth':
+            raise ExtractorError('Login using username and password is not currently supported. '
+                                 'Set your username to "oauth" and the password to an OAuth token to login using that. '
+                                 f'{self._login_hint("password")}', expected=True)
+
+        self._download_json(f'https://api.spreaker.com/v2/me?oauth2_access_token={password}', None,
+                            note='Verifying OAuth token...', errnote='Provided OAuth token is not valid')
+
+        # If the OAuth token is not valid, yt-dlp terminates before this line with exit code 1
+        # so if we got here, it means that the token is valid
+        self.additional_api_query.update({'oauth2_access_token': password})
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        key = traverse_obj(parse_qs(url), ('key', 0))
-        return self.playlist_result(self._entries(show_id, key), playlist_id=show_id)
+        self.additional_api_query.update(traverse_obj(parse_qs(url), {'key': ('key', 0)}) or {})
+
+        show_data = self._download_json(
+            f'https://api.spreaker.com/v2/shows/{show_id}', show_id,
+            note='Downloading JSON show metadata', query=self.additional_api_query)
+        episodes = []
+        episodes_api_url = f'https://api.spreaker.com/v2/shows/{show_id}/episodes?limit=100'
+
+        for page_num in itertools.count(1):
+            episodes_api = self._download_json(episodes_api_url, show_id,
+                                               note=f'Downloading JSON episodes metadata page {page_num}', query=self.additional_api_query)
+            episodes_in_page = traverse_obj(episodes_api, ('response', 'items', ..., {
+                'url': 'site_url',
+                'id': 'episode_id',
+                'title': 'title',
+            }))
+
+            for i in episodes_in_page:
+                episodes.append(self.url_result(
+                    update_url_query(i['url'], traverse_obj(self.additional_api_query, {'key': ('key', 0)})),
+                    ie=SpreakerIE.ie_key(), video_id=i.get('id'), video_title=i.get('title')))
+
+            episodes_api_url = traverse_obj(episodes_api, ('response', 'next_url'), default=None)
+            if episodes_api_url is None:
+                break
+
+        return {
+            '_type': 'playlist',
+            'id': int_or_none(show_id),
+            'display_id': traverse_obj(show_data, ('response', 'show', 'permalink')),
+            'title': traverse_obj(show_data, ('response', 'show', 'title')),
+            'description': traverse_obj(show_data, ('response', 'show', 'description')),
+            'thumbnail': traverse_obj(show_data, ('response', 'show', 'image_original_url')),
+            'uploader': traverse_obj(show_data, ('response', 'show', 'author', 'fullname')),
+            'uploader_id': traverse_obj(show_data, ('response', 'show', 'author', 'user_id')),
+            'uploader_url': traverse_obj(show_data, ('response', 'show', 'author', 'site_url')),
+            'webpage_url': traverse_obj(show_data, ('response', 'show', 'site_url')),
+            'categories': traverse_obj(show_data, ('response', 'show', ('category', 'category_2', 'category_3'), 'name')),
+            'entries': episodes,
+        }
