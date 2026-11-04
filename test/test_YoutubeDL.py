@@ -529,10 +529,18 @@ class TestFormatSelection(unittest.TestCase):
 class TestYoutubeDL(unittest.TestCase):
     def test_subtitles(self):
         def s_formats(lang, autocaption=False):
+            names = {
+                'en': 'English',
+                'fr': 'Français',
+                'es': 'Español',
+                'it': 'Italiano',
+                'pt': 'Português',
+            }
             return [{
                 'ext': ext,
                 'url': f'http://localhost/video.{lang}.{ext}',
                 '_auto': autocaption,
+                'name': names[lang],
             } for ext in ['vtt', 'srt', 'ass']]
         subtitles = {l: s_formats(l) for l in ['en', 'fr', 'es']}
         auto_captions = {l: s_formats(l, True) for l in ['it', 'pt', 'es']}
@@ -591,21 +599,25 @@ class TestYoutubeDL(unittest.TestCase):
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['e.+']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), {'es', 'en'})
+        self.assertEqual(list(subs.keys()), ['en', 'es'])
 
         result = get_info({'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), {'es', 'pt'})
+        self.assertEqual(list(subs.keys()), ['es', 'pt'])
         self.assertFalse(subs['es']['_auto'])
         self.assertTrue(subs['pt']['_auto'])
 
         result = get_info({'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), {'es', 'pt'})
+        self.assertEqual(list(subs.keys()), ['es', 'pt'])
         self.assertTrue(subs['es']['_auto'])
         self.assertTrue(subs['pt']['_auto'])
+
+        result = get_info({'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['pt', 'all', 'e.*']})
+        subs = result['requested_subtitles']
+        self.assertEqual(list(subs.keys()), ['pt', 'fr', 'it', 'en', 'es'])
 
     def test_add_extra_info(self):
         test_dict = {
