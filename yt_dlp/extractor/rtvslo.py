@@ -1,8 +1,11 @@
+import functools
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    OnDemandPagedList,
+    base_url,
     int_or_none,
     parse_duration,
     traverse_obj,
@@ -16,8 +19,9 @@ class RTVSLOIE(InfoExtractor):
     IE_NAME = 'rtvslo.si'
     _VALID_URL = r'''(?x)
         https?://(?:
-            (?:365|4d)\.rtvslo.si/arhiv/[^/?#&;]+|
-            (?:www\.)?rtvslo\.si/rtv365/arhiv
+            (?:365|4d)\.rtvslo.si/(?:arhiv|podkast)/[^/?#&;]+|
+            (?:www\.)?rtvslo\.si/rtv365/arhiv|
+            (?:val202)\.rtvslo\.si/podkast/[^/?#&;]+/[^/?#&;]+
         )/(?P<id>\d+)'''
     _GEO_COUNTRIES = ['SI']
 
@@ -67,7 +71,7 @@ class RTVSLOIE(InfoExtractor):
             'series': 'Il giornale della sera',
             'timestamp': 1643743800,
             'release_timestamp': 1643745424,
-            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/il-giornale-della-sera_wide2.jpg',
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/channel_logos/CAPO_wide2.jpg',
             'upload_date': '20220201',
             'tbr': 128000,
             'release_date': '20220201',
@@ -90,6 +94,38 @@ class RTVSLOIE(InfoExtractor):
     }, {
         'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
         'only_matching': True,
+    }, {
+        'url': 'https://val202.rtvslo.si/podkast/izstekani/52137502/175205734',
+        'info_dict': {
+            'id': '175205734',
+            'ext': 'mp3',
+            'title': 'Izštekani Koala Voice v Cankarjevem domu',
+            'series': 'Izštekani',
+            'series_id': '52137502',
+            'duration': 7798,
+            'upload_date': '20260312',
+            'timestamp': 1773355398,
+            'release_date': '20260312',
+            'release_timestamp': 1773356585,
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/52137502/logo_1_wide2.jpg',
+            'description': 'md5:f5fc2dcf75d1864b6d7a1ecace192053',
+        },
+    }, {
+        'url': 'https://365.rtvslo.si/podkast/toplovod/175054103',
+        'info_dict': {
+            'id': '175054103',
+            'ext': 'mp3',
+            'title': 'Zadnji Toplovod',
+            'series': 'Toplovod',
+            'series_id': '185',
+            'duration': 3508,
+            'upload_date': '20240618',
+            'timestamp': 1718743800,
+            'release_date': '20240618',
+            'release_timestamp': 1718750166,
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/185/toplovod_1280x720_wide2.jpg',
+            'description': 'md5:915075e267ecbac1343e002e524966bf',
+        },
     }]
 
     def _real_extract(self, url):
@@ -169,7 +205,24 @@ class RTVSLOIE(InfoExtractor):
 
 class RTVSLOShowIE(InfoExtractor):
     IE_NAME = 'rtvslo.si:show'
-    _VALID_URL = r'https?://(?:365|4d)\.rtvslo.si/oddaja/[^/?#&]+/(?P<id>\d+)'
+
+    _PAGE_SIZES = {
+        'podkasti': 10,
+        'oddaja': 50,
+    }
+    #    _VALID_URL = r'https?://(?P<service>(365|4d|val202))\.rtvslo.si/(?P<type>(oddaja|podkasti|podkast))/(?P<title>[^/]+)/(?P<id>\d+)/?$'
+    _VALID_URL = r'''(?x)
+            https?://
+            (?P<service>365|4d|val202)\.rtvslo\.si/
+            (?P<type>
+                (?:(?<=365\.rtvslo\.si/)|(?<=4d\.rtvslo\.si/))(?:oddaja|podkasti)
+                |
+                (?:(?<=val202\.rtvslo\.si/))podkast
+            )/
+            (?P<title>[^/]+)/
+            (?P<id>\d+)
+            /?$
+        '''
 
     _TESTS = [{
         'url': 'https://365.rtvslo.si/oddaja/ekipa-bled/173250997',
@@ -177,19 +230,72 @@ class RTVSLOShowIE(InfoExtractor):
             'id': '173250997',
             'title': 'Ekipa Bled',
             'description': 'md5:c88471e27a1268c448747a5325319ab7',
-            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/173250997/logo_wide1.jpg',
         },
         'playlist_count': 18,
+    }, {
+        'url': 'https://365.rtvslo.si/oddaja/tarca/397',
+        'info_dict': {
+            'id': '397',
+            'title': 'Tarča',
+            'description': 'md5:a1861ba86c18ac3f7096cd79002e0922',
+        },
+        'playlist_mincount': 687,
+    }, {
+        'url': 'https://365.rtvslo.si/podkasti/toplovod/185',
+        'info_dict': {
+            'id': '185',
+            'title': 'Toplovod',
+            'description': 'md5:4367c366228f1d500ad66d0fa65add3a',
+        },
+        'playlist_count': 261,
+    }, {
+        'url': 'https://val202.rtvslo.si/podkast/izstekani/52137502',
+        'info_dict': {
+            'id': '52137502',
+            'title': 'Izštekani',
+            'description': 'md5:bd2232a56925d2bf565a68d5f2e443bf',
+        },
+        'expected_warnings': ['Val202 is not supported redirecting to RTV365'],
+        'playlist_count': 192,
     }]
+
+    def _fetch_page(self, url, playlist_id, title, page):
+        page += 1
+
+        url_without_query = url.split('?')[0]
+        url_p = f'{url_without_query}?p={page}'
+        base = base_url(url)
+
+        webpage = self._download_webpage(url_p, playlist_id, note=f'Fetching {title}, page: {page}')
+
+        episodes = set(re.findall(r'<a [^>]*\bhref="(/(?:arhiv|podkast)/[^"]+)"', webpage))
+
+        yield from (self.url_result(urljoin(base, episode)) for episode in episodes)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
+        url_type = self._match_valid_url(url).group('type')
+        url_title = self._match_valid_url(url).group('title')
+        url_service = self._match_valid_url(url).group('service')
+
+        if url_service == 'val202':
+            new_url = f'https://365.rtvslo.si/podkasti/{url_title}/{playlist_id}'
+            self.report_warning(f'Val202 is not supported redirecting to RTV365. ({new_url})')
+            # Url is rewritten because whatever is hosted on val202 is also hosted on 365 which has explicit pagination.
+            return self._real_extract(new_url)
+
         webpage = self._download_webpage(url, playlist_id)
 
-        return self.playlist_from_matches(
-            re.findall(r'<a [^>]*\bhref="(/arhiv/[^"]+)"', webpage),
-            playlist_id, self._html_extract_title(webpage),
-            getter=urljoin('https://365.rtvslo.si'), ie=RTVSLOIE,
-            description=self._og_search_description(webpage),
-            thumbnail=self._og_search_thumbnail(webpage),
+        description = self._og_search_description(webpage)
+        title = self._og_search_title(webpage)
+
+        return self.playlist_result(
+            OnDemandPagedList(
+                functools.partial(
+                    self._fetch_page, url, playlist_id, title,
+                ),
+                self._PAGE_SIZES[url_type]),
+            playlist_id=playlist_id,
+            playlist_title=title,
+            playlist_description=description,
         )
