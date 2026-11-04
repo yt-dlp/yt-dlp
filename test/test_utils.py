@@ -775,6 +775,9 @@ class TestUtil(unittest.TestCase):
             '&amp;&apos;&gt;&lt;&quot;')
         self.assertEqual(
             fix_xml_ampersands('&#1234;&#x1abC;'), '&#1234;&#x1abC;')
+        self.assertEqual(
+            fix_xml_ampersands('&#128512;&#x1F600;'), '&#128512;&#x1F600;')
+        self.assertEqual(fix_xml_ampersands('&#;&#x;'), '&amp;#;&amp;#x;')
         self.assertEqual(fix_xml_ampersands('&#&#'), '&amp;#&amp;#')
 
     def test_paged_list(self):

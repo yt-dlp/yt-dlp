@@ -1940,7 +1940,7 @@ def month_by_abbreviation(abbrev):
 def fix_xml_ampersands(xml_str):
     """Replace all the '&' by '&amp;' in XML"""
     return re.sub(
-        r'&(?!amp;|lt;|gt;|apos;|quot;|#x[0-9a-fA-F]{,4};|#[0-9]{,4};)',
+        r'&(?!amp;|lt;|gt;|apos;|quot;|#x[0-9a-fA-F]+;|#[0-9]+;)',
         '&amp;',
         xml_str)
 
