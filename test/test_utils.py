@@ -1241,6 +1241,11 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('[//comment\n"abc" //comment\n,//comment\n"def",//comment\n]')
         self.assertEqual(json.loads(on), ['abc', 'def'])
 
+        self.assertEqual(json.loads(js_to_json('[1]//comment')), [1])
+        for newline in ('\n', '\r\n', '\r', '\u2028', '\u2029'):
+            with self.subTest(newline=newline):
+                self.assertEqual(json.loads(js_to_json(f'[1,//comment{newline}2,\n3]')), [1, 2, 3])
+
         on = js_to_json('{"abc": "def",}')
         self.assertEqual(json.loads(on), {'abc': 'def'})
 
