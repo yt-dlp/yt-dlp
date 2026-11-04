@@ -285,11 +285,22 @@ class Art19ShowIE(InfoExtractor):
             f'https://art19.com/series/{series_id}', series_id, note='Downloading series metadata',
             headers={'Accept': 'application/vnd.art19.v0+json'})
 
+        rss_url = traverse_obj(series_metadata, ('series', 'podcast_subscription_url', {url_or_none}))
+        feed = self._download_xml(rss_url, series_id, note='Downloading RSS feed')
+        episode_ids = []
+        seen_episode_ids = set()
+        for item in feed.findall('.//item'):
+            enclosure = item.find('enclosure')
+            episode_id = re.search(rf'/episodes/({Art19IE._UUID_REGEX})\.mp3', enclosure.get('url') if enclosure is not None else '')
+            if episode_id and episode_id.group(1) not in seen_episode_ids:
+                seen_episode_ids.add(episode_id.group(1))
+                episode_ids.append(episode_id.group(1))
+
         return {
             '_type': 'playlist',
             'entries': [
                 self.url_result(f'https://rss.art19.com/episodes/{episode_id}.mp3', Art19IE)
-                for episode_id in traverse_obj(series_metadata, ('series', 'episode_ids', ..., {str}))
+                for episode_id in episode_ids
             ],
             **traverse_obj(series_metadata, ('series', {
                 'id': ('id', {str}),
