@@ -151,7 +151,7 @@ class NewgroundsIE(InfoExtractor):
             raise
 
         media_url_string = self._search_regex(
-            r'embedController\(\[{"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
+            r'NgAudioPlayer\.fromListenPage\(\{[^})]+\'url\'\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
         if media_url_string:
             uploader = None
             formats = [{
