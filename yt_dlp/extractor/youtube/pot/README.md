@@ -158,7 +158,7 @@ class MyPoTokenProviderPTP(PoTokenProvider):  # Provider class name must end wit
 # you can define a preference function to increase/decrease the priority of providers.
 
 @register_preference(MyPoTokenProviderPTP)
-def my_provider_preference(provider: PoTokenProvider, request: PoTokenRequest) -> int:
+def my_provider_preference(provider: MyPoTokenProviderPTP, request: PoTokenRequest) -> int:
     return 50
 ```
 
@@ -250,7 +250,7 @@ class MyCacheProviderPCP(PoTokenCacheProvider):  # Provider class name must end 
 
 
 @register_preference(MyCacheProviderPCP)
-def my_cache_preference(provider: PoTokenCacheProvider, request: PoTokenRequest) -> int:
+def my_cache_preference(provider: MyCacheProviderPCP, request: PoTokenRequest) -> int:
     return 50
 ```
 
