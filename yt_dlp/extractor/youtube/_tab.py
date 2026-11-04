@@ -527,7 +527,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 if content.get('richItemRenderer'):
                     for entry in self._rich_entries(content['richItemRenderer']):
                         yield entry
-                    continuation_list[0] = self._extract_continuation(parent_renderer)
                 elif content.get('reportHistorySectionRenderer'):  # https://www.youtube.com/reporthistory
                     table = traverse_obj(content, ('reportHistorySectionRenderer', 'table', 'tableRenderer'))
                     yield from self._report_history_entries(table)
