@@ -17,7 +17,7 @@ from ..utils import (
 
 
 class MGTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:w(?:ww)?\.)?mgtv\.com/[bv]/(?:[^/]+/)*(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:w(?:ww)?\.)?mgtv\.com/[bsv]/(?:[^/?#]+/)*(?P<id>\d+)\.html'
     IE_DESC = '芒果TV'
     IE_NAME = 'MangoTV'
 
@@ -39,8 +39,19 @@ class MGTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': '春日迟迟再出发 沉浸版第1期：陆莹结婚半年查出肾炎被离婚 吴雅婷把一半票根退给前夫',
             'description': 'md5:a7a05a05b1aa87bd50cae619b19bbca6',
-            'thumbnail': r're:^https?://.+\.jpg',
             'duration': 4026,
+            'thumbnail': r're:^https?://.+\.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.mgtv.com/s/3186780.html',
+        'info_dict': {
+            'id': '3186780',
+            'ext': 'mp4',
+            'title': '一年级',
+            'description': '剧透来了《一年级》是谁的秀场',
+            'duration': 433,
+            'thumbnail': r're:^https?://.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -50,8 +61,8 @@ class MGTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': '拜托，请你爱我',
             'description': 'md5:cd81be6499bafe32e4d143abd822bf9c',
-            'thumbnail': r're:^https?://.+\.jpg',
             'duration': 2656,
+            'thumbnail': r're:^https?://.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
