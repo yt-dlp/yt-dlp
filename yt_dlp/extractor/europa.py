@@ -6,8 +6,10 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
+    str_or_none,
     traverse_obj,
     unified_strdate,
+    url_or_none,
     xpath_text,
 )
 
@@ -95,64 +97,103 @@ class EuropaIE(InfoExtractor):
 class EuroParlWebstreamIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://multimedia\.europarl\.europa\.eu/
-        (?:\w+/)?webstreaming/(?:[\w-]+_)?(?P<id>[\w-]+)
+        (?P<lang>[^/]*/)?webstreaming/(?:[^_]*_)?(?P<id>[\w-]+)
     '''
     _TESTS = [{
         'url': 'https://multimedia.europarl.europa.eu/pl/webstreaming/plenary-session_20220914-0900-PLENARY',
+        'md5': '16420ad9c602663759538ac1ca16a8db',
         'info_dict': {
-            'id': '62388b15-d85b-4add-99aa-ba12ccf64f0d',
-            'display_id': '20220914-0900-PLENARY',
+            'id': '20220914-0900-PLENARY',
             'ext': 'mp4',
             'title': 'Plenary session',
+            'description': '',
+            'duration': 45147,
+            'thumbnail': 'https://storage.eup.glcloud.eu/thumbnail/default_thumbnail.png',
             'release_timestamp': 1663139069,
             'release_date': '20220914',
-        },
-        'params': {
-            'skip_download': True,
+            'modified_timestamp': 1663650921,
+            'modified_date': '20220920',
+            'live_status': 'was_live',
         },
     }, {
-        # live webstream
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/euroscola_20221115-1000-SPECIAL-EUROSCOLA',
+        'md5': '8b4304f9e15a6e133100248fb55a5dce',
         'info_dict': {
             'ext': 'mp4',
-            'id': '510eda7f-ba72-161b-7ee7-0e836cd2e715',
-            'release_timestamp': 1668502800,
-            'title': 'Euroscola 2022-11-15 19:21',
+            'id': '20221115-1000-SPECIAL-EUROSCOLA',
+            'release_timestamp': 1668502798,
+            'title': 'Euroscola',
             'release_date': '20221115',
-            'live_status': 'is_live',
+            'live_status': 'was_live',
+            'description': '',
+            'duration': 9587,
+            'thumbnail': 'https://storage.eup.glcloud.eu/thumbnail/default_thumbnail.png',
+            'modified_timestamp': 1668945274,
+            'modified_date': '20221120',
         },
-        'skip': 'not live anymore',
     }, {
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-culture-and-education_20230301-1130-COMMITTEE-CULT',
+        'md5': '0ca01cf33009d866e6f5e1cd3088c10c',
         'info_dict': {
-            'id': '7355662c-8eac-445e-4bb9-08db14b0ddd7',
-            'display_id': '20230301-1130-COMMITTEE-CULT',
+            'id': '20230301-1130-COMMITTEE-CULT',
             'ext': 'mp4',
             'release_date': '20230301',
             'title': 'Committee on Culture and Education',
             'release_timestamp': 1677666641,
+            'description': 'Committee on Culture and Education',
+            'duration': 1003,
+            'thumbnail': 'https://storage.eup.glcloud.eu/thumbnail/default_thumbnail.png',
+            'modified_timestamp': 1732475771,
+            'modified_date': '20241124',
+            'live_status': 'was_live',
         },
     }, {
-        # live stream
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/committee-on-environment-public-health-and-food-safety_20230524-0900-COMMITTEE-ENVI',
+        'md5': 'f2e8c30935f956a7165c2f4f4b4ee090',
         'info_dict': {
-            'id': 'e4255f56-10aa-4b3c-6530-08db56d5b0d9',
+            'id': '20230524-0900-COMMITTEE-ENVI',
             'ext': 'mp4',
             'release_date': '20230524',
-            'title': r're:Committee on Environment, Public Health and Food Safety \d{4}-\d{2}-\d{2}\s\d{2}:\d{2}',
-            'release_timestamp': 1684911541,
-            'live_status': 'is_live',
+            'title': 'Committee on Environment, Public Health and Food Safety',
+            'release_timestamp': 1684912288,
+            'live_status': 'was_live',
+            'description': 'Committee on Environment, Public Health and Food Safety',
+            'duration': 4831,
+            'thumbnail': 'https://storage.eup.glcloud.eu/thumbnail/default_thumbnail.png',
+            'modified_timestamp': 1732475771,
+            'modified_date': '20241124',
         },
-        'skip': 'Not live anymore',
     }, {
         'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/20240320-1345-SPECIAL-PRESSER',
+        'md5': '518758eb706471c4c4ef3a134034a5bd',
         'info_dict': {
-            'id': 'c1f11567-5b52-470a-f3e1-08dc3c216ace',
-            'display_id': '20240320-1345-SPECIAL-PRESSER',
+            'id': '20240320-1345-SPECIAL-PRESSER',
             'ext': 'mp4',
             'release_date': '20240320',
             'title': 'md5:7c6c814cac55dea5e2d87bf8d3db2234',
             'release_timestamp': 1710939767,
+            'description': 'md5:7c6c814cac55dea5e2d87bf8d3db2234',
+            'duration': 927,
+            'thumbnail': 'https://storage.eup.glcloud.eu/thumbnail/default_thumbnail.png',
+            'modified_timestamp': 1732475771,
+            'modified_date': '20241124',
+            'live_status': 'was_live',
+        },
+    }, {
+        'url': 'https://multimedia.europarl.europa.eu/en/webstreaming/20250328-1600-SPECIAL-PRESSER',
+        'md5': 'dd1c5e67eb55e609998583d7c2966105',
+        'info_dict': {
+            'id': '20250328-1600-SPECIAL-PRESSER',
+            'ext': 'mp4',
+            'title': 'md5:04a2ab70c183dabe891a7cd190c3121d',
+            'description': '',
+            'duration': 1023,
+            'thumbnail': 'https://storage.eup.glcloud.eu/thumbnail/default_thumbnail.png',
+            'release_timestamp': 1743177199,
+            'release_date': '20250328',
+            'modified_timestamp': 1743180924,
+            'modified_date': '20250328',
+            'live_status': 'was_live',
         },
     }, {
         'url': 'https://multimedia.europarl.europa.eu/webstreaming/briefing-for-media-on-2024-european-elections_20240429-1000-SPECIAL-OTHER',
@@ -160,31 +201,56 @@ class EuroParlWebstreamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-
-        webpage_nextjs = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
-
-        json_info = self._download_json(
-            'https://acs-api.europarl.connectedviews.eu/api/FullMeeting', display_id,
-            query={
-                'api-version': 1.0,
-                'tenantId': 'bae646ca-1fc8-4363-80ba-2c04f06b4968',
-                'externalReference': display_id,
+        lang, video_id = self._match_valid_url(url).group('lang', 'id')
+        query = {
+            'lang': lang,
+            'audio': lang,
+            'autoplay': 'true',
+            'logo': 'false',
+            'muted': 'false',
+            'fullscreen': 'true',
+            'disclaimer': 'false',
+            'multicast': 'true',
+            'analytics': 'false',
+        }
+        webpage = self._download_webpage(f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}',
+                                         video_id, 'Downloading iframe', query=query)
+        stream_info = self._search_json(r'<script [^>]*id="ng-state"[^>]*>', webpage, 'stream info', video_id)['contentEventKey']
+        player_url = stream_info.get('playerUrl')
+        # status = traverse_obj(stream_info, ('media_item', 'mediaSubType'))
+        # base = 'https://control.eup.glcloud.eu/content-manager/api/v1/socket.io/?EIO=4&transport=polling'
+        # headers = {'referer': f'https://control.eup.glcloud.eu/content-manager/content-page/{video_id}'}
+        # sid = self._download_socket_json(base, video_id, note='Opening socket', headers=headers)['sid']
+        # base += '&sid=' + sid
+        # self._download_webpage(base, video_id, 'Polling socket with payload', data=b'40/content,', headers=headers)
+        # self._download_webpage(base, video_id, 'Polling socket', headers=headers)
+        # self._download_socket_json(base, video_id, 'Getting broadcast metadata from socket', headers=headers)
+        if player_url:
+            live_status = 'was_live'
+            query = None if stream_info.get('finalVod') else traverse_obj(stream_info, {
+                'startTime': ('startTime', {str_or_none}),
+                'endTime': ('endTime', {str_or_none}),
             })
-
-        formats, subtitles = [], {}
-        for hls_url in traverse_obj(json_info, ((('meetingVideo'), ('meetingVideos', ...)), 'hlsUrl')):
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(hls_url, display_id)
-            formats.extend(fmt)
-            self._merge_subtitles(subs, target=subtitles)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(player_url, video_id, query=query, ext='mp4')
+        else:
+            formats = None
+            subtitles = None
+            live_status = 'is_upcoming'
+            self.raise_no_formats('Stream didn\'t start yet', True, video_id)
+        if stream_info.get('live'):
+            live_status = 'is_live'
 
         return {
-            'id': json_info['id'],
-            'display_id': display_id,
-            'title': traverse_obj(webpage_nextjs, (('mediaItem', 'title'), ('title', )), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
-            'release_timestamp': parse_iso8601(json_info.get('startDateTime')),
-            'is_live': traverse_obj(webpage_nextjs, ('mediaItem', 'mediaSubType')) == 'Live',
+            'live_status': live_status,
+            **traverse_obj(stream_info, {
+                'id': ('commonId', {str_or_none}),
+                'title': ('title', {str_or_none}),
+                'description': ('description', {str_or_none}),
+                'release_timestamp': ('startTime', {int_or_none}),
+                'duration': ('endTime', {lambda e: e and (s := stream_info.get('startTime')) and (e - s)}),
+                'thumbnail': ('posterFrame', {url_or_none}),
+                'modified_timestamp': ('meta', 'updatedAt', {parse_iso8601}),
+            }),
         }
