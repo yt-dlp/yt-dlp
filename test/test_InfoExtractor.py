@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import http.server
 import threading
+import xml.etree.ElementTree
 
 from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
 from yt_dlp.compat import compat_etree_fromstring
@@ -1080,6 +1081,35 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
                 expect_value(self, subs, expected_subs, None)
+
+    def test_parse_mpd_templates(self):
+        mpd = '''
+            <MPD xmlns="urn:mpeg:dash:schema:mpd:2011">
+                <Period duration="PT4S">
+                    <AdaptationSet mimeType="video/mp4">
+                        <Representation id="v" bandwidth="1000">
+                            <SegmentTemplate media="{media}" initialization="{initialization}">
+                                <SegmentTimeline><S t="0" d="2" r="1" /></SegmentTimeline>
+                            </SegmentTemplate>
+                        </Representation>
+                    </AdaptationSet>
+                </Period>
+            </MPD>
+        '''
+        for media, initialization, expected in (
+            (
+                '$$Number%03d$$-$Number%03d$.m4s',
+                '$$RepresentationID$$-$RepresentationID$-$$Bandwidth$$-$Bandwidth%06d$.mp4',
+                ['$RepresentationID$-v-$Bandwidth$-001000.mp4', '$Number%03d$-001.m4s', '$Number%03d$-002.m4s'],
+            ), (
+                'a%20b-$$$$-$$Time$$-$Time$.m4s', 'init.mp4',
+                ['init.mp4', 'a%20b-$$-$Time$-0.m4s', 'a%20b-$$-$Time$-2.m4s'],
+            ),
+        ):
+            with self.subTest(media=media, initialization=initialization):
+                mpd_doc = xml.etree.ElementTree.fromstring(mpd.format(media=media, initialization=initialization))
+                formats, _ = self.ie._parse_mpd_formats_and_subtitles(mpd_doc, mpd_url='https://example.com/manifest.mpd')
+                self.assertEqual([fragment['path'] for fragment in formats[0]['fragments']], expected)
 
     def test_parse_mpd_formats(self):
         _TEST_CASES = [

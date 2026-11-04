@@ -3047,27 +3047,18 @@ class InfoExtractor:
                     representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                     def prepare_template(template_name, identifiers):
-                        tmpl = representation_ms_info[template_name]
-                        if representation_id is not None:
-                            tmpl = tmpl.replace('$RepresentationID$', representation_id)
-                        # First of, % characters outside $...$ templates
-                        # must be escaped by doubling for proper processing
-                        # by % operator string formatting used further (see
-                        # https://github.com/ytdl-org/youtube-dl/issues/16867).
-                        t = ''
-                        in_template = False
-                        for c in tmpl:
-                            t += c
-                            if c == '$':
-                                in_template = not in_template
-                            elif c == '%' and not in_template:
-                                t += c
-                        # Next, $...$ templates are translated to their
-                        # %(...) counterparts to be used with % operator
-                        t = re.sub(r'\$({})\$'.format('|'.join(identifiers)), r'%(\1)d', t)
-                        t = re.sub(r'\$({})%([^$]+)\$'.format('|'.join(identifiers)), r'%(\1)\2', t)
+                        def replace(m):
+                            if m[0] == '$$':
+                                return '$'
+                            if m[0] == '%':
+                                return '%%'
+                            if m[0] == '$RepresentationID$':
+                                return m[0] if representation_id is None else representation_id.replace('%', '%%')
+                            return f'%({m[1]}){m[2] or "d"}'
 
-                        return t.replace('$$', '$')
+                        return re.sub(
+                            r'\$\$|\$RepresentationID\$|\$({})(?:%([^$]+))?\$|%'.format('|'.join(identifiers)),
+                            replace, representation_ms_info[template_name])
 
                     # @initialization is a regular template like @media one
                     # so it should be handled just the same way (see
