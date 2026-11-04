@@ -259,6 +259,7 @@ def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
     if isinstance(xpath, str):
         n = _find_xpath(xpath)
     else:
+        n = None
         for xp in xpath:
             n = _find_xpath(xp)
             if n is not None:
