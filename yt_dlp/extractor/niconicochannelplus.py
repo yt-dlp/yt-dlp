@@ -191,7 +191,7 @@ class SiteContext:
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Origin': urljoin(handler.url, '/').rstrip('/'),
                 'Referer': handler.url,
-            }, note='Downloading login token', errnote='Failed to login')
+            }, note='Downloading login token', errnote='Failed to login', fatal=False)
 
         self._access_token = traverse_obj(data, ('access_token', {str}))
         self._refresh_token = traverse_obj(data, ('refresh_token', {str}))
@@ -212,7 +212,7 @@ class SiteContext:
                 'Auth0-Client': self._auth0_client,
                 'Origin': self._site_url.rstrip('/'),
                 'Referer': self._site_url,
-            }, note='Refreshing auth token', errnote='Failed to refresh login state')
+            }, note='Refreshing auth token', errnote='Failed to refresh login state', fatal=False)
 
         self._access_token = traverse_obj(data, ('access_token', {str}))
         self._refresh_token = traverse_obj(data, ('refresh_token', {str}))
@@ -248,6 +248,7 @@ class NicoChannelBaseIE(InfoExtractor):
 
     _SITE_CONTEXTS = {}
     _CHANNEL_NAMES = {}
+    _CHANNEL_PROVIDERS = {}
     _CHANNEL_AGE_LIMIT = {}
     _DOMAIN_IDS = {}
 
@@ -303,11 +304,20 @@ class NicoChannelBaseIE(InfoExtractor):
     def _get_channel_name(self, url):
         fanclub_site_id = self._get_fanclub_site_id(url)
         if fanclub_site_id not in self._CHANNEL_NAMES:
-            self._CHANNEL_NAMES[fanclub_site_id] = traverse_obj(self._download_api_json(
+            data = traverse_obj(self._download_api_json(
                 url, f'/fanclub_sites/{fanclub_site_id}/page_base_info', video_id=str(fanclub_site_id),
                 note='Downloading channel name', fatal=False,
-            ), ('data', 'fanclub_site', 'fanclub_site_name', {str}))
+            ), ('data', 'fanclub_site'))
+            self._CHANNEL_NAMES[fanclub_site_id] = traverse_obj(data, ('fanclub_site_name', {str}))
+            self._CHANNEL_PROVIDERS[fanclub_site_id] = traverse_obj(data, (
+                'content_provider', 'copyright', {lambda x: re.match(r'提供：(.+)', x)[1]}))
         return self._CHANNEL_NAMES[fanclub_site_id]
+
+    def _get_channel_provider(self, url):
+        fanclub_site_id = self._get_fanclub_site_id(url)
+        if fanclub_site_id not in self._CHANNEL_PROVIDERS:
+            self._get_channel_name(url)
+        return self._CHANNEL_PROVIDERS[fanclub_site_id]
 
     def _get_age_limit(self, url):
         fanclub_site_id = self._get_fanclub_site_id(url)
@@ -336,6 +346,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel': '狐月れんげのあまとろASMR＋',
             'channel_id': 'renge',
             'channel_url': 'https://nicochannel.jp/renge',
+            'creators': ['狐月れんげ'],
             'live_status': 'not_live',
             'thumbnail': r're:https://cdn\.nicochannel\.jp/public_html/.*',
             'description': 'お耳が癒されて疲れもヌケる♡\n本多ぽこちゃんとの2024年7月24日の耳舐めコラボアーカイブです。',
@@ -398,6 +409,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel': '天使なのファンクラブ',
             'channel_id': 'tenshi-nano_com',
             'channel_url': 'https://tenshi-nano.com',
+            'creators': list,
             'age_limit': 15,
             'live_status': 'was_live',
             'thumbnail': r're:https://cdn\.tenshi-nano\.com/public_html/.*',
@@ -429,6 +441,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'comment_count': int,
             'view_count': int,
         },
+        'skip': 'removed',
     }, {
         'note': 'TKFM',
         'url': 'https://audee-membership.jp/hanamiya-nina/audio/smJqiUSD8MUb6BcdoYggCRfZ',
@@ -449,6 +462,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'view_count': int,
             'tags': ['RADIO'],
         },
+        'expected_warnings': ['The audio may be empty, or incomplete and contains only trial parts.'],
     }]
 
     @staticmethod
@@ -469,7 +483,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             raise self.StopExtraction
 
     def _download_channel_data(self, url, *args, headers={}, **kwargs):
-        headers['fc_site_id'] = self._get_fanclub_site_id(url)
+        headers['Fc_site_id'] = self._get_fanclub_site_id(url)
         return self._download_api_json(url, *args, headers=headers, **kwargs)['data']
 
     def _real_extract(self, url):
@@ -503,6 +517,11 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
         else:
             raise ExtractorError('Unknown media type', video_id=video_id)
 
+        if live_status == 'is_live' and self.get_param('live_from_start'):
+            for fmt in formats:
+                fmt.setdefault('downloader_options', {}).update({'ffmpeg_args': ['-live_start_index', '0']})
+                fmt['is_from_start'] = True
+
         return {
             'id': video_id,
             'formats': formats,
@@ -510,6 +529,7 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
             'channel': self._get_channel_name(url),
             'channel_id': self._make_channel_id(url),
             'channel_url': self._get_channel_url(url),
+            'creator': self._get_channel_provider(url),
             'age_limit': self._get_age_limit(url),
             'live_status': live_status,
             'release_timestamp': timestamp,
@@ -566,6 +586,10 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
         live_finished_at = video_info.get('live_finished_at')
         release_timestamp_str = video_info.get('live_scheduled_start_at')
 
+        video_allow_dvr_flg = traverse_obj(video_info, ('video', 'allow_dvr_flg'))
+        video_convert_to_vod_flg = traverse_obj(video_info, ('video', 'convert_to_vod_flg'))
+        self.write_debug(f'allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.')
+
         payload = {}
         if video_type == 'vod':
             if live_finished_at:
@@ -582,16 +606,16 @@ class NiconicoChannelPlusIE(NicoChannelBaseIE):
                 self.raise_no_formats(msg, expected=True, video_id=video_id)
             elif not live_finished_at:
                 live_status = 'is_live'
+                if self.get_param('live_from_start'):
+                    if not video_allow_dvr_flg:
+                        self.report_warning('DVR is not enabled for the stream')
+                    else:
+                        payload = {'broadcast_type': 'dvr'}
             else:
                 live_status = 'was_live'
                 payload = {'broadcast_type': 'dvr'}
 
-                video_allow_dvr_flg = traverse_obj(video_info, ('video', 'allow_dvr_flg'))
-                video_convert_to_vod_flg = traverse_obj(video_info, ('video', 'convert_to_vod_flg'))
-
-                self.write_debug(f'allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.')
-
-                if not (video_allow_dvr_flg and video_convert_to_vod_flg):
+                if not (video_allow_dvr_flg or video_convert_to_vod_flg):
                     raise ExtractorError(
                         'Live was ended, there is no video for download.', video_id=video_id, expected=True)
         else:
