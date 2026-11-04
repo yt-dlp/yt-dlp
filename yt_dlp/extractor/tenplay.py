@@ -2,14 +2,12 @@ import base64
 import datetime as dt
 import itertools
 import json
-import re
 import time
 
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
-    encode_data_uri,
     filter_dict,
     int_or_none,
     jwt_decode_hs256,
@@ -94,6 +92,23 @@ class TenPlayIE(InfoExtractor):
         'expected_warnings': ['Failed to download m3u8 information: HTTP Error 502'],
         'skip': 'video unavailable',
     }, {
+        # Geo-restricted to Australia; captionUrl is null in the metadata response,
+        # exercising the referenceId-based subtitle fallback (HEAD probe confirms existence)
+        'url': 'https://10.com.au/spongebob-squarepants/episodes/season-13/episode-2/tpv240707codqw',
+        'info_dict': {
+            'id': '9000000000088932',
+            'ext': 'mp4',
+            'title': 'SpongeBob SquarePants - S13 Ep. 2',
+            'series': 'SpongeBob SquarePants',
+            'season': 'Season 13',
+            'season_number': 13,
+            'episode_number': 2,
+            'uploader': 'Channel 10',
+            'uploader_id': '2199827728001',
+            'thumbnail': r're:https://.+/.+\.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://10play.com.au/how-to-stay-married/web-extras/season-1/terrys-talks-ep-1-embracing-change/tpv190915ylupc',
         'only_matching': True,
     }]
@@ -109,20 +124,27 @@ class TenPlayIE(InfoExtractor):
         'X': 18,
     }
     _TOKEN_CACHE_KEY = 'token_data'
-    _SEGMENT_BITRATE_RE = r'(?m)-(?:300|150|75|55)0000-(\d+(?:-[\da-f]+)?)\.ts$'
 
     _refresh_token = None
     _access_token = None
 
     @staticmethod
     def _filter_ads_from_m3u8(m3u8_doc):
+        """
+        Strip Google DAI ad segments from the media playlist.
+
+        The DAI stream interleaves ad segments as redirector.googlevideo.com
+        URLs alongside the real content segments. Each ad segment is preceded
+        by an #EXTINF tag; removing both keeps segment count and durations
+        correct for the remaining content.
+        """
         out = []
         for line in m3u8_doc.splitlines():
             if line.startswith('https://redirector.googlevideo.com/'):
-                out.pop()
+                if out and out[-1].startswith('#EXTINF'):
+                    out.pop()
                 continue
             out.append(line)
-
         return '\n'.join(out)
 
     @staticmethod
@@ -190,8 +212,8 @@ class TenPlayIE(InfoExtractor):
         for is_retry in (False, True):
             try:
                 return self._download_json_handle(
-                    f'https://10.com.au/api/v1/videos/playback/{content_id}/', content_id,
-                    note='Downloading video JSON', query={'platform': 'samsung'},
+                    f'https://10.com.au/api/v1/videos/playback/{content_id}', content_id,
+                    note='Downloading video JSON', query={'platform': 'web'},
                     headers=filter_dict({
                         'TP-AcceptFeature': 'v1/fw;v1/drm',
                         'Authorization': f'Bearer {self._access_token}' if self._access_token else None,
@@ -205,6 +227,18 @@ class TenPlayIE(InfoExtractor):
                     elif not self._get_login_info()[0]:
                         self.raise_login_required('Login required to access this video', method='password')
                 raise
+
+    def _find_subtitle_url(self, video_id, reference_id):
+        if not reference_id:
+            return None
+        url = f'https://10play-vod.global.ssl.fastly.net/OTFP/{reference_id}-subtitles.vtt'
+        try:
+            self._request_webpage(
+                url, video_id, note='Probing subtitle URL', errnote=False,
+                headers={'Range': 'bytes=0-0'})
+        except ExtractorError:
+            return None
+        return url
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
@@ -230,38 +264,28 @@ class TenPlayIE(InfoExtractor):
             content_id, note='Downloading DAI JSON',
             data=urlencode_postdata({'auth-token': auth_token}))
 
-        # Ignore subs to avoid ad break cleanup
+        # Subtitles are extracted separately; the DAI manifest interleaves ad
+        # segments which would corrupt caption timing if parsed alongside them
         formats, _ = self._extract_m3u8_formats_and_subtitles(
             dai_data['stream_manifest'], content_id, 'mp4')
 
-        already_have_1080p = False
         for fmt in formats:
             m3u8_doc = self._download_webpage(
                 fmt['url'], content_id, note='Downloading m3u8 information')
             m3u8_doc = self._filter_ads_from_m3u8(m3u8_doc)
             fmt['hls_media_playlist_data'] = m3u8_doc
-            if fmt.get('height') == 1080:
-                already_have_1080p = True
 
-        # Attempt format upgrade
-        if not already_have_1080p and m3u8_doc and re.search(self._SEGMENT_BITRATE_RE, m3u8_doc):
-            m3u8_doc = re.sub(self._SEGMENT_BITRATE_RE, r'-5000000-\1.ts', m3u8_doc)
-            m3u8_doc = re.sub(r'-(?:300|150|75|55)0000\.key"', r'-5000000.key"', m3u8_doc)
-            formats.append({
-                'format_id': 'upgrade-attempt-1080p',
-                'url': encode_data_uri(m3u8_doc.encode(), 'application/x-mpegurl'),
-                'hls_media_playlist_data': m3u8_doc,
-                'width': 1920,
-                'height': 1080,
-                'ext': 'mp4',
-                'protocol': 'm3u8_native',
-                '__needs_testing': True,
-            })
+        # Resolve subtitles: prefer the API-supplied captionUrl, fall back to
+        # probing CDN paths derived from the stream's referenceId
+        caption_url = url_or_none(data.get('captionUrl'))
+        if not caption_url:
+            caption_url = self._find_subtitle_url(content_id, data.get('referenceId'))
+        subtitles = {'en': [{'url': caption_url}]} if caption_url else None
 
         return {
             'id': content_id,
             'formats': formats,
-            'subtitles': {'en': [{'url': data['captionUrl']}]} if url_or_none(data.get('captionUrl')) else None,
+            'subtitles': subtitles,
             'uploader': 'Channel 10',
             'uploader_id': '2199827728001',
             **traverse_obj(data, {
