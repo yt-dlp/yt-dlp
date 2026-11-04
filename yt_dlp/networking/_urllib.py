@@ -161,6 +161,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         if decoded_response is not None:
             resp = urllib.request.addinfourl(io.BytesIO(decoded_response), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
+            resp.reason = old_resp.reason
 
         return resp
 
