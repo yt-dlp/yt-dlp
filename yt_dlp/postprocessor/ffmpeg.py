@@ -839,7 +839,12 @@ class FFmpegMergerPP(FFmpegPostProcessor):
                 args.extend(['-map', f'{i}:v:0'])
         self.to_screen(f'Merging formats into "{filename}"')
         self.run_ffmpeg_multiple_files(info['__files_to_merge'], temp_filename, args)
-        os.rename(temp_filename, filename)
+
+        if self._downloader:
+            self._downloader.try_rename(temp_filename, filename)
+        else:
+            os.replace(temp_filename, filename)
+
         return info['__files_to_merge'], info
 
     def can_merge(self):
