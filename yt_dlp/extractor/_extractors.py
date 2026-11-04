@@ -1508,6 +1508,8 @@ from .radiko import (
 from .radiocanada import (
     RadioCanadaAudioVideoIE,
     RadioCanadaIE,
+    RadioCanadaOhdioBaladosIE,
+    RadioCanadaOhdioLivresAudioIE,
 )
 from .radiode import RadioDeIE
 from .radiofrance import (
