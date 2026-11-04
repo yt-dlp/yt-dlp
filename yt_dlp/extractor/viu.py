@@ -150,7 +150,7 @@ class ViuPlaylistIE(ViuBaseIE):
 class ViuOTTIE(InfoExtractor):
     IE_NAME = 'viu:ott'
     _NETRC_MACHINE = 'viu'
-    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}-[a-z]{2})/vod/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?viu\.com/ott/(?P<country_code>[a-z]{2})/(?P<lang_code>[a-z]{2}(?:-[a-z]{2})?)/vod/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.viu.com/ott/sg/en-us/vod/3421/The%20Prime%20Minister%20and%20I',
         'info_dict': {
@@ -195,6 +195,24 @@ class ViuOTTIE(InfoExtractor):
             'noplaylist': False,
         },
         'skip': 'Geo-restricted to Hong Kong',
+    }, {
+        'url': 'https://www.viu.com/ott/hk/zh/vod/2281873/%E6%8F%9B%E4%B9%98%E6%88%80%E6%84%9B-3',
+        'info_dict': {
+            'id': '2281873',
+            'ext': 'mp4',
+            'title': '重新，開始',
+            'description': 'md5:87b1b7cb786eef0e69fbcea890b79779',
+            'episode_number': 1,
+            'duration': 7586,
+            'episode': '重新，開始',
+            'series': '換乘戀愛 3',
+            'thumbnail': 'https://prod-images.viu.com/3757736235/5eed0bf5f2ca5364580e58826528b8f7892a110a',
+        },
+        'params': {
+            'skip_download': 'm3u8 download',
+            'noplaylist': True,
+        },
+        'skip': 'Geo-restricted to Hong Kong',
     }]
 
     _AREA_ID = {
@@ -207,6 +225,7 @@ class ViuOTTIE(InfoExtractor):
         'zh-hk': 1,
         'zh-cn': 2,
         'en-us': 3,
+        'zh': 1,
     }
 
     _user_token = None
