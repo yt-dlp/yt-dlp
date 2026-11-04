@@ -3246,6 +3246,7 @@ class InfoExtractor:
                 continue
             url_pattern = stream.attrib['Url']
             stream_timescale = int_or_none(stream.get('TimeScale')) or timescale
+            stream_duration = duration * stream_timescale // timescale
             stream_name = stream.get('Name')
             # IsmFD expects ISO 639 Set 2 language codes (3-character length)
             # See: https://github.com/yt-dlp/yt-dlp/issues/11356
@@ -3281,10 +3282,10 @@ class InfoExtractor:
                     fragment_ctx['duration'] = int_or_none(stream_fragment.get('d'))
                     if not fragment_ctx['duration']:
                         try:
-                            next_fragment_time = int(stream_fragment[stream_fragment_index + 1].attrib['t'])
+                            next_fragment_time = int(stream_fragments[stream_fragment_index + 1].attrib['t'])
                         except IndexError:
-                            next_fragment_time = duration
-                        fragment_ctx['duration'] = (next_fragment_time - fragment_ctx['time']) / fragment_repeat
+                            next_fragment_time = stream_duration
+                        fragment_ctx['duration'] = (next_fragment_time - fragment_ctx['time']) // fragment_repeat
                     for _ in range(fragment_repeat):
                         fragments.append({
                             'url': re.sub(r'{start[ _]time}', str(fragment_ctx['time']), track_url_pattern),
@@ -3301,7 +3302,7 @@ class InfoExtractor:
                         'fragments': fragments,
                         '_download_params': {
                             'stream_type': stream_type,
-                            'duration': duration,
+                            'duration': stream_duration,
                             'timescale': stream_timescale,
                             'fourcc': fourcc,
                             'language': stream_language,
@@ -3327,7 +3328,7 @@ class InfoExtractor:
                         'audio_channels': int_or_none(track.get('Channels')),
                         '_download_params': {
                             'stream_type': stream_type,
-                            'duration': duration,
+                            'duration': stream_duration,
                             'timescale': stream_timescale,
                             'width': width or 0,
                             'height': height or 0,
