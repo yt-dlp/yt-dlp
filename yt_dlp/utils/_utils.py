@@ -1342,7 +1342,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
         return today
     if date_str == 'yesterday':
         return today - dt.timedelta(days=1)
-    match = re.match(
+    match = re.fullmatch(
         r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?',
         date_str)
     if match is not None:
