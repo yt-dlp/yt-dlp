@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     UnsupportedError,
@@ -8,7 +10,12 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     parse_qs,
+    smuggle_url,
+    str_or_none,
+    unsmuggle_url,
     url_or_none,
+    urlencode_postdata,
+    value,
 )
 from ..utils.traversal import traverse_obj
 
@@ -177,3 +184,183 @@ class BlackboardCollaborateLaunchIE(InfoExtractor):
         if self.suitable(redirect_url):
             raise UnsupportedError(redirect_url)
         return self.url_result(redirect_url, BlackboardCollaborateIE, video_id)
+
+
+class BlackboardClassCollaborateIE(InfoExtractor):
+    _VALID_URL = r'https?://(?P<region>[a-z]+)-lti\.bbcollab\.com/collab/ui/scheduler/lti'
+
+    _TESTS = [
+        {
+            'url': 'https://eu-lti.bbcollab.com/collab/ui/scheduler/lti?token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiYkNvbGxhYkFwaSIsInJvbGUiOjksImxhdW5jaFBhcmFtRGRiS2V5IjoiODcyYzEzYzctNWY1Yy00ODI1LWE2ZTktZDY1MzJlYjFhODFjIiwiaXNzIjoiYmJDb2xsYWJBcGkiLCJjb250ZXh0IjoiODUxYTE0OGMzZDFjNDE5MWEyZmE1NzljY2ZiMzY1YjAiLCJsYXVuY2hQYXJhbUtleSI6IjNiOTIxZmFhNTNlODRhNGY5OGE2ZDY2MDk1YjQ4Njc2IiwiZXhwIjoxNzQwNTAwNjA2LCJ0eXBlIjoyLCJpYXQiOjE3NDA0MTQyMDYsInVzZXIiOiI3M2ZkZTY4NDk4MTA0ODZhYWRmMWY5MDNkZTRmNmZmZiIsImNvbnN1bWVyIjoiNjMzNmZjZWQxYmI1NGQwYWI0M2Y2MmI4OGRiNzBiZTMifQ==.At95iQ_tarijE_v4WGvpaMBsTyZ3ariAgkfsyrYJ1Eg',
+            'only_matching': True,
+        },
+    ]
+
+    def _call_api(self, region, video_id=None, path=None, token=None, note='Downloading JSON metadata', fatal=True):
+        return self._download_json(
+            f'https://{region}.bbcollab.com/collab/api/csa/recordings/{join_nonempty(video_id, path, delim="/")}',
+            video_id or jwt_decode_hs256(token)['context'], note=note, fatal=fatal,
+            headers={'Authorization': f'Bearer {token}'} if token else '')
+
+    def _entries(self, data, region, token):
+        for item in traverse_obj(data, ('results', ...)):
+            yield self.url_result(self._call_api(region, item['id'], 'url', token)['url'], BlackboardCollaborateLaunchIE, **traverse_obj(item, {
+                'id': ('id', {str_or_none}),
+                'view_count': ('playbackCount', {int_or_none}),
+                'duration': ('duration', {int_or_none(scale=1000)}),
+                'availability': ('publicLinkAllowed', {self._parse_availability}),
+            }))
+
+    def _parse_availability(self, public_link_allowed):
+        if public_link_allowed:
+            return 'public'
+        else:
+            return 'needs_auth'
+
+    def _real_extract(self, url):
+        url, data = unsmuggle_url(url, {})
+        region = self._match_valid_url(url)['region']
+        token = parse_qs(url).get('token')[-1]
+
+        playlist_info = self._call_api(region, token=token, note='Downloading playlist information')
+
+        return self.playlist_result(
+            entries=self._entries(playlist_info, region, token),
+            playlist_count=playlist_info.get('size'),
+            **data,
+        )
+
+
+class BlackboardCollaborateUltraSingleCourseIE(InfoExtractor):
+    """
+    Match various URL formats including:
+    * host/webapps/collab-ultra/tool/collabultra?course_id=course_id or
+    * host/webapps/collab-ultra/tool/collabultra/lti/launch?course_id=course_id
+    * host/webapps/blackboard/execute/courseMain?course_id=course_id
+    * host/ultra/courses/course_id/cl/outline
+    * host/webapps/blackboard/execute/announcement?course_id=course_id
+    * host/webapps/blackboard/content/listContent.jsp?course_id=course_id
+    """
+    _VALID_URL = r'''(?x)
+                        https://[\w\.]+/(?:
+                         (?:webapps/
+                           (?:collab-ultra/tool/collabultra(?:/lti/launch)?
+                             |blackboard/(?:execute/(?:courseMain|announcement)|content/listContent.jsp)))
+                        |(?:ultra/courses/(?P<course_id>[\d_]+)/cl/outline))'''
+
+    _TESTS = [
+        {
+            'url': 'https://umb.umassonline.net/webapps/collab-ultra/tool/collabultra/lti/launch?course_id=_70544_1',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://online.uwl.ac.uk/webapps/blackboard/execute/courseMain?course_id=_1445',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://lms.mu.edu.sa/webapps/collab-ultra/tool/collabultra?course_id=_65252_1&mode=cpview',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://blackboard.salford.ac.uk/ultra/courses/_175809_1/cl/outline',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://blackboard.example.com/webapps/blackboard/execute/announcement?method=search&context=course_entry&course_id=_123456_1',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://vuws.westernsydney.edu.au/webapps/blackboard/content/listContent.jsp?course_id= _41005_1&content_id=_7747469_1',
+            'only_matching': True,
+        },
+    ]
+
+    def _real_extract(self, url):
+        course_id = parse_qs(url).get('course_id')[-1] or self._match_valid_url(url)['course_id']
+        host = urllib.parse.urlparse(url).hostname
+
+        course_data = self._download_webpage(
+            f'https://{host}/webapps/collab-ultra/tool/collabultra/lti/launch?course_id={course_id}',
+            course_id, note='Downloading course data')
+
+        attrs = self._hidden_inputs(course_data)
+        endpoint = self._html_search_regex(r'<form[^>]+action="([^"]+)"', course_data, 'form_action')
+        redirect_url = self._request_webpage(endpoint, course_id, 'Getting authentication token',
+                                             data=urlencode_postdata(attrs)).url
+
+        # Ref: https://developer.blackboard.com/portal/displayApi
+        course_info = self._download_json(f'https://{host}/learn/api/v1/courses/{course_id}', course_id,
+                                          note='Downloading extra metadata', fatal=False)
+
+        if self.suitable(redirect_url):
+            raise UnsupportedError(redirect_url)
+
+        return self.url_result(smuggle_url(
+            redirect_url,
+            traverse_obj(course_info, {
+                'title': (('name', 'displayName'), {str}, any),
+                'id': (('id', 'displayId', 'courseId'), {str}, any),
+                'url': (('guestAccessUrl', 'externalAccessUrl', {value(join_nonempty('https://', host, course_info['homePageUrl'], delim=''))}), {url_or_none}, any),
+                'description': ('description', {str}),
+                'modified_timestamp': ('modifiedDate', {parse_iso8601}),
+            }),
+        ), ie=BlackboardClassCollaborateIE, video_id=None)
+
+
+class BlackboardCollaborateUltraAllCoursesIE(InfoExtractor):
+    _VALID_URL = r'https://[\w\.]+/ultra/institution-page'
+
+    _TESTS = [
+        {
+            'url': 'https://umb.umassonline.net/ultra/institution-page',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://online.uwl.ac.uk/ultra/institution-page',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://lms.mu.edu.sa/ultra/institution-page',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://nestor.rug.nl/ultra/institution-page',
+            'only_matching': True,
+        },
+    ]
+
+    def _download_course_list(self, host, offset):
+        # Ref: https://developer.blackboard.com/portal/displayApi
+        return self._download_json(
+            f'https://{host}/learn/api/v1/users/me/memberships?fields=course&includeCount=true&offset={offset}',
+            video_id=None, note='Finding courses')
+
+    def _entries(self, data, host):
+        for item in traverse_obj(data, (..., 'course')):
+            if item['isAvailable']:
+                yield self.url_result(
+                    ie=BlackboardCollaborateUltraSingleCourseIE,
+                    **traverse_obj(item, {
+                        'id': ('id', {str}, any),
+                        'display_id': ('courseId', 'displayId', {str}, any),
+                        'description': ('description', {str}),
+                        'title': ('displayName', 'name', {str}, any),
+                        'availability': ('isAllowGuests', {bool}, any),
+                        'url': ('guestAccessUrl', 'externalAccessUrl',
+                                {value(join_nonempty('https://', host, item['homePageUrl'], delim=''))},
+                                {url_or_none}, any),
+                    }))
+
+    def _real_extract(self, url):
+        host = urllib.parse.urlparse(url).hostname
+        first_page = self._download_course_list(host, 0)
+        results = first_page['results']
+        number_of_courses = traverse_obj(first_page, ('paging', 'count'))
+        courses_found = number_of_courses
+
+        while number_of_courses > courses_found:
+            current_page = self._download_course_list(host, number_of_courses)
+            results.append(*current_page['results'])
+            courses_found += len(current_page['results'])
+
+        return self.playlist_result(self._entries(results, host))
