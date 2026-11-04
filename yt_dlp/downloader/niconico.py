@@ -1,12 +1,12 @@
 import json
 import threading
-import time
 
 from .common import FileDownloader
 from .external import FFmpegFD
 from ..networking import Request
 from ..networking.websocket import WebSocketResponse
 from ..utils import DownloadError, str_or_none, truncate_string
+from ..utils.progress import sleep
 from ..utils.traversal import traverse_obj
 
 
@@ -79,7 +79,7 @@ class NiconicoLiveFD(FileDownloader):
                 except BaseException as e:
                     self.to_screen(
                         f'[niconico:live] {video_id}: Connection error occured, reconnecting after 10 seconds: {e}')
-                    time.sleep(10)
+                    sleep(self.ydl, 10, 'Reconnecting')
                     continue
                 finally:
                     reconnect = True
