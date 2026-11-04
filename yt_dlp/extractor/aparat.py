@@ -4,8 +4,10 @@ from ..utils import (
     int_or_none,
     merge_dicts,
     mimetype2ext,
+    str_or_none,
     url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class AparatIE(InfoExtractor):
@@ -24,6 +26,8 @@ class AparatIE(InfoExtractor):
             'timestamp': 1387394859,
             'upload_date': '20131218',
             'view_count': int,
+            'thumbnail': r're:https://static\.cdn\.asset\.aparat\.cloud/.+',
+            'like_count': int,
         },
     }, {
         # multiple formats
@@ -86,3 +90,80 @@ class AparatIE(InfoExtractor):
             'duration': int_or_none(options.get('duration')),
             'formats': formats,
         })
+
+
+class AparatPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?aparat\.com/playlist/(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'https://www.aparat.com/playlist/1001307',
+        'info_dict': {
+            'id': '1001307',
+            'title': 'مبانی یادگیری عمیق',
+            'description': '',
+            'thumbnails': 'count:2',
+            'channel': 'mrmohammadi_iust',
+            'channel_id': '6463423',
+            'channel_url': 'https://www.aparat.com/mrmohammadi_iust',
+            'channel_follower_count': int,
+        },
+        'playlist_mincount': 1,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.aparat.com/playlist/1234567',
+        'info_dict': {
+            'id': '1234567',
+            'title': 'ساخت اکانت',
+            'description': '',
+            'thumbnails': 'count:0',
+            'channel': 'reza.shadow',
+            'channel_id': '8159952',
+            'channel_url': 'https://www.aparat.com/reza.shadow',
+            'channel_follower_count': int,
+        },
+        'playlist_count': 0,
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.aparat.com/playlist/1256882',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        info = self._download_json(
+            f'https://www.aparat.com/api/fa/v1/video/playlist/one/playlist_id/{playlist_id}',
+            playlist_id, note='Getting playlist info', errnote='Failed to get playlist info')
+
+        info_dict = {
+            **traverse_obj(info, ('data', 'attributes', {
+                'title': 'title',
+                'description': 'description',
+                'thumbnails': (('big_poster', 'small_poster'), all, ..., {url_or_none}, {lambda x: {'url': x}}),
+            }), default={}),
+            'id': playlist_id,
+            'entries': traverse_obj(info, (
+                'included', lambda _, v: v['type'] == 'Video', 'attributes', 'uid',
+                {lambda x: self.url_result(f'https://www.aparat.com/v/{x}?playlist={playlist_id}')},
+            ), default=[]),
+        }
+
+        if username := traverse_obj(
+                info, ('included', lambda _, v: v['type'] == 'channel', 'attributes', 'username'), get_all=False):
+            user_info = self._download_json(
+                f'https://www.aparat.com/api/fa/v1/user/user/information/username/{username}', playlist_id,
+                fatal=False, note=f'Getting channel info ({username})', errnote=f'Failed to get channel info ({username})',
+            )
+            info_dict.update({
+                **traverse_obj(user_info, ('data', 'attributes', {
+                    'channel_id': ('id', {str_or_none}),
+                    'channel_follower_count': ('follower_cnt_num', {int_or_none}),
+                })),
+                'channel': username,
+                'channel_url': f'https://www.aparat.com/{username}',
+            })
+
+        return self.playlist_result(**info_dict)
