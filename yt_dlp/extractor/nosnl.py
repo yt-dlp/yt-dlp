@@ -96,6 +96,8 @@ class NOSNLArticleIE(InfoExtractor):
 
     def _real_extract(self, url):
         site_type, display_id = self._match_valid_url(url).group('type', 'display_id')
+        if site_type != 'video' and '/video/' in url:
+            site_type = 'video'
         webpage = self._download_webpage(url, display_id)
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
