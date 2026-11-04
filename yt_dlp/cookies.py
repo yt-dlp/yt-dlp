@@ -1360,8 +1360,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                 raise ValueError(http.cookiejar.MISSING_FILENAME_TEXT)
 
         def prepare_line(line):
-            if line.startswith(self._HTTPONLY_PREFIX):
-                line = line[len(self._HTTPONLY_PREFIX):]
+            line = line.removeprefix(self._HTTPONLY_PREFIX)
             # comments and empty lines are fine
             if line.startswith('#') or not line.strip():
                 return line
