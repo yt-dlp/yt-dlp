@@ -9,11 +9,11 @@ from ..utils import (
     update_url,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import find_element, require, traverse_obj
 
 
 class OlympicsReplayIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?olympics\.com/[a-z]{2}/(?:paris-2024/)?(?:replay|videos?|original-series/episode)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?olympics\.com/[a-z]{2}/(?:[a-z0-9_-]+/){0,2}?(?:replay|videos?|original-series/episode)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://olympics.com/fr/video/men-s-109kg-group-a-weightlifting-tokyo-2020-replays',
         'info_dict': {
@@ -39,23 +39,26 @@ class OlympicsReplayIE(InfoExtractor):
             'duration': 1321.0,
         },
     }, {
-        'url': 'https://olympics.com/en/paris-2024/videos/men-s-preliminaries-gbr-esp-ned-rsa-hockey-olympic-games-paris-2024',
+        'url': 'https://olympics.com/en/milano-cortina-2026/videos/exhibition-gala-figure-skating-milano-cortina-2026',
         'info_dict': {
-            'id': '3d96db23-8eee-4b7c-8ef5-488a0361026c',
+            'id': '2c25c917-88ba-41bf-8f24-c4345c362cb5',
             'ext': 'mp4',
-            'title': 'Men\'s Preliminaries GBR-ESP & NED-RSA | Hockey | Olympic Games Paris 2024',
-            'upload_date': '20240727',
-            'timestamp': 1722066600,
+            'display_id': 'exhibition-gala-figure-skating-milano-cortina-2026',
+            'title': 'Exhibition Gala - Figure Skating | Milano Cortina 2026',
+            'upload_date': '20260221',
+            'timestamp': 1771704000,
+            'description': 'md5:29e06d0baa6a06d9afe014ca16b365f6',
         },
-        'skip': 'Geo-restricted to RU, BR, BT, NP, TM, BD, TL',
     }, {
-        'url': 'https://olympics.com/en/paris-2024/videos/dnp-suni-lee-i-have-goals-and-i-have-expectations-for-myself-but-i-also-am-trying-to-give-myself-grace',
+        'url': 'https://www.olympics.com/en/milano-cortina-2026/paralympic-games/videos/anna-lena-forster-wins-women-s-downhill-sitting-gold-paralympic-winter-games-milano-cortina-2026',
         'info_dict': {
-            'id': 'a42f37ab-8a74-41d0-a7d9-af27b7b02a90',
+            'id': '6f01acdf-d746-48f2-9d72-9f8a9002263e',
             'ext': 'mp4',
-            'title': 'md5:c7cfbc9918636a98e66400a812e4d407',
-            'upload_date': '20240729',
-            'timestamp': 1722288600,
+            'display_id': 'anna-lena-forster-wins-women-s-downhill-sitting-gold-paralympic-winter-games-milano-cortina-2026',
+            'title': 'Anna-Lena Forster wins Women\u2019s Downhill Sitting gold | Paralympic Winter Games Milano Cortina 2026',
+            'upload_date': '20260307',
+            'timestamp': 1772875980,
+            'description': 'md5:b1b2a75a9a54973c6110e123237a5528',
         },
     }]
     _GEO_BYPASS = False
@@ -63,17 +66,18 @@ class OlympicsReplayIE(InfoExtractor):
     def _extract_from_nextjs_data(self, webpage, video_id):
         data = traverse_obj(self._search_nextjs_data(webpage, video_id, default={}), (
             'props', 'pageProps', 'page', 'items',
-            lambda _, v: v['name'] == 'videoPlaylist', 'data', 'currentVideo', {dict}, any))
+            lambda _, v: v['name'] == 'videoPlayer', 'data', 'item', {dict}, any))
         if not data:
             return None
 
-        geo_countries = traverse_obj(data, ('countries', ..., {str}))
-        if traverse_obj(data, ('geoRestrictedVideo', {bool})):
+        geo_countries = traverse_obj(data, (('regionsAllowed', 'countries'), ..., {str}))
+        if traverse_obj(data, (('isGeoRestricted', 'geoRestrictedVideo'), {bool}, any)):
             self.raise_geo_restricted(countries=geo_countries)
 
-        is_live = traverse_obj(data, ('streamingStatus', {str})) == 'LIVE'
+        is_live = traverse_obj(data, ('__typename', {str.lower})) != 'vod'
         m3u8_url = traverse_obj(data, ('videoUrl', {url_or_none})) or data['streamUrl']
-        tokenized_url = self._tokenize_url(m3u8_url, data['jwtToken'], is_live, video_id)
+        jwt_token = traverse_obj(webpage, ({find_element(id='page-jwt-data')}, {require('JWT data')}))
+        tokenized_url = self._tokenize_url(m3u8_url, jwt_token, is_live, video_id)
 
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -87,11 +91,17 @@ class OlympicsReplayIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
+            'id': traverse_obj(data, ('videoID', {str}), ('entityId', {str})),
             **traverse_obj(data, {
-                'id': ('videoID', {str}),
                 'title': ('title', {str}),
-                'timestamp': ('contentDate', {parse_iso8601}),
+                'description': ('description', {str}),
             }),
+            **traverse_obj(data, ('meta', {
+                'title': ('metaTitle', {str}),
+                'display_id': ('slug', {str}),
+                'description': ('metaDescription', {str}),
+                'timestamp': ('creationDateTime', {parse_iso8601}),
+            })),
         }
 
     def _tokenize_url(self, url, token, is_live, video_id):
