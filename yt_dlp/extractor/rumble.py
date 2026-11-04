@@ -1,4 +1,5 @@
 import itertools
+import json
 import re
 
 from .common import InfoExtractor
@@ -7,18 +8,20 @@ from ..utils import (
     ExtractorError,
     UnsupportedError,
     clean_html,
-    extract_attributes,
     format_field,
     get_element_by_class,
-    get_elements_html_by_class,
+    get_elements_by_attribute,
     int_or_none,
     join_nonempty,
     parse_count,
     parse_iso8601,
-    traverse_obj,
+    str_or_none,
     unescapeHTML,
-    urljoin,
+    unified_strdate,
+    update_url_query,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class RumbleEmbedIE(InfoExtractor):
@@ -254,7 +257,7 @@ class RumbleEmbedIE(InfoExtractor):
 
 
 class RumbleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]+)[^/]*$'
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]{5,6})[^/]*$'
     _EMBED_REGEX = [
         r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>',
         r'<a[^>]+class="videostream__link link"[^>]+href=(?P<url>/v[\w.-]+\.html)[^>]*>']
@@ -378,7 +381,7 @@ class RumbleIE(InfoExtractor):
 
 
 class RumbleChannelIE(InfoExtractor):
-    _VALID_URL = r'(?P<url>https?://(?:www\.)?rumble\.com/(?:c|user)/(?P<id>[^&?#$/]+))'
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?!playlists/|embed/|v(?:ideos)?[\w.-]{5,6})(?:c|user)?/?(?P<id>[^/?#&]+)(?:/(?!shorts)[^#]+)?$'
 
     _TESTS = [{
         'url': 'https://rumble.com/c/Styxhexenhammer666',
@@ -394,19 +397,47 @@ class RumbleChannelIE(InfoExtractor):
         },
     }]
 
+    def _parse_video(self, video_data):
+        video_id = traverse_obj(video_data, ('id', {str_or_none}))
+
+        formats = []
+        for video_url in traverse_obj(video_data, ('videos', ..., 'url', {url_or_none}), default=[]):
+            formats.extend(self._extract_m3u8_formats(video_url, video_id))
+
+        return {
+            'id': video_id,
+            **traverse_obj(video_data, {
+                'title': ('title', {str}),
+                'webpage_url': ('url', {url_or_none}),
+                'thumbnail': ('thumb', {url_or_none}),
+                'duration': ('duration', {int}),
+                'view_count': ('views', {int}),
+                'like_count': ('rumble_votes', 'score', {int}),
+                'comment_count': ('comments', 'count', {int}),
+                'uploader': ('by', 'name', {str}),
+                'uploader_id': ('by', 'name', {str}),
+                'upload_date': ('upload_date', {unified_strdate}),
+            }),
+            'formats': formats,
+        }
+
     def entries(self, url, playlist_id):
-        for page in itertools.count(1):
-            try:
-                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note=f'Downloading page {page}')
-            except ExtractorError as e:
-                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
-                    break
-                raise
-            for video_url in traverse_obj(
-                get_elements_html_by_class('videostream__link', webpage), (..., {extract_attributes}, 'href'),
-            ):
-                yield self.url_result(urljoin('https://rumble.com', video_url), RumbleIE)
+        for page_num in itertools.count(1):
+            for retry in self.RetryManager():
+                try:
+                    page = self._download_webpage(url, playlist_id, query={'page': page_num}, note=f'Downloading page {page_num}')
+                except ExtractorError as e:
+                    if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                        break
+                    if isinstance(e.cause, TimeoutError):
+                        retry.error = e.cause
+                        continue
+                    raise
+
+            for video_item in traverse_obj(get_elements_by_attribute('type', 'application/json', page), (..., {json.loads}, 'items', ..., {dict})):
+                yield self._parse_video(video_item)
 
     def _real_extract(self, url):
-        url, playlist_id = self._match_valid_url(url).groups()
+        url = update_url_query(url, query={'page': []})
+        playlist_id = self._match_id(url)
         return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)
