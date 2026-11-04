@@ -3,7 +3,6 @@ import hashlib
 import json
 import os.path
 import re
-import ssl
 import sys
 import types
 
@@ -318,36 +317,6 @@ def expect_info_dict(self, got_dict, expected_dict):
             'Missing keys in test definition: {}'.format(', '.join(sorted(missing_keys))))
 
 
-def assertRegexpMatches(self, text, regexp, msg=None):
-    if hasattr(self, 'assertRegexp'):
-        return self.assertRegexp(text, regexp, msg)
-    else:
-        m = re.match(regexp, text)
-        if not m:
-            note = f'Regexp didn\'t match: {regexp!r} not found'
-            if len(text) < 1000:
-                note += f' in {text!r}'
-            if msg is None:
-                msg = note
-            else:
-                msg = note + ', ' + msg
-            self.assertTrue(m, msg)
-
-
-def assertGreaterEqual(self, got, expected, msg=None):
-    if not (got >= expected):
-        if msg is None:
-            msg = f'{got!r} not greater than or equal to {expected!r}'
-        self.assertTrue(got >= expected, msg)
-
-
-def assertLessEqual(self, got, expected, msg=None):
-    if not (got <= expected):
-        if msg is None:
-            msg = f'{got!r} not less than or equal to {expected!r}'
-        self.assertTrue(got <= expected, msg)
-
-
 def assertEqual(self, got, expected, msg=None):
     if got != expected:
         if msg is None:
@@ -366,12 +335,7 @@ def expect_warnings(ydl, warnings_re):
 
 
 def http_server_port(httpd):
-    if os.name == 'java' and isinstance(httpd.socket, ssl.SSLSocket):
-        # In Jython SSLSocket is not a subclass of socket.socket
-        sock = httpd.socket.sock
-    else:
-        sock = httpd.socket
-    return sock.getsockname()[1]
+    return httpd.server_address[1]
 
 
 def verify_address_availability(address):

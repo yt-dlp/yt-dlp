@@ -290,7 +290,7 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
         r'highstream\.tv',
         r'uqload\.com',
         r'vedbam\.xyz',
-        r'vadbam\.net'
+        r'vadbam\.net',
         r'vidlo\.us',
         r'wolfstream\.tv',
         r'xvideosharing\.com',

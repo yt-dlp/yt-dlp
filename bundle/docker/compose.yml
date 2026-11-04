@@ -99,7 +99,7 @@ services:
       platforms:
         - "linux/arm/v7"
       args:
-        VERIFYIMAGE: arm32v7/debian:bullseye@sha256:9d544bf6ff73e36b8df1b7e415f6c8ee40ed84a0f3a26970cac8ea88b0ccf2ac
+        VERIFYIMAGE: ghcr.io/yt-dlp/manylinux_2_31_armv7l-shared:latest
     environment:
       EXE_NAME: ${EXE_NAME:?}
       UPDATE_TO:

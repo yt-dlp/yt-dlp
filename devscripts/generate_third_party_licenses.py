@@ -239,38 +239,6 @@ DEPENDENCIES: list[Dependency] = [
         comment='Not included in `yt-dlp_x86.exe` Windows builds',
         project_url='https://www.python-httpx.org/',
     ),
-    # Dependency of curl_cffi
-    Dependency(
-        name='rich',
-        license='MIT',
-        license_url='https://raw.githubusercontent.com/Textualize/rich/refs/heads/main/LICENSE',
-        comment='Not included in `yt-dlp_x86.exe` Windows builds',
-        project_url='https://rich.readthedocs.io/',
-    ),
-    # Dependency of rich
-    Dependency(
-        name='pygments',
-        license='BSD-2-Clause',
-        license_url='https://raw.githubusercontent.com/pygments/pygments/refs/heads/master/LICENSE',
-        comment='Not included in `yt-dlp_x86.exe` Windows builds',
-        project_url='http://pygments.org/',
-    ),
-    # Dependency of rich
-    Dependency(
-        name='markdown-it-py',
-        license='MIT',
-        license_url='https://raw.githubusercontent.com/executablebooks/markdown-it-py/refs/heads/master/LICENSE',
-        comment='Not included in `yt-dlp_x86.exe` Windows builds',
-        project_url='https://markdown-it-py.readthedocs.io/',
-    ),
-    # Dependency of markdown-it-py
-    Dependency(
-        name='mdurl',
-        license='MIT',
-        license_url='https://raw.githubusercontent.com/executablebooks/mdurl/refs/heads/master/LICENSE',
-        comment='Not included in `yt-dlp_x86.exe` Windows builds',
-        project_url='https://github.com/executablebooks/mdurl',
-    ),
     # Dependency of cryptography and curl_cffi
     Dependency(
         name='cffi',
