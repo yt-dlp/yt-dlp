@@ -11,11 +11,9 @@ from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     ass_subtitles_timecode,
-    bytes_to_long,
     float_or_none,
     int_or_none,
     join_nonempty,
-    long_to_bytes,
     parse_iso8601,
     pkcs1pad,
     str_or_none,
@@ -202,13 +200,16 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             't': token,
         }).encode())
 
+        n, e = self._RSA_KEY
+        key_size = (n.bit_length() + 7) // 8
+
         # Sometimes authentication fails for no good reason, retry with
         # a different random padding
         links_data = None
         for _ in range(3):
-            padded_message = bytes(pkcs1pad(message, 128))
-            n, e = self._RSA_KEY
-            encrypted_message = long_to_bytes(pow(bytes_to_long(padded_message), e, n))
+            padded_message = bytes(pkcs1pad(message, key_size))
+            encrypted_message = pow(
+                int.from_bytes(padded_message, 'big'), e, n).to_bytes(key_size, 'big')
             authorization = base64.b64encode(encrypted_message).decode()
 
             try:
