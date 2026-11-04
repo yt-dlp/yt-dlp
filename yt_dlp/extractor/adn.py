@@ -225,7 +225,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                 break
             except ExtractorError as e:
                 if not isinstance(e.cause, HTTPError):
-                    raise e
+                    raise
 
                 if e.cause.status == 401:
                     # This usually goes away with a different random pkcs1pad, so retry
