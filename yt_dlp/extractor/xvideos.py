@@ -8,6 +8,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     parse_duration,
+    urlencode_postdata,
 )
 
 
@@ -223,3 +224,88 @@ class XVideosQuickiesIE(InfoExtractor):
     def _real_extract(self, url):
         domain, id_ = self._match_valid_url(url).group('domain', 'id')
         return self.url_result(f'https://{domain}/video{"" if id_.isdecimal() else "."}{id_}/_', XVideosIE, id_)
+
+
+class XVideosChannelIE(InfoExtractor):
+    IE_NAME = 'xvideos:channel'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/?#]+\.)?xvideos2?\.com)/(?:(?:profiles|amateur-channels)/)?(?P<id>[^/?#]+)(?:#.*)?$'
+
+    _TESTS = [{
+        'url': 'https://www.xvideos.com/profiles/lili_love',
+        'info_dict': {
+            'id': 'lili_love',
+            'title': 'Lili Love',
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://www.xvideos.com/glanceweb#_tabVideos',
+        'info_dict': {
+            'id': 'glanceweb',
+            'title': 'Hidden Zone',
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://www.xvideos.com/amateur-channels/wifeluna',
+        'info_dict': {
+            'id': 'wifeluna',
+            'title': 'My Wife Luna',
+        },
+        'playlist_mincount': 1,
+    }]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        domain = mobj.group('domain')
+        channel_id = mobj.group('id')
+        base_url = f'https://{domain}'
+
+        webpage = self._download_webpage(url, channel_id)
+
+        title = self._html_extract_title(webpage)
+        if title:
+            title = re.sub(r'\s+-\s+(?:Channel page\s*-\s+)?XVIDEOS\.COM\s*$', '', title) or None
+
+        def _entries():
+            page_url = f'{base_url}/profiles/{channel_id}/feed'
+            prev_timestamp = None
+
+            for page in range(1, 10000):
+                if prev_timestamp:
+                    feed_url = f'{page_url}/{prev_timestamp}'
+                else:
+                    feed_url = page_url
+
+                data = self._download_json(
+                    feed_url, channel_id,
+                    data=urlencode_postdata({
+                        'feedSettings[contentType]': 0,
+                        'feedSettings[showFreePremium]': 0,
+                    }),
+                    headers={
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    note=f'Downloading page {page}')
+
+                if not data.get('result'):
+                    break
+
+                content = data.get('data', {}).get('content', [])
+                if not content:
+                    break
+
+                timestamp = content[-1].get('t')
+                if timestamp == prev_timestamp:
+                    break
+                prev_timestamp = timestamp
+
+                for item in content:
+                    for video in item.get('v', []):
+                        video_id = video.get('id')
+                        if not video_id:
+                            continue
+                        video_title = video.get('t')
+                        video_url = f'{base_url}/video{"" if str(video_id).isdigit() else "."}{video_id}/_'
+                        yield self.url_result(video_url, XVideosIE, video_id, video_title)
+
+        entries = _entries()
+        return self.playlist_result(entries, channel_id, title)
