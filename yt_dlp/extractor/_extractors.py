@@ -1351,6 +1351,7 @@ from .orf import (
     ORFIPTVIE,
     ORFONIE,
     ORFFM4StoryIE,
+    ORFONSeriesIE,
     ORFPodcastIE,
     ORFRadioIE,
 )
