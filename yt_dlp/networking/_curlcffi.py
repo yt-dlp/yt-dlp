@@ -33,9 +33,9 @@ if curl_cffi is None:
 
 curl_cffi_version = tuple(map(int, re.split(r'[^\d]+', curl_cffi.__version__)[:3]))
 
-if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 17):
+if curl_cffi_version != (0, 5, 10) and not (0, 10) <= curl_cffi_version < (0, 18):
     curl_cffi._yt_dlp__version = f'{curl_cffi.__version__} (unsupported)'
-    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.16.x are supported')
+    raise ImportError('Only curl_cffi versions 0.5.10 and 0.10.x through 0.17.x are supported')
 
 import curl_cffi.requests
 from curl_cffi.const import CurlECode, CurlOpt
@@ -177,6 +177,17 @@ BROWSER_TARGETS: dict[tuple[int, ...], dict[str, ImpersonateTarget]] = {
     },
     (0, 16, 1): {
         'chrome150': ImpersonateTarget('chrome', '150', 'macos', '26'),
+    },
+    (0, 17): {
+        'chrome151': ImpersonateTarget('chrome', '151', 'windows', '10'),
+        'chrome151_macos': ImpersonateTarget('chrome', '151', 'macos', '26'),
+        'chrome152': ImpersonateTarget('chrome', '152', 'windows', '10'),
+        'chrome152_macos': ImpersonateTarget('chrome', '152', 'macos', '26'),
+        'firefox153': ImpersonateTarget('firefox', '153', 'windows', '10'),
+        'firefox154': ImpersonateTarget('firefox', '154', 'windows', '10'),
+        'firefox155': ImpersonateTarget('firefox', '155', 'windows', '10'),
+        'safari270': ImpersonateTarget('safari', '27.0', 'macos', '27'),
+        'safari270_ios': ImpersonateTarget('safari', '27.0', 'ios', '27.0'),
     },
 }
 
