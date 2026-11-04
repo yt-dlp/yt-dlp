@@ -497,7 +497,9 @@ class FacebookIE(InfoExtractor):
                 clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
                 or self._search_regex(
                     (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
-            timestamp = int_or_none(self._search_regex(
+            timestamp = get_first(media, (
+                'creation_story', 'comet_sections', 'metadata', ..., 'story', 'creation_time', {int_or_none}, filter,
+            )) or int_or_none(self._search_regex(
                 r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
                 'timestamp', default=None))
             thumbnail = self._html_search_meta(
@@ -685,7 +687,8 @@ class FacebookIE(InfoExtractor):
                         'thumbnail': traverse_obj(
                             video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
                         'uploader_id': traverse_obj(video, ('owner', 'id', {str_or_none})),
-                        'timestamp': traverse_obj(video, 'publish_time', 'creation_time', expected_type=int_or_none),
+                        'timestamp': traverse_obj(video, (
+                            ('publish_time', 'creation_time'), {int_or_none}, filter, any)),
                         'duration': (float_or_none(video.get('playable_duration_in_ms'), 1000)
                                      or float_or_none(video.get('length_in_second'))),
                         'automatic_captions': automatic_captions,
@@ -747,6 +750,9 @@ class FacebookIE(InfoExtractor):
                 # preserve preferred_thumbnail in video info
                 if video_info.get('thumbnail'):
                     webpage_info['thumbnail'] = video_info['thumbnail']
+                # prefer video own publish time, fallback to webpage timestamp
+                if video_info.get('timestamp'):
+                    webpage_info['timestamp'] = video_info['timestamp']
                 return merge_dicts(webpage_info, video_info)
 
         if not video_data:
