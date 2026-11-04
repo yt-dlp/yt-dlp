@@ -1,4 +1,6 @@
+import datetime as dt
 import re
+from zoneinfo import ZoneInfo
 
 from .common import InfoExtractor
 from ..utils import (
@@ -23,6 +25,9 @@ class RTVSLOIE(InfoExtractor):
 
     _API_BASE = 'https://api.rtvslo.si/ava/{}/{}?client_id=82013fb3a531d5414f478747c1aca622'
     SUB_LANGS_MAP = {'Slovenski': 'sl'}
+
+    _SVN_TIMEZONE = ZoneInfo('Europe/Ljubljana')
+    _DATE_FMT_API = '%Y-%m-%d %H:%M:%S'
 
     _TESTS = [{
         'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
@@ -67,7 +72,7 @@ class RTVSLOIE(InfoExtractor):
             'series': 'Il giornale della sera',
             'timestamp': 1643743800,
             'release_timestamp': 1643745424,
-            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/il-giornale-della-sera_wide2.jpg',
+            'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/channel_logos/CAPO_wide2.jpg',
             'upload_date': '20220201',
             'tbr': 128000,
             'release_date': '20220201',
@@ -90,6 +95,14 @@ class RTVSLOIE(InfoExtractor):
     }, {
         'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
         'only_matching': True,
+    }, {
+        'url': 'https://365.rtvslo.si/arhiv/tuji-filmi/175012380',
+        'info_dict': {
+            'id': '175012380',
+            'ext': 'mp4',
+            'title': '[video is expired]',
+        },
+        'expected_exception': 'ExtractorError',
     }]
 
     def _real_extract(self, url):
@@ -147,8 +160,13 @@ class RTVSLOIE(InfoExtractor):
 
         if any('intermission.mp4' in x['url'] for x in formats):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
-        if any('dummy_720p.mp4' in x.get('manifest_url', '') for x in formats) and meta.get('stub') == 'error':
-            raise ExtractorError(f'{self.IE_NAME} said: Clip not available', expected=True)
+
+        expirationDate = meta.get('expirationDate')
+        if expirationDate is not None and expirationDate != '':
+            dt_svn_now = dt.datetime.now(self._SVN_TIMEZONE)
+            dt_expires = dt.datetime.strptime(expirationDate, self._DATE_FMT_API).replace(tzinfo=self._SVN_TIMEZONE)
+            if dt_svn_now > dt_expires:
+                raise ExtractorError('This video has expired', expected=True)
 
         return {
             'id': v_id,
