@@ -161,6 +161,7 @@ from .bandlab import (
     BandlabIE,
     BandlabPlaylistIE,
 )
+from .bandzone import BandzoneIE
 from .bannedvideo import BannedVideoIE
 from .bbc import (
     BBCIE,
