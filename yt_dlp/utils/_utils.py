@@ -2330,6 +2330,8 @@ class PagedList:
         return page_results
 
     def getslice(self, start=0, end=None):
+        if end is not None and start >= end:
+            return []
         return list(self._getslice(start, end))
 
     def _getslice(self, start, end):
