@@ -293,17 +293,23 @@ class FileDownloader:
     def _prepare_multiline_status(self, lines=1):
         if self.params.get('noprogress'):
             self._multiline = QuietMultilinePrinter()
-        elif self.ydl.params.get('logger'):
-            self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
-        elif self.params.get('progress_with_newline'):
-            self._multiline = BreaklineStatusPrinter(self.ydl._out_files.out, lines)
+            self.ydl._progress_active = False
         else:
-            self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
+            if self.ydl.params.get('logger'):
+                self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
+            elif self.params.get('progress_with_newline'):
+                self._multiline = BreaklineStatusPrinter(self.ydl._out_files.out, lines)
+            else:
+                self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
+
+            self.ydl._progress_active = True
+
         self._multiline.allow_colors = self.ydl._allow_colors.out and self.ydl._allow_colors.out != 'no_color'
         self._multiline._HAVE_FULLCAP = self.ydl._allow_colors.out
 
     def _finish_multiline_status(self):
         self._multiline.end()
+        self.ydl._progress_active = False
 
     ProgressStyles = Namespace(
         downloaded_bytes='light blue',
@@ -477,9 +483,14 @@ class FileDownloader:
             self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds {sleep_note}...')
             time.sleep(sleep_interval)
 
-        ret = self.real_download(filename, info_dict)
-        self._finish_multiline_status()
-        return ret, True
+        try:
+            ret = self.real_download(filename, info_dict)
+            return ret, True
+        except Exception:
+            raise
+        finally:
+            self._finish_multiline_status()
+
 
     def real_download(self, filename, info_dict):
         """Real download process. Redefine in subclasses."""
