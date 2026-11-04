@@ -42,6 +42,21 @@ class ElonetIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
+        icareus_iframe_vod_id = self._search_regex(
+            r'src="https://players.icareus.com/elonet/embed/vod/(\d+)"',
+            webpage,
+            'icareus iframe',
+            default=None,
+            fatal=False,
+            group=1,
+        )
+
+        if icareus_iframe_vod_id:
+            return self.url_result(
+                f'https://suite.icareus.com/fi/web/elonet/player/vod/?assetId={icareus_iframe_vod_id}',
+                ie='Icareus',
+            )
+
         src = self._parse_json(self._html_search_regex(
             r'id=\'video-data\'[^>]+data-video-sources="([^"]+)"', webpage, 'json'), video_id)[0]['src']
         ext = determine_ext(src)
