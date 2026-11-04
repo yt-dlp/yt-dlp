@@ -264,7 +264,7 @@ class ZDFIE(ZDFBaseIE):
             'duration': 895.0,
             'thumbnail': r're:https://www\.zdf\.de/assets/image-ard-gelb--vom-hellen-glanz-zu-finsteren-abgruenden-66-100~original\?cb=\d+',
             'series': 'Die Magie der Farben',
-            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-140',
+            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-142',
             'season': 'Season 2023',
             'season_number': 2023,
             'episode': 'Episode 5',
@@ -284,7 +284,7 @@ class ZDFIE(ZDFBaseIE):
             'duration': 895.0,
             'thumbnail': r're:https://www\.zdf\.de/assets/image-ard-gelb--vom-hellen-glanz-zu-finsteren-abgruenden-66-100~original\?cb=\d+',
             'series': 'Die Magie der Farben',
-            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-140',
+            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-142',
             'season': 'Season 2023',
             'season_number': 2023,
             'episode': 'Episode 5',
@@ -305,7 +305,7 @@ class ZDFIE(ZDFBaseIE):
             'duration': 895.0,
             'thumbnail': r're:https://www\.zdf\.de/assets/image-ard-gelb--vom-hellen-glanz-zu-finsteren-abgruenden-66-100~original\?cb=\d+',
             'series': 'Die Magie der Farben',
-            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-140',
+            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-142',
             'season': 'Season 2023',
             'season_number': 2023,
             'episode': 'Episode 5',
@@ -341,24 +341,24 @@ class ZDFIE(ZDFBaseIE):
         },
     }, {
         # FUNK video (hosted on a different CDN, has atypical PTMD and HLS files)
-        'url': 'https://www.zdf.de/video/serien/funk-collection-funk-11790-1596/funk-alles-ist-verzaubert-102',
-        'md5': '57af4423db0455a3975d2dc4578536bc',
+        'url': 'https://www.zdf.de/video/explainer/funk-collection-funk-12093-136/funk-die-us-praesidentschaftswahl-106',
+        'md5': 'bf745c19ec3aa2e2be974f596d9f3dc9',
         'info_dict': {
-            'id': 'funk-alles-ist-verzaubert-102',
+            'id': 'funk-die-us-praesidentschaftswahl-106',
             'ext': 'mp4',
-            'title': 'Alles ist verzaubert',
-            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
-            'duration': 1278.0,
-            'thumbnail': r're:https://www\.zdf\.de/assets/teaser-funk-alles-ist-verzaubert-102~original\?cb=\d+',
-            'series': 'DRUCK',
-            'series_id': 'funk-collection-funk-11790-1596',
-            'season': 'Season 2021',
-            'season_number': 2021,
-            'episode': 'Episode 50',
-            'episode_number': 50,
-            'timestamp': 1635520560,
-            'upload_date': '20211029',
-            '_old_archive_ids': ['zdf video_funk_1770473'],
+            'title': 'Die US-Präsidentschaftswahl',
+            'description': 'md5:1182feafbe21c2513c124dbd06f96af6',
+            'duration': 218.0,
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-die-us-praesidentschaftswahl-102~original?cb=1753525123669',
+            'series': 'WikiTube',
+            'series_id': 'funk-collection-funk-12093-136',
+            'season': 'Season 2019',
+            'season_number': 2019,
+            'episode': 'Episode 6',
+            'episode_number': 6,
+            'timestamp': 1577719800,
+            'upload_date': '20191230',
+            '_old_archive_ids': ['zdf video_funk_1650950'],
         },
     }, {
         # zdfheute video, also available on zdf.de
@@ -687,14 +687,32 @@ class ZDFChannelIE(ZDFBaseIE):
         'playlist_mincount': 366,
     }, {
         # Only selected season
-        'url': 'https://www.zdf.de/magazine/heute-journal-104?staffel=2025',
+        'url': 'https://www.zdf.de/magazine/heute-journal-104?staffel=2026',
         'info_dict': {
-            'id': 'heute-journal-104-s2025',
-            'title': 'heute journal - Season 2025',
+            'id': 'heute-journal-104-s2026',
+            'title': 'heute journal - Season 2026',
             'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
         },
         'playlist_mincount': 1,
         'playlist_maxcount': 365,
+    }, {
+        # Collection type HYBRID_BINGE_SERIES, all seasons
+        'url': 'https://www.zdf.de/serien/die-bergretter-104',
+        'info_dict': {
+            'id': 'die-bergretter-104',
+            'title': 'Die Bergretter',
+            'description': 'md5:d6c7bad59d610f2ff42aada775cdfd80',
+        },
+        'playlist_mincount': 8,
+    }, {
+        # Collection type HYBRID_BINGE_SERIES, only selected season
+        'url': 'https://www.zdf.de/serien/die-bergretter-104?staffel=18',
+        'info_dict': {
+            'id': 'die-bergretter-104-s18',
+            'title': 'Die Bergretter - Season 18',
+            'description': 'md5:d6c7bad59d610f2ff42aada775cdfd80',
+        },
+        'playlist_count': 7,
     }]
 
     _PAGE_SIZE = 24
@@ -716,7 +734,7 @@ class ZDFChannelIE(ZDFBaseIE):
                 'extensions': json.dumps({
                     'persistedQuery': {
                         'version': 1,
-                        'sha256Hash': '9412a0f4ac55dc37d46975d461ec64bfd14380d815df843a1492348f77b5c99a',
+                        'sha256Hash': '729eaf9b7dc4d3b4540366dec086729b56b467fd45a4ff900a260d739004ba11',
                     },
                 }),
             })['data']['smartCollectionByCanonical']
@@ -770,7 +788,7 @@ class ZDFChannelIE(ZDFBaseIE):
                 'extensions': json.dumps({
                     'persistedQuery': {
                         'version': 1,
-                        'sha256Hash': 'cb49420e133bd668ad895a8cea0e65cba6aa11ac1cacb02341ff5cf32a17cd02',
+                        'sha256Hash': 'f9cd12864be90dd97d015b59fb515ea9d464b14db543ae349fc474a96e49de0b',
                     },
                 }),
             })['data']['smartCollectionByCanonical']
