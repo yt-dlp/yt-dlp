@@ -31,6 +31,7 @@ from yt_dlp.utils import (
     ExtractorError,
     InAdvancePagedList,
     LazyList,
+    LenientJSONDecoder,
     NO_DEFAULT,
     OnDemandPagedList,
     Popen,
@@ -883,6 +884,25 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26.1234Z'), 1395612266)
         self.assertEqual(parse_iso8601('2015-09-29T08:27:31.727'), 1443515251)
         self.assertEqual(parse_iso8601('2015-09-29T08-27-31.727'), None)
+
+    def test_LenientJSONDecoder(self):
+        self.assertEqual(LenientJSONDecoder().decode('{"a": 1}'), {'a': 1})
+        self.assertEqual(LenientJSONDecoder(close_objects=1).decode('{"a": 1'), {'a': 1})
+        self.assertEqual(LenientJSONDecoder(close_objects=2).decode('[{"a": 1'), [{'a': 1}])
+        self.assertEqual(LenientJSONDecoder(ignore_extra=True).decode('  {} trailing'), {})
+
+        for source, kwargs, doc, pos, context in (
+            ('{bad', {'close_objects': 1}, '{bad', 1, '{bad'),
+            ('{bad: "a long value"}', {}, '{bad: "a long value"}', 1, '{bad: "a lo'),
+            (' \n{bad', {'ignore_extra': True}, '{bad', 1, '{bad'),
+            ('[{"a": 1', {'close_objects': 1}, '[{"a": 1}', 9, '[{"a": 1}'),
+        ):
+            with self.subTest(source=source, kwargs=kwargs):
+                with self.assertRaises(json.JSONDecodeError) as cm:
+                    LenientJSONDecoder(**kwargs).decode(source)
+                self.assertEqual(cm.exception.doc, doc)
+                self.assertEqual(cm.exception.pos, pos)
+                self.assertTrue(cm.exception.msg.endswith(f' in {context!r}'))
 
     def test_strip_jsonp(self):
         stripped = strip_jsonp('cb ([ {"id":"532cb",\n\n\n"x":\n3}\n]\n);')

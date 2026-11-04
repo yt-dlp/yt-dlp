@@ -540,7 +540,6 @@ def clean_html(html):
 
 
 class LenientJSONDecoder(json.JSONDecoder):
-    # TODO: Write tests
     def __init__(self, *args, transform_source=None, ignore_extra=False, close_objects=0, **kwargs):
         self.transform_source, self.ignore_extra = transform_source, ignore_extra
         self._close_attempts = 2 * close_objects
@@ -575,7 +574,8 @@ class LenientJSONDecoder(json.JSONDecoder):
                     s = self._close_object(e)
                     if s is not None:
                         continue
-                raise type(e)(f'{e.msg} in {s[e.pos - 10:e.pos + 10]!r}', s, e.pos)
+                raise type(e)(
+                    f'{e.msg} in {e.doc[max(e.pos - 10, 0):e.pos + 10]!r}', e.doc, e.pos)
         assert False, 'Too many attempts to decode JSON'
 
 
