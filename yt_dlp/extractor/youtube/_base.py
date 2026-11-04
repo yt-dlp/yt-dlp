@@ -292,6 +292,22 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
+    # Only H.264 and mp4a formats are available with this client
+    'ios_producer': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS_PRODUCER',
+                'clientVersion': '0.147.945',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.youtubeproducer/0.147.945 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '18.3.2.22D82',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 92,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # "Made for kids" videos aren't available with this client
     'visionos': {
         'INNERTUBE_CONTEXT': {
