@@ -3,6 +3,7 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    determine_ext,
     try_call,
     unified_timestamp,
     urlencode_postdata,
@@ -89,6 +90,17 @@ class EplusIbIE(InfoExtractor):
             'No video formats found!',
             'Requested format is not available',
         ],
+    }, {
+        # embedded uliza player
+        'url': 'https://live.eplus.jp/3155680',
+        'info_dict': {
+            'id': '403955-0003-001',
+            'title': 'トゲナシトゲアリ 2nd ONE-MAN LIVE“凛音の理”',
+            'live_status': 'is_live',
+            'release_date': '20240913',
+            'release_timestamp': 1726218000,
+        },
+        'skip': 'paywall',
     }]
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
@@ -151,6 +163,13 @@ class EplusIbIE(InfoExtractor):
         release_timestamp = try_call(lambda: unified_timestamp(data_json['event_datetime']) - 32400)
         release_timestamp_str = data_json.get('event_datetime_text')  # JST
 
+        video_info = {
+            'id': data_json['app_id'],
+            'title': data_json.get('app_name'),
+            'description': data_json.get('content'),
+            'release_timestamp': release_timestamp,
+        }
+
         self.write_debug(f'delivery_status = {delivery_status}, archive_mode = {archive_mode}')
 
         if delivery_status == 'PREPARING':
@@ -172,9 +191,9 @@ class EplusIbIE(InfoExtractor):
 
         formats = []
 
-        m3u8_playlist_urls = self._search_json(
+        stream_urls = self._search_json(
             r'var\s+listChannels\s*=', webpage, 'hls URLs', video_id, contains_pattern=r'\[.+\]', default=[])
-        if not m3u8_playlist_urls:
+        if not stream_urls:
             if live_status == 'is_upcoming':
                 self.raise_no_formats(
                     f'Could not find the playlist URL. This live event will begin at {release_timestamp_str} JST', expected=True)
@@ -186,8 +205,11 @@ class EplusIbIE(InfoExtractor):
         elif live_status == 'post_live':
             self.raise_no_formats('This event has ended, and the archive will be available shortly', expected=True)
         else:
-            for m3u8_playlist_url in m3u8_playlist_urls:
-                formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
+            for stream_url in stream_urls:
+                if determine_ext(stream_url) == 'm3u8':
+                    formats.extend(self._extract_m3u8_formats(stream_url, video_id))
+                else:
+                    return self.url_result(stream_url, url_transparent=True, **video_info)
             # FIXME: HTTP request headers need to be updated to continue download
             warning = 'Due to technical limitations, the download will be interrupted after one hour'
             if live_status == 'is_live':
@@ -196,10 +218,6 @@ class EplusIbIE(InfoExtractor):
                 self.report_warning(f'{warning}. You can restart to continue the download')
 
         return {
-            'id': data_json['app_id'],
-            'title': data_json.get('app_name'),
+            **video_info,
             'formats': formats,
-            'live_status': live_status,
-            'description': data_json.get('content'),
-            'release_timestamp': release_timestamp,
         }
