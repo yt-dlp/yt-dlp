@@ -1700,7 +1700,7 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
 )
 from .scrolller import ScrolllerIE
-from .sejmpl import SejmIE
+from .sejmpl import SejmBlueonlineIE, SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
 from .senategov import (
