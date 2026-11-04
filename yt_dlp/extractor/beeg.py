@@ -54,8 +54,9 @@ class BeegIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
+        video_id_stripped_zeros = video_id.lstrip('0')
         video = self._download_json(
-            f'https://store.externulls.com/facts/file/{video_id}',
+            f'https://store.externulls.com/facts/file/{video_id_stripped_zeros}',
             video_id, f'Downloading JSON for {video_id}')
 
         fc_facts = video.get('fc_facts')
@@ -79,7 +80,7 @@ class BeegIE(InfoExtractor):
         return {
             'id': video_id,
             'display_id': str_or_none(first_fact.get('id')),
-            'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
+            'title': traverse_obj(video, ('file', 'data', 0, 'cd_value')),
             'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
             'timestamp': unified_timestamp(first_fact.get('fc_created')),
             'duration': int_or_none(traverse_obj(video, ('file', 'fl_duration'))),
