@@ -230,27 +230,30 @@ class FFmpegPostProcessor(PostProcessor):
                                 f'to version {required_version} or newer if you encounter any errors')
 
     def get_audio_codec(self, path):
-        if not self.probe_available and not self.available:
+        use_ffprobe = self.probe_available
+        if not use_ffprobe and not self.available:
             raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
         try:
-            if self.probe_available:
+            if use_ffprobe:
                 cmd = [
                     self.probe_executable,
                     encodeArgument('-show_streams')]
+                basename = self.probe_basename
             else:
                 cmd = [
                     self.executable,
                     encodeArgument('-i')]
+                basename = self.basename
             cmd.append(self._ffmpeg_filename_argument(path))
-            self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
+            self.write_debug(f'{basename} command line: {shell_quote(cmd)}')
             stdout, stderr, returncode = Popen.run(
                 cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if returncode != (0 if self.probe_available else 1):
+            if returncode != (0 if use_ffprobe else 1):
                 return None
         except OSError:
             return None
-        output = stdout if self.probe_available else stderr
-        if self.probe_available:
+        output = stdout if use_ffprobe else stderr
+        if use_ffprobe:
             audio_codec = None
             for line in output.split('\n'):
                 if line.startswith('codec_name='):
