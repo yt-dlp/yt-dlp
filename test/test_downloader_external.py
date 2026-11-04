@@ -24,6 +24,7 @@ from yt_dlp.downloader.external import (
     FFmpegFD,
     HttpieFD,
     WgetFD,
+    Wget2FD,
 )
 
 TEST_COOKIE = {
@@ -86,6 +87,20 @@ class TestWgetFD(unittest.TestCase):
             assert '--load-cookies' in downloader._make_cmd('test', TEST_INFO)
 
 
+class TestWget2FD(unittest.TestCase):
+    def test_make_cmd(self):
+        with FakeYDL() as ydl:
+            downloader = Wget2FD(ydl, {'verbose': True})
+            ydl.cookiejar.set_cookie(http.cookiejar.Cookie(**TEST_COOKIE))
+            cmd = downloader._make_cmd('test', TEST_INFO)
+            assert '--keep-session-cookies' in cmd
+            assert (
+                '--load-cookies' in cmd
+                or f'--load-cookies={downloader._cookies_tempfile}' in cmd
+            )
+            assert '--unlink' in cmd
+
+
 class HTTPTestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self, /):
         if self.path.startswith('/redirect'):
@@ -130,11 +145,22 @@ class TestDownloaderCookieBehavior:
     @pytest.mark.parametrize('downloader_cls', [
         pytest.param(CurlFD, marks=pytest.mark.skipif(not CurlFD.available() or CurlFD._curl_version < CurlFD._MIN_VERSION_FOR_STDIN_COOKIES, reason='curl unavailable or too old')),
         pytest.param(WgetFD, marks=pytest.mark.skipif(not WgetFD.available(), reason='wget unavailable')),
+        pytest.param(Wget2FD, marks=pytest.mark.skipif(not Wget2FD.available(), reason='wget2 unavailable')),
         pytest.param(Aria2cFD, marks=pytest.mark.skipif(not Aria2cFD.available(), reason='aria2c unavailable')),
     ])
     def test_cookie_behavior(self, /, downloader_cls):
         with FakeYDL() as ydl:
-            downloader = downloader_cls(ydl, {})
+            params = {}
+            # TODO: add HEAD support for http_chunk_size to work
+            if Wget2FD == downloader_cls:
+                params.update({
+                    'http_chunk_size': False,
+                    'external_downloader_args': {
+                        'wget2': ['--https-enforce=none'],
+                    },
+                    'verbose': True,
+                })
+            downloader = downloader_cls(ydl, params)
 
             with HTTPTestServer(('localhost', 0), HTTPTestHandler) as server_a:
                 second_addr = server_a.address + 1
