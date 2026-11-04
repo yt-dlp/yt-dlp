@@ -10,8 +10,6 @@ import collections
 import socket
 import struct
 
-from .compat import compat_ord
-
 __author__ = 'Timo Schmid <coding@timoschmid.de>'
 
 SOCKS4_VERSION = 4
@@ -244,7 +242,7 @@ class sockssocket(socket.socket):
         if atype == Socks5AddressType.ATYP_IPV4:
             destaddr = self.recvall(4)
         elif atype == Socks5AddressType.ATYP_DOMAINNAME:
-            alen = compat_ord(self.recv(1))
+            alen = self.recvall(1)[0]
             destaddr = self.recvall(alen)
         elif atype == Socks5AddressType.ATYP_IPV6:
             destaddr = self.recvall(16)
