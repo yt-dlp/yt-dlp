@@ -1911,7 +1911,7 @@ class InfoExtractor:
         return self._resolve_nuxt_array(array, video_id, fatal=fatal, default=default)
 
     @staticmethod
-    def _hidden_inputs(html):
+    def _hidden_inputs(html, attr_list=('name', 'id')):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
         hidden_inputs = {}
         for input_el in re.findall(r'(?i)(<input[^>]+>)', html):
@@ -1920,7 +1920,10 @@ class InfoExtractor:
                 continue
             if attrs.get('type') not in ('hidden', 'submit'):
                 continue
-            name = attrs.get('name') or attrs.get('id')
+            for attr in variadic(attr_list):
+                name = attrs.get(attr)
+                if name is not None:
+                    break
             value = attrs.get('value')
             if name and value is not None:
                 hidden_inputs[name] = value
