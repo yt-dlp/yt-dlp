@@ -1156,6 +1156,13 @@ Make chapter entries for, or remove various segments (sponsor,
     --no-hls-split-discontinuity    Do not split HLS playlists into different
                                     formats at discontinuities such as ad breaks
                                     (default)
+    --download-manifests            Download HLS/DASH manifests to extract the
+                                    formats they contain (default)
+    --no-download-manifests         Do not download HLS/DASH manifests. Each
+                                    manifest is reported as a single format with
+                                    "manifest_url" set, so that an external
+                                    player can open the manifest itself. Meant
+                                    for use with --dump-json
     --extractor-args IE_KEY:ARGS    Pass ARGS arguments to the IE_KEY extractor.
                                     See "EXTRACTOR ARGUMENTS" for details. You
                                     can use this option multiple times to give
