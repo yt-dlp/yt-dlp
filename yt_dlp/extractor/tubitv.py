@@ -1,15 +1,226 @@
+import base64
+import datetime as dt
+import hashlib
+import hmac
+import json
+import os
+import time
+import uuid
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
+    jwt_decode_hs256,
     strip_or_none,
+    unified_strdate,
     url_or_none,
 )
 from ..utils.traversal import require, traverse_obj
 
 
-class TubiTvIE(InfoExtractor):
+class TubiTvBaseIE(InfoExtractor):
+    _GUEST_TOKEN_CACHE_KEY = 'guest_data'
+    _SIGNED_HEADERS = 'content-type'
+    _DEVICE_ID = None
+    _VERFIER = None
+    _API_BASE = 'https://account.production-public.tubi.io'
+    _GUEST_TOKEN = None
+
+    @property
+    def _verifier(self):
+        if not self._VERFIER:
+            self._VERFIER = os.urandom(16).hex()
+        return self._VERFIER
+
+    def _device_id(self, jwt_token=None):
+        if jwt_token:
+            self._DEVICE_ID = jwt_decode_hs256(jwt_token)['device_id']
+        if not self._DEVICE_ID:
+            self._DEVICE_ID = str(uuid.uuid4())
+        return self._DEVICE_ID
+
+    @staticmethod
+    def _hmac_sha256(key, data):
+        return hmac.new(key, data, hashlib.sha256)
+
+    @staticmethod
+    def sha256_hex(x):
+        if isinstance(x, dict):
+            x = json.dumps(x)
+        return hashlib.sha256(x.encode()).hexdigest()
+
+    @staticmethod
+    def _is_jwt_expired(jwt_token):
+        return jwt_decode_hs256(jwt_token)['exp'] - time.time() < 300
+
+    @staticmethod
+    def _base_headers():
+        return {
+            'accept': '*/*',
+            'content-type': 'application/json',
+            'origin': 'https://tubitv.com',
+            'referer': 'https://tubitv.com/',
+        }
+
+    # Source: https://md0.tubitv.com/web-k8s/dist/main.2e262c30.js
+    def get_pub_data(self):
+        challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(self._verifier.encode()).digest(),
+        ).decode()
+        return self._download_json(
+            f'{self._API_BASE}/device/anonymous/signing_key', None, 'Downloading Signing data', data=json.dumps({
+                'challenge': challenge,
+                'device_id': self._device_id(),
+                'platform': 'web',
+                'version': '1.0.0',
+            }).encode(),
+            headers=self._base_headers(),
+        )
+
+    # Source: https://md0.tubitv.com/web-k8s/dist/main.2e262c30.js
+    def _sign_params(self, payload, key, path):
+        algo = 'TUBI-HMAC-SHA256'
+        payload_hash = self.sha256_hex(payload)
+        canonical_hash = self.sha256_hex(f'POST\n{path}\n\ncontent-type:application/json\n\n{self._SIGNED_HEADERS}\n{payload_hash}')
+        ts = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        ket_data = b'TUBI' + base64.b64decode(key)
+        signature = self._hmac_sha256(
+            self._hmac_sha256(
+                self._hmac_sha256(
+                    ket_data, ts.split('T')[0].encode(),
+                ).digest(), b'tubi_request',
+            ).digest(), (f'{algo}\n{ts}\n{canonical_hash}').encode(),
+        ).hexdigest()
+        return {
+            'X-Tubi-Algorithm': algo,
+            'X-Tubi-Date': ts,
+            'X-Tubi-Expires': 30,
+            'X-Tubi-SignedHeaders': self._SIGNED_HEADERS,
+            'X-Tubi-Signature': signature,
+        }
+
+    def handle_guest_data(self, data=None):
+        if data:
+            self._GUEST_TOKEN = data.get('access_token')
+            if not self._GUEST_TOKEN:
+                raise ExtractorError('Unable to get access token')
+            self.cache.store('tubitv', self._GUEST_TOKEN_CACHE_KEY, self._GUEST_TOKEN)
+            return self._GUEST_TOKEN
+        return self.cache.load('tubitv', self._GUEST_TOKEN_CACHE_KEY)
+
+    def get_guest_token(self):
+        cached_access_token = self.handle_guest_data()
+        if cached_access_token:
+            if not self._is_jwt_expired(cached_access_token):
+                self._GUEST_TOKEN = cached_access_token
+                return self._GUEST_TOKEN
+
+        signing_data = self.get_pub_data()
+        signing_key = signing_data.get('key')
+        _id = signing_data.get('id')
+        if not (signing_key and _id):
+            raise ExtractorError('Unable to get signing_data data')
+        payload = {
+            'device_id': self._device_id(),
+            'id': _id,
+            'platform': 'web',
+            'verifier': self._verifier,
+        }
+        endpoint = '/device/anonymous/token'
+        response = self._download_json(
+            f'{self._API_BASE}{endpoint}',
+            None,
+            'Downloading guest data',
+            query=self._sign_params(payload, signing_key, endpoint),
+            data=json.dumps(payload).encode(),
+            headers=self._base_headers(),
+        )
+        self.handle_guest_data(response)
+
+    def _parse_metadata(self, video_id, data):
+        formats = []
+        drm_formats = False
+
+        for resource in traverse_obj(data, ('video_resources', lambda _, v: url_or_none(v['manifest']['url']))) or []:
+            resource_type = resource.get('type')
+            manifest_url = resource['manifest']['url']
+            if resource_type == 'dash':
+                formats.extend(self._extract_mpd_formats(manifest_url, video_id, mpd_id=resource_type, fatal=False))
+            elif resource_type in ('hlsv3', 'hlsv6'):
+                fmts = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False)
+                for fmt in fmts:
+                    if 'Audio Description' in fmt.get('format_note', ''):
+                        fmt['language_preference'] = -10
+                formats.extend(fmts)
+            elif resource_type in self._UNPLAYABLE_FORMATS:
+                drm_formats = True
+            else:
+                self.report_warning(f'Skipping unknown resource type "{resource_type}"')
+
+        if not formats and drm_formats:
+            self.report_drm(video_id)
+        elif not (formats or data.get('policy_match')):  # policy_match is False if content was removed
+            raise ExtractorError('This content is currently unavailable', expected=True)
+
+        subtitles = {}
+        for sub in traverse_obj(data, ('subtitles', lambda _, v: url_or_none(v['url']))):
+            subtitles.setdefault(sub.get('lang', 'English'), []).append({
+                'url': self._proto_relative_url(sub['url']),
+            })
+
+        thumbnails = []
+        for key in ('hero_images', 'thumbnails', 'hero_images'):
+            thumbnails.extend({'url': thumb_url} for thumb_url in (data.get(key) or []))
+
+        title = traverse_obj(data, ('title', {str}))
+        season_number, episode_number, episode_title = self._search_regex(
+            r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
+
+        return {
+            'title': strip_or_none(title),
+            'season_number': int_or_none(season_number),
+            'episode_number': int_or_none(episode_number),
+            'episode': strip_or_none(episode_title),
+            'thumbnails': thumbnails,
+            **traverse_obj(data, {
+                'description': ('description', {str}),
+                'duration': ('duration', {int_or_none}),
+                'uploader_id': ('publisher_id', {str}),
+                'release_year': ('year', {int_or_none}),
+                'release_date': ('availability_starts', {unified_strdate}),
+                'modified_date': ('updated_at', {unified_strdate}),
+                'thumbnails': ('thumbnails', ..., {url_or_none}, {'url': {self._proto_relative_url}}),
+            }),
+            'subtitles': subtitles,
+            'formats': formats,
+        }
+
+    def get_video_data_from_api(self, video_id):
+        guest_token = self.get_guest_token()
+        data = self._download_json(
+            'https://content-cdn.production-public.tubi.io/api/v3/content', video_id, query={
+                'app_id': 'tubitv',
+                'platform': 'web',
+                'content_id': video_id,
+                'device_id': self._device_id(guest_token),
+                'limit_resolutions[]': 'h264_1080p',
+                'video_resources[]': 'hlsv6',
+                'images[posterarts]': 'w408h583_poster',
+            }, headers={
+                **self._base_headers(),
+                'Authorization': f'Bearer {guest_token}',
+            },
+        )
+
+        return {
+            'id': video_id,
+            **self._parse_metadata(video_id, data),
+        }
+
+
+class TubiTvIE(TubiTvBaseIE):
     IE_NAME = 'tubitv'
     _VALID_URL = r'https?://(?:www\.)?tubitv\.com/(?:[a-z]{2}-[a-z]{2}/)?(?P<type>video|movies|tv-shows)/(?P<id>\d+)'
     _TESTS = [{
@@ -23,6 +234,8 @@ class TubiTvIE(InfoExtractor):
             'release_year': 1935,
             'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 5187,
+            'modified_date': '20260723',
+            'release_date': '20230701',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -40,6 +253,8 @@ class TubiTvIE(InfoExtractor):
             'release_year': 2011,
             'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
             'duration': 1376,
+            'modified_date': '20260922',
+            'release_date': '20220613',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -68,6 +283,21 @@ class TubiTvIE(InfoExtractor):
         },
         'skip': 'Content Unavailable',
     }, {
+        'url': 'https://tubitv.com/movies/100049199/cruel-intentions',
+        'info_dict': {
+            'id': '100049199',
+            'ext': 'mp4',
+            'title': 'Cruel Intentions',
+            'description': 'md5:529c3dd0166a4435f46052f113f781f8',
+            'uploader_id': '0c7e281b894a98de249c3bcf61c16e29',
+            'duration': 5858,
+            'thumbnail': r're:^https?://canvas-lb\.tubitv\.com/.+',
+            'release_year': 1999,
+            'modified_date': '20260929',
+            'release_date': '20260901',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://tubitv.com/es-mx/tv-shows/477363/s01-e03-jacob-dos-dos-y-la-tarjets-de-hockey-robada',
         'only_matching': True,
     }]
@@ -83,57 +313,13 @@ class TubiTvIE(InfoExtractor):
             headers=self.geo_verification_headers())
         video_data = self._search_json(
             r'window\.__data\s*=', webpage, 'data', video_id,
-            transform_source=js_to_json)['video']['byId'][video_id]
-
-        formats = []
-        drm_formats = False
-
-        for resource in traverse_obj(video_data, ('video_resources', lambda _, v: url_or_none(v['manifest']['url']))):
-            resource_type = resource.get('type')
-            manifest_url = resource['manifest']['url']
-            if resource_type == 'dash':
-                formats.extend(self._extract_mpd_formats(manifest_url, video_id, mpd_id=resource_type, fatal=False))
-            elif resource_type in ('hlsv3', 'hlsv6'):
-                fmts = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id=resource_type, fatal=False)
-                for fmt in fmts:
-                    if 'Audio Description' in fmt.get('format_note', ''):
-                        fmt['language_preference'] = -10
-                formats.extend(fmts)
-            elif resource_type in self._UNPLAYABLE_FORMATS:
-                drm_formats = True
-            else:
-                self.report_warning(f'Skipping unknown resource type "{resource_type}"')
-
-        if not formats and drm_formats:
-            self.report_drm(video_id)
-        elif not formats and not video_data.get('policy_match'):  # policy_match is False if content was removed
-            raise ExtractorError('This content is currently unavailable', expected=True)
-
-        subtitles = {}
-        for sub in traverse_obj(video_data, ('subtitles', lambda _, v: url_or_none(v['url']))):
-            subtitles.setdefault(sub.get('lang', 'English'), []).append({
-                'url': self._proto_relative_url(sub['url']),
-            })
-
-        title = traverse_obj(video_data, ('title', {str}))
-        season_number, episode_number, episode_title = self._search_regex(
-            r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
+            transform_source=js_to_json)['video']['byId'].get(video_id)
+        if not video_data:
+            return self.get_video_data_from_api(video_id)
 
         return {
             'id': video_id,
-            'title': strip_or_none(title),
-            'formats': formats,
-            'subtitles': subtitles,
-            'season_number': int_or_none(season_number),
-            'episode_number': int_or_none(episode_number),
-            'episode': strip_or_none(episode_title),
-            **traverse_obj(video_data, {
-                'description': ('description', {str}),
-                'duration': ('duration', {int_or_none}),
-                'uploader_id': ('publisher_id', {str}),
-                'release_year': ('year', {int_or_none}),
-                'thumbnails': ('thumbnails', ..., {url_or_none}, {'url': {self._proto_relative_url}}),
-            }),
+            **self._parse_metadata(video_id, video_data),
         }
 
 
