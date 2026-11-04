@@ -89,6 +89,17 @@ class EplusIbIE(InfoExtractor):
             'No video formats found!',
             'Requested format is not available',
         ],
+    }, {
+        'url': 'https://live.eplus.jp/3702458?show_id=3702558',
+        'info_dict': {
+            'id': '332515-0128-001',
+            'ext': 'mp4',
+            'title': '角野隼斗 ピアノリサイタル “Cateen Orbit” supported by ロート製薬 リピート1回目',
+            'live_status': 'was_live',
+            'release_date': '20260907',
+            'release_timestamp': 1788778800,
+        },
+        'skip': 'Requires login',
     }]
 
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
@@ -127,15 +138,16 @@ class EplusIbIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        # Keep-alive sockets go idle for 15 minutes and then hang on the first refresh
         webpage, urlh = self._download_webpage_handle(
-            url, video_id, headers={'User-Agent': self._USER_AGENT})
+            url, video_id, headers={'User-Agent': self._USER_AGENT, 'Connection': 'close'})
         if urlh.url.startswith('https://live.eplus.jp/member/auth'):
             username, password = self._get_login_info()
             if not username:
                 self.raise_login_required()
             self._login(username, password, urlh)
             webpage = self._download_webpage(
-                url, video_id, headers={'User-Agent': self._USER_AGENT})
+                url, video_id, headers={'User-Agent': self._USER_AGENT, 'Connection': 'close'})
 
         data_json = self._search_json(r'<script>\s*var app\s*=', webpage, 'data json', video_id)
 
@@ -171,6 +183,8 @@ class EplusIbIE(InfoExtractor):
             live_status = 'is_live'
 
         formats = []
+        stream_session = self._search_regex(
+            r'\bstreamSession\s*=\s*["\']([^"\']+)', webpage, 'stream session', default=None)
 
         m3u8_playlist_urls = self._search_json(
             r'var\s+listChannels\s*=', webpage, 'hls URLs', video_id, contains_pattern=r'\[.+\]', default=[])
@@ -187,13 +201,9 @@ class EplusIbIE(InfoExtractor):
             self.raise_no_formats('This event has ended, and the archive will be available shortly', expected=True)
         else:
             for m3u8_playlist_url in m3u8_playlist_urls:
-                formats.extend(self._extract_m3u8_formats(m3u8_playlist_url, video_id))
-            # FIXME: HTTP request headers need to be updated to continue download
-            warning = 'Due to technical limitations, the download will be interrupted after one hour'
-            if live_status == 'is_live':
-                self.report_warning(warning)
-            elif live_status == 'was_live':
-                self.report_warning(f'{warning}. You can restart to continue the download')
+                formats.extend(self._extract_m3u8_formats(
+                    m3u8_playlist_url, video_id,
+                    entry_protocol='m3u8_eplus' if stream_session else 'm3u8_native'))
 
         return {
             'id': data_json['app_id'],
@@ -202,4 +212,7 @@ class EplusIbIE(InfoExtractor):
             'live_status': live_status,
             'description': data_json.get('content'),
             'release_timestamp': release_timestamp,
+            '_eplus_stream_session': stream_session,
+            '_eplus_limited_viewing': self._search_regex(
+                r'\bisVD\s*=\s*(true|false)', webpage, 'viewing limit', default='false') == 'true',
         }
