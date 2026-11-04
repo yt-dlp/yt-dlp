@@ -158,6 +158,7 @@ class NiconicoIE(NiconicoBaseIE):
             'display_id': '1173108780',
             'duration': 320,
             'genres': ['未設定'],
+            'heatmap': 'count:20',
             'like_count': int,
             'tags': 'mincount:5',
             'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
@@ -182,6 +183,7 @@ class NiconicoIE(NiconicoBaseIE):
             'display_id': 'sm8628149',
             'duration': 219,
             'genres': ['ゲーム'],
+            'heatmap': 'count:20',
             'like_count': int,
             'tags': 'mincount:3',
             'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
@@ -206,6 +208,7 @@ class NiconicoIE(NiconicoBaseIE):
             'display_id': 'nm14296458',
             'duration': 208,
             'genres': ['音楽・サウンド'],
+            'heatmap': 'count:20',
             'like_count': int,
             'tags': 'mincount:1',
             'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
@@ -230,6 +233,7 @@ class NiconicoIE(NiconicoBaseIE):
             'display_id': 'nl1872567',
             'duration': 586,
             'genres': ['エンターテイメント'],
+            'heatmap': 'count:20',
             'like_count': int,
             'tags': 'mincount:3',
             'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
@@ -254,6 +258,7 @@ class NiconicoIE(NiconicoBaseIE):
             'display_id': 'so38016254',
             'duration': 114,
             'genres': ['アニメ'],
+            'heatmap': 'count:20',
             'like_count': int,
             'tags': 'mincount:4',
             'thumbnail': r're:https?://img\.cdn\.nimg\.jp/s/nicovideo/thumbnails/.+',
@@ -442,6 +447,56 @@ class NiconicoIE(NiconicoBaseIE):
 
         return formats
 
+    def _download_comment_data(self, video_id, api_data):
+        nv_comment = traverse_obj(api_data, ('comment', 'nvComment', {dict}))
+        server = traverse_obj(nv_comment, ('server', {url_or_none}))
+        params = traverse_obj(nv_comment, ('params', {dict}))
+        thread_key = traverse_obj(nv_comment, ('threadKey', {str}))
+        if not server or not thread_key or params is None:
+            return
+
+        return self._download_json(
+            f'{server}/v1/threads', video_id,
+            'Downloading comments', 'Failed to download comments', headers={
+                'Content-Type': 'text/plain;charset=UTF-8',
+                **self._HEADERS,
+            }, query={'pc': '1'}, data=json.dumps({
+                'additionals': {},
+                'params': params,
+                'threadKey': thread_key,
+            }).encode(), fatal=False)
+
+    @staticmethod
+    def _extract_heatmap(comment_data, duration):
+        heatmap = traverse_obj(comment_data, (
+            'data', 'voltageZone', 'heatmap', ..., {float_or_none}, all))
+
+        max_value = max(heatmap, default=0)
+        if not duration or max_value <= 0:
+            return
+
+        interval = duration / len(heatmap)
+
+        return [{
+            'start_time': idx * interval,
+            'end_time': min((idx + 1) * interval, duration),
+            'value': value / max_value,
+        } for idx, value in enumerate(heatmap)]
+
+    def _get_subtitles(self, comment_data):
+        if not comment_data:
+            return
+
+        comments = traverse_obj(
+            comment_data, ('data', 'threads', ..., 'comments', ...))
+
+        return {
+            'comments': [{
+                'ext': 'json',
+                'data': json.dumps(comments),
+            }],
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -492,15 +547,19 @@ class NiconicoIE(NiconicoBaseIE):
         if not formats and err_msg:
             self.raise_login_required(err_msg, metadata_available=True)
 
+        duration = traverse_obj(api_data, ('video', 'duration', {int_or_none}))
+        comment_data = self._download_comment_data(video_id, api_data)
         thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp', 'short'])
 
         return {
             'availability': availability,
             'display_id': video_id,
+            'duration': duration,
             'formats': formats,
             'genres': traverse_obj(api_data, ('genre', 'label', {str}, filter, all, filter)),
+            'heatmap': self._extract_heatmap(comment_data, duration),
             'release_timestamp': parse_iso8601(scheduled_time),
-            'subtitles': self.extract_subtitles(video_id, api_data),
+            'subtitles': self.extract_subtitles(comment_data),
             'tags': traverse_obj(api_data, ('tag', 'items', ..., 'name', {str}, filter, all, filter)),
             'thumbnails': [{
                 'ext': 'jpg',
@@ -521,7 +580,6 @@ class NiconicoIE(NiconicoBaseIE):
                 'id': ('id', {str_or_none}),
                 'title': ('title', {str}),
                 'description': ('description', {clean_html}, filter),
-                'duration': ('duration', {int_or_none}),
                 'timestamp': ('registeredAt', {parse_iso8601}),
             })),
             **traverse_obj(api_data, ('video', 'count', {
@@ -529,33 +587,6 @@ class NiconicoIE(NiconicoBaseIE):
                 'like_count': ('like', {int_or_none}),
                 'view_count': ('view', {int_or_none}),
             })),
-        }
-
-    def _get_subtitles(self, video_id, api_data):
-        comments_info = traverse_obj(api_data, ('comment', 'nvComment', {dict})) or {}
-        if not comments_info.get('server'):
-            return
-
-        danmaku = traverse_obj(self._download_json(
-            f'{comments_info["server"]}/v1/threads', video_id,
-            'Downloading comments', 'Failed to download comments', headers={
-                'Content-Type': 'text/plain;charset=UTF-8',
-                'Origin': self._BASE_URL,
-                'Referer': f'{self._BASE_URL}/',
-                'X-Client-Os-Type': 'others',
-                **self._HEADERS,
-            }, data=json.dumps({
-                'additionals': {},
-                'params': comments_info.get('params'),
-                'threadKey': comments_info.get('threadKey'),
-            }).encode(), fatal=False,
-        ), ('data', 'threads', ..., 'comments', ...))
-
-        return {
-            'comments': [{
-                'ext': 'json',
-                'data': json.dumps(danmaku),
-            }],
         }
 
 
