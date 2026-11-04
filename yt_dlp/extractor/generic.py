@@ -14,6 +14,7 @@ from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     KNOWN_EXTENSIONS,
     MEDIA_EXTENSIONS,
+    NO_DEFAULT,
     ExtractorError,
     UnsupportedError,
     determine_ext,
@@ -392,28 +393,57 @@ class GenericIE(InfoExtractor):
         },
         'expected_warnings': ['Untested major version'],
     }, {
-        # FIXME: Unable to extract flashvars
         # KVS Player v7.11.4
-        # kt_player.js?v=2.11.5.1
+        # kt_player.js?v=7.5.0.1
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
         'url': 'https://www.kvs-demo.com/video/105/kelis-4th-of-july/',
+        'md5': 'a36ddb3f0a682f5e3f78b084f56d45ae',
         'info_dict': {
             'id': '105',
             'ext': 'mp4',
             'title': 'Kelis - 4th Of July',
+            'description': 'Kelis - 4th Of July',
+            'display_id': 'kelis-4th-of-july',
+            'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
         },
     }, {
         # KVS Player v7.11.4
-        # kt_player.js?v=6.3.2
+        # kt_player.js?v=7.5.0
         # https://github.com/yt-dlp/yt-dlp/commit/a318f59d14792d25b2206c3f50181e03e8716db7
         'url': 'https://www.kvs-demo.com/embed/105/',
-        'md5': '1ff84c70acaddbb03288c6cc5ee1879f',
+        'md5': 'a36ddb3f0a682f5e3f78b084f56d45ae',
         'info_dict': {
             'id': '105',
             'ext': 'mp4',
             'title': 'Kelis - 4th Of July / Embed Player',
             'display_id': 'kelis-4th-of-july',
             'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
+        },
+    }, {
+        # kt_player.js?v=7.5.0.1
+        'url': 'https://www.kvs-demo.com/video/32/baby-alice-pina-colada-boy',
+        'md5': '72f9b50a554167b7a06ce24057436b30',
+        'info_dict': {
+            'id': '32',
+            'ext': 'mp4',
+            'display_id': 'baby-alice-pina-colada-boy',
+            'title': 'Baby Alice - Piña Colada Boy',
+            'description': 'Baby Alice - Piña Colada Boy',
+            'thumbnail': r're:https?://www\.kvs-demo\.com/contents/videos_screenshots/.+\.jpg',
+        },
+    }, {
+        # KVS Player v13.4.2
+        # kt_player.js?v=13.4.2
+        'url': 'https://www.porngem.com/videos/guiltless-college-girl-was-enticed-and-railed-by-old-mentor-158080',
+        'md5': 'd70026c78755b345d4509da2a74ec238',
+        'info_dict': {
+            'id': '158080',
+            'ext': 'mp4',
+            'title': 'Guiltless college girl was enticed and railed by old mentor | PornGem',
+            'description': 'Fetching nubile is being seduced by her aged tutor to give a head and have hard-core foray in the classroom',
+            'display_id': 'guiltless-college-girl-was-enticed-and-railed-by-old-mentor-158080',
+            'thumbnail': r're:https?://www\.porngem\.com/contents/videos_screenshots/.+\.jpg',
+            'age_limit': 18,
         },
     }, {
         # twitter:player:stream
@@ -719,10 +749,17 @@ class GenericIE(InfoExtractor):
         ]
 
     def _extract_kvs(self, url, webpage, video_id):
-        flashvars = self._search_json(
-            r'(?s:<script\b[^>]*>.*?var\s+flashvars\s*=)',
-            webpage, 'flashvars', video_id, transform_source=js_to_json)
-
+        varname = self._search_regex(
+            r'''(?<![=!+*-])=\s*kt_player\s*\(\s*'kt_player'\s*,\s*[^)]+,\s*(?!params)([\w$]+)\s*\)''',
+            webpage, 'flashvars name', default='flashvars')
+        # combine flashvars if defined twice in if...else blocks
+        flashvars = merge_dicts(*(self._search_json(
+            r'<script(?:\s[^>]*)?>[\s\S]*?%svar\s+%s\s*=' % (extra, varname),
+            webpage, 'flashvars', video_id, end_pattern=r';[\s\S]*?</script>',
+            # strip non-JSON JS (adv_ keys may contain URLs with commas)
+            transform_source=lambda s: js_to_json(re.sub(r"(?<!-)\badv_\w+\s*:\s*(?:'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"|[^,\n]+),?", '', s)),
+            fatal=not extra, default={} if extra else NO_DEFAULT)
+            for extra in (r'', r'(?<!-)\belse\s*\{\s*')))
         # extract the part after the last / as the display_id from the
         # canonical URL.
         display_id = self._search_regex(
@@ -1103,7 +1140,7 @@ class GenericIE(InfoExtractor):
         ), webpage, 'KVS player', group='ver', default=False)
         if found:
             self.report_detected('KVS Player')
-            if found.split('.')[0] not in ('4', '5', '6'):
+            if found.split('.')[0] not in ('2', '3', '4', '5', '6', '7', '13', '15'):
                 self.report_warning(f'Untested major version ({found}) in player engine - download may fail.')
             return [self._extract_kvs(url, webpage, video_id)]
 
