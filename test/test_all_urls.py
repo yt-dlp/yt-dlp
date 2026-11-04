@@ -39,6 +39,10 @@ class TestAllURLsMatching(unittest.TestCase):
         # Top tracks
         assertTab('https://www.youtube.com/playlist?list=MCUS.20142101')
 
+    def test_acfun_matching(self):
+        self.assertMatch('https://www.acfun.cn/a/aa6005445', ['AcFunAlbum'])
+        self.assertMatch('https://www.acfun.cn/v/ac36828046', ['AcFunVideo'])
+
     def test_youtube_matching(self):
         self.assertTrue(YoutubeIE.suitable('PLtS2H6bU1M'))
         self.assertFalse(YoutubeIE.suitable('https://www.youtube.com/watch?v=AV6J6_AeFEQ&playnext=1&list=PL4023E734DA416012'))  # 668

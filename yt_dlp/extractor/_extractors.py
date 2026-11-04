@@ -22,6 +22,7 @@ from .acast import (
     ACastIE,
 )
 from .acfun import (
+    AcFunAlbumIE,
     AcFunBangumiIE,
     AcFunVideoIE,
 )
