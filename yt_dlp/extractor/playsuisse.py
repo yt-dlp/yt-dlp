@@ -170,8 +170,9 @@ class PlaySuisseIE(InfoExtractor):
         code_challenge = base64.urlsafe_b64encode(
             hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
 
-        request_id = parse_qs(self._request_webpage(
-            f'{self._LOGIN_BASE}/authz-srv/authz', None, 'Requesting session ID', query={
+        request_id = self._download_json(
+            f'{self._LOGIN_BASE}/authz-srv/authrequest/authz/generate', None, 'Requesting session ID',
+            headers={'content-type': 'application/json'}, data=json.dumps({
                 'client_id': self._CLIENT_ID,
                 'redirect_uri': 'https://www.playsuisse.ch/auth',
                 'scope': 'email profile openid offline_access',
@@ -179,12 +180,12 @@ class PlaySuisseIE(InfoExtractor):
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256',
                 'view_type': 'login',
-            }).url)['requestId'][0]
+            }).encode())['data']['requestId']
 
         try:
             exchange_id = self._download_json(
-                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password', None,
-                'Submitting username', headers={'content-type': 'application/json'}, data=json.dumps({
+                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/initiate/password', None, 'Submitting username',
+                headers={'content-type': 'application/json'}, data=json.dumps({
                     'usage_type': 'INITIAL_AUTHENTICATION',
                     'request_id': request_id,
                     'medium_id': 'PASSWORD',
@@ -196,8 +197,9 @@ class PlaySuisseIE(InfoExtractor):
 
         try:
             login_data = self._download_json(
-                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password', None,
-                'Submitting password', headers={'content-type': 'application/json'}, data=json.dumps({
+                f'{self._LOGIN_BASE}/verification-srv/v2/authenticate/authenticate/password', None, 'Submitting password',
+                impersonate=True,
+                headers={'content-type': 'application/json'}, data=json.dumps({
                     'requestId': request_id,
                     'exchange_id': exchange_id,
                     'type': 'password',
