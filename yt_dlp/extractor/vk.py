@@ -556,8 +556,8 @@ class VKIE(VKBaseIE):
                 })
 
         for sub in data.get('subs') or {}:
-            subtitles.setdefault(sub.get('lang', 'en'), []).append({
-                'ext': sub.get('title', '.srt').split('.')[-1],
+            subtitles.setdefault(sub.get('lang') or 'en', []).append({
+                'ext': (sub.get('title') or '.srt').split('.')[-1],
                 'url': url_or_none(sub.get('url')),
             })
 
