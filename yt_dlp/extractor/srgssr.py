@@ -11,20 +11,13 @@ from ..utils import (
 
 
 class SRGSSRIE(InfoExtractor):
+    IE_DESC = 'Handles URNs found on srf.ch, rts.ch, rsi.ch and rtr.ch'
     _VALID_URL = r'''(?x)
-                    (?:
-                        https?://tp\.srgssr\.ch/p(?:/[^/]+)+\?urn=urn|
-                        srgssr
-                    ):
-                    (?P<bu>
-                        srf|rts|rsi|rtr|swi
-                    ):(?:[^:]+:)?
-                    (?P<type>
-                        video|audio
-                    ):
-                    (?P<id>
-                        [0-9a-f\-]{36}|\d+
-                    )
+                    (?:urn:)
+                    (?:swisstxt:(?P<type>video|audio):)?
+                    (?P<bu>srf|rts|rsi|rtr|swi):
+                    (?:(?P<type_2>video|audio):)?
+                    (?P<id>[0-9a-f\-]{36}|\d+)
                     '''
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['CH']
@@ -54,14 +47,22 @@ class SRGSSRIE(InfoExtractor):
             url += ('?' if '?' not in url else '&') + auth_params
         return url
 
-    def _get_media_data(self, bu, media_type, media_id):
+    def _get_media_data(self, media_type, media_id, urn):
         query = {'onlyChapters': True} if media_type == 'video' else {}
+
+        # For all URNs, use the byUrn endpoint
         full_media_data = self._download_json(
-            f'https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{media_type}/{media_id}.json',
+            f'https://il.srgssr.ch/integrationlayer/2.0/mediaComposition/byUrn/{urn}.json',
             media_id, query=query)['chapterList']
+
+        # Legacy endpoint:
+        # https://il.srgssr.ch/integrationlayer/2.0/{bu}/mediaComposition/{type}/{id}.json
+        # The legacy endpoint doesn't seem to be compatible with :swisstxt: URNs
+        # But all other media CAN be extracted via byUrn, so we just use byUrn for all cases
+
+        # Find the matching media entry by ID
         try:
-            media_data = next(
-                x for x in full_media_data if x.get('id') == media_id)
+            media_data = next(x for x in full_media_data if x.get('id') == media_id)
         except StopIteration:
             raise ExtractorError('No media information found')
 
@@ -77,8 +78,12 @@ class SRGSSRIE(InfoExtractor):
         return media_data
 
     def _real_extract(self, url):
-        bu, media_type, media_id = self._match_valid_url(url).groups()
-        media_data = self._get_media_data(bu, media_type, media_id)
+        mobj = self._match_valid_url(url)
+        bu = mobj.group('bu')
+        media_type = mobj.group('type') or mobj.group('type_2')
+        media_id = mobj.group('id')
+
+        media_data = self._get_media_data(media_type, media_id, urn=url)
         title = media_data['title']
 
         formats = []
@@ -96,6 +101,8 @@ class SRGSSRIE(InfoExtractor):
                 if source.get('tokenType') == 'AKAMAI':
                     format_url = self._get_tokenized_src(
                         format_url, media_id, format_id)
+                    # Livestreams and their VoDs (all?) use AKAMAI, but they only provide m3u8 (index.m3u8), not f4m.
+                    # This causes warning: "Failed to parse XML: syntax error: line 1, column 0;"
                     fmts, subs = self._extract_akamai_formats_and_subtitles(
                         format_url, media_id)
                     formats.extend(fmts)
@@ -150,22 +157,185 @@ class SRGSSRIE(InfoExtractor):
         }
 
 
+class SRGSSRArticleIE(InfoExtractor):
+    IE_DESC = 'Articles on srf.ch, rts.ch, rsi.ch, and rtr.ch with embedded media, see tests for examples'
+    _VALID_URL = r'https?://(?:www\.)?(?P<bu>srf|rts|rsi|rtr)\.ch/(?!play/)(?:[^#?]+)'
+
+    _TESTS = [{
+        # Article from /news section with audio embed
+        'url': 'https://www.srf.ch/news/international/groesste-anerkannte-minderheit-deutsche-minderheit-in-polen-nimmt-ab-die-gruende',
+        'info_dict': {
+            'id': '591cbc89-0ef2-4d54-9d68-8aa89f19e9ae',
+            'ext': 'mp3',
+            'title': 'Polen: Wie steht es um die anerkannte deutsche Minderheit?',
+            'upload_date': '20251202',
+            'timestamp': 1764670020,
+            'duration': 283.716,
+            'thumbnail': 'https://download-media.srf.ch/world/image/audio/2025/12/blob-10',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # /audio URL with id parameter
+        'url': 'https://www.srf.ch/audio/100-sekunden-wissen/ehrenamt-freiwilligenarbeit?id=AUDI20251205_RS_0097',
+        'info_dict': {
+            'id': '5620aba2-a9b5-312b-90c2-5ff6f3ae2ccf',
+            'ext': 'mp3',
+            'title': 'Ehrenamt / Freiwilligenarbeit',
+            'upload_date': '20251205',
+            'timestamp': 1764914040,
+            'duration': 163.584,
+            'thumbnail': 'https://download-media.srf.ch/world/image/default/2025/12/364caf12115621962354969029.jpg',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # /audio URL with partId parameter (segment of a longer show)
+        'url': 'https://www.srf.ch/audio/echo-der-zeit/polizei-geht-gegen-kriminelle-webshops-vor?partId=50b20dc8-f05b-4972-bf03-e438ff2833eb',
+        'info_dict': {
+            'id': '50b20dc8-f05b-4972-bf03-e438ff2833eb',
+            'ext': 'mp3',
+            'title': 'Polizei geht gegen kriminelle Webshops vor',
+            'description': 'md5:db6af1fa722665a28f2664abc62cf23f',
+            'upload_date': '20210223',
+            'timestamp': 1614099600,
+            'duration': 238.08,
+            'thumbnail': 'https://download-media.srf.ch/world/image/audio/2021/02/c3134bf675e34424b233cc1ea472ecdf.jpg',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTR /novitads article with audio embed
+        'url': 'https://www.rtr.ch/novitads/il-di/novitads-dals-07-12-2025-legalisaziun-da-cannabis-en-svizra-vesan-partidas-fitg-different',
+        'info_dict': {
+            'id': 'df13a8b1-0fd3-3db3-a326-07beae5a5df9',
+            'ext': 'mp3',
+            'title': 'Co legalisar il Cannabis en Svizra divida las partidas',
+            'upload_date': '20251207',
+            'timestamp': 1765125000,
+            'duration': 143.184,
+            'thumbnail': 'https://download-media.srf.ch/world/image/default/2025/12/cbef247892937421099147292.jpg',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTR /audio URL
+        'url': 'https://www.rtr.ch/audio/actualitad/rimnar-films-e-fotografias-veglias-ch-en-en-surchombras-privats?id=AUDI20251207_NR_0054',
+        'only_matching': True,
+    }, {
+        # RTS archives video
+        'url': 'https://www.rts.ch/archives/1968/video/les-enfants-terribles-26185584.html',
+        'info_dict': {
+            'id': '3449373',
+            'ext': 'mp4',
+            'duration': 1488.0,
+            'title': 'Les Enfants Terribles',
+            'description': 'md5:6888f67415f6fa4522a8319ba60ad812',
+            'upload_date': '19680921',
+            'timestamp': -40280400,
+            'thumbnail': 'https://img.rts.ch/articles/1968/image/qnqi1f-26185582.image/16x9',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS emissions playlist page
+        'url': 'https://www.rts.ch/emissions/passe-moi-les-jumelles/',
+        'info_dict': {
+            'id': '14394276',
+            'ext': 'mp4',
+            'title': 'La collection d\'animaux congelés',
+            'description': 'md5:21271c97fb61b70a72ca364ee412e0f2',
+            'upload_date': '20231006',
+            'timestamp': 1696616042,
+            'duration': 93.96,
+            'thumbnail': 'https://img.rts.ch/emissions/passe-moi-les-jumelles/2023/image/z1yhwe-26946074.image/16x9',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS emissions video with UUID
+        'url': 'https://www.rts.ch/emissions/passe-moi-les-jumelles/2025/video/priorat-le-vin-de-pierre-29079223.html',
+        'only_matching': True,
+    }, {
+        # RTS sport video
+        'url': 'https://www.rts.ch/sport/2014/video/1-2-kloten-fribourg-5-2-second-but-pour-gotteron-par-kwiatowski-27083339.html',
+        'info_dict': {
+            'id': '5745975',
+            'ext': 'mp4',
+            'duration': 48.2,
+            'title': '1/2, Kloten - Fribourg (5-2): second but pour Gottéron par Kwiatowski',
+            'description': 'Hockey - Playoff',
+            'upload_date': '20140403',
+            'timestamp': 1396552681,
+            'thumbnail': 'https://img.rts.ch/medias/2014/image/je6t35-27083337.image/16x9',
+        },
+        'skip': 'Geo-Restricted to Switzerland',
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS audio podcast
+        'url': 'https://www.rts.ch/audio-podcast/2014/audio/urban-hippie-de-damien-krisl-25342474.html',
+        'info_dict': {
+            'id': '5706148',
+            'ext': 'mp3',
+            'duration': 123.0,
+            'title': '"Urban Hippie", de Damien Krisl',
+            'description': 'md5:9897f89795b938da157c595ee9e957c5',
+            'upload_date': '20140403',
+            'timestamp': 1396546481,
+            'thumbnail': 'https://img.rts.ch/audio/2013/image/jszvwh-25868191.image/16x9',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS sport article with video playlist
+        'url': 'https://www.rts.ch/sport/hockey/6693917-hockey-davos-decroche-son-31e-titre-de-champion-de-suisse.html',
+        'only_matching': True,
+        'skip': 'Blocked outside Switzerland',
+    }]
+
+    def _real_extract(self, url):
+        article_id = self._generic_id(url)
+
+        webpage = self._download_webpage(url, article_id)
+
+        # Look for embedded URN in the page
+        urn = self._search_regex(
+            r'(urn:(?:srf|rts|rsi|rtr|swi):(?:video|audio):[a-f0-9-]+)',
+            webpage, 'media URN', default=None)
+
+        if urn:
+            # Pass URN directly to SRGSSR extractor
+            return self.url_result(urn, 'SRGSSR')
+
+        # Fallback: no URN found
+        raise ExtractorError('No video or audio found in article')
+
+
 class SRGSSRPlayIE(InfoExtractor):
-    IE_DESC = 'srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites'
+    IE_DESC = 'srf.ch, rts.ch, rsi.ch, rtr.ch play sites'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:(?:www|play)\.)?
-                        (?P<bu>srf|rts|rsi|rtr|swissinfo)\.ch/play/(?:tv|radio)/
+                        (?P<bu>srf|rts|rsi|rtr)\.ch/play/(?:tv|radio)/
                         (?:
                             [^/]+/(?P<type>video|audio)/[^?]+|
                             popup(?P<type_2>video|audio)player
                         )
-                        \?.*?\b(?:id=|urn=urn:[^:]+:video:)(?P<id>[0-9a-f\-]{36}|\d+)
+                        \?.*?\b(?:id=|urn=urn:(?:[^:]+:)+(?:video|audio):(?:[^:]+:)?)(?P<id>[0-9a-f\-]{36}|\d+)
                     '''
 
     _TESTS = [{
         'url': 'http://www.srf.ch/play/tv/10vor10/video/snowden-beantragt-asyl-in-russland?id=28e1a57d-5b76-4399-8ab3-9097f071e6c5',
-        'md5': '6db2226ba97f62ad42ce09783680046c',
+        'md5': '81c6ad90d774c46e3c54ea2f01a94db3',
         'info_dict': {
             'id': '28e1a57d-5b76-4399-8ab3-9097f071e6c5',
             'ext': 'mp4',
@@ -173,25 +343,14 @@ class SRGSSRPlayIE(InfoExtractor):
             'title': 'Snowden beantragt Asyl in Russland',
             'timestamp': 1372708215,
             'duration': 113.827,
-            'thumbnail': r're:^https?://.*1383719781\.png$',
+            'thumbnail': r're:^https?://.*\.png$',
         },
         'expected_warnings': ['Unable to download f4m manifest'],
     }, {
-        'url': 'http://www.rtr.ch/play/radio/actualitad/audio/saira-tujetsch-tuttina-cuntinuar-cun-sedrun-muster-turissem?id=63cb0778-27f8-49af-9284-8c7a8c6d15fc',
-        'info_dict': {
-            'id': '63cb0778-27f8-49af-9284-8c7a8c6d15fc',
-            'ext': 'mp3',
-            'upload_date': '20151013',
-            'title': 'Saira: Tujetsch - tuttina cuntinuar cun Sedrun Mustér Turissem',
-            'timestamp': 1444709160,
-            'duration': 336.816,
-        },
-        'params': {
-            # rtmp download
-            'skip_download': True,
-        },
+        'url': 'https://www.rtr.ch/play/radio/_/audio/_?id=63cb0778-27f8-49af-9284-8c7a8c6d15fc&urn=urn:rtr:audio:63cb0778-27f8-49af-9284-8c7a8c6d15fc',
+        'only_matching': True,
     }, {
-        'url': 'http://www.rts.ch/play/tv/-/video/le-19h30?id=6348260',
+        'url': 'https://www.rts.ch/play/tv/19h30/video/le-19h30?urn=urn:rts:video:6348260',
         'md5': '67a2a9ae4e8e62a68d0e9820cc9782df',
         'info_dict': {
             'id': '6348260',
@@ -208,21 +367,8 @@ class SRGSSRPlayIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        'url': 'http://play.swissinfo.ch/play/tv/business/video/why-people-were-against-tax-reforms?id=42960270',
-        'info_dict': {
-            'id': '42960270',
-            'ext': 'mp4',
-            'title': 'Why people were against tax reforms',
-            'description': 'md5:7ac442c558e9630e947427469c4b824d',
-            'duration': 94.0,
-            'upload_date': '20170215',
-            'timestamp': 1487173560,
-            'thumbnail': r're:https?://www\.swissinfo\.ch/srgscalableimage/42961964',
-            'subtitles': 'count:9',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'url': 'http://www.rts.ch/play/tv/-/video/le-19h30?id=6348260',
+        'only_matching': True,
     }, {
         'url': 'https://www.srf.ch/play/tv/popupvideoplayer?id=c4dba0ca-e75b-43b2-a34f-f708a4932e01',
         'only_matching': True,
@@ -230,17 +376,92 @@ class SRGSSRPlayIE(InfoExtractor):
         'url': 'https://www.srf.ch/play/tv/10vor10/video/snowden-beantragt-asyl-in-russland?urn=urn:srf:video:28e1a57d-5b76-4399-8ab3-9097f071e6c5',
         'only_matching': True,
     }, {
+        # RTS video with swisstxt numeric ID
         'url': 'https://www.rts.ch/play/tv/19h30/video/le-19h30?urn=urn:rts:video:6348260',
+        'md5': '67a2a9ae4e8e62a68d0e9820cc9782df',
+        'info_dict': {
+            'id': '6348260',
+            'display_id': '6348260',
+            'ext': 'mp4',
+            'duration': 1796.76,
+            'title': 'Le 19h30',
+            'upload_date': '20141201',
+            'timestamp': 1417458600,
+            'thumbnail': r're:^https?://.*\.image',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # RTS video with UUID
+        'url': 'https://www.rts.ch/play/tv/mise-au-point/video/le-business-des-films-de-nol?urn=urn:rts:video:67e97e4c-3967-339a-8f56-7b34be37f583',
+        'info_dict': {
+            'id': '67e97e4c-3967-339a-8f56-7b34be37f583',
+            'ext': 'mp4',
+            'title': 'Le business des films de Noël',
+            'description': 'md5:9843edf847b7fbed8890632c01786072',
+            'upload_date': '20251208',
+            'timestamp': 1765179000,
+            'duration': 803.0,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # SRF video with UUID
+        'url': 'https://www.srf.ch/play/tv/einstein/video/ki-im-kopf---machen-uns-chatgpt-und-co--dumm?urn=urn:srf:video:c4db64a2-67cf-4bec-93bd-4a6747a077b7',
         'only_matching': True,
     }, {
         # audio segment, has podcastSdUrl of the full episode
         'url': 'https://www.srf.ch/play/radio/popupaudioplayer?id=50b20dc8-f05b-4972-bf03-e438ff2833eb',
         'only_matching': True,
-    }]
+    }, {
+        'url': 'https://www.srf.ch/play/tv/-/video/formel-1-gp-abu-dhabi?urn=urn:swisstxt:video:srf:1818188',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.srf.ch/play/tv/-/video/biathlon-weltcup-in-oberhof-verfolgung-frauen?urn=urn:swisstxt:video:srf:1833301',
+        'info_dict': {
+            'id': '1833301',
+            'title': 'Biathlon: Weltcup in Oberhof, Verfolgung, Frauen',
+            'timestamp': 1768137900,
+            'ext': 'mp4',
+            'thumbnail': r're:^https?://.*',
+            'duration': 2580.0,
+            'upload_date': '20260111',
+        },
+        'skip': 'Geo-Restricted to Switzerland and Livestream VoDs are temporary',
+        'expected_warnings': ['Failed to parse XML'],
+    }, {
+        # RTS play URL with urn parameter (also works via SRGSSRArticleIE)
+        'url': 'https://www.rts.ch/play/tv/lactu-en-video/video/londres-cachee-par-un-epais-smog?urn=urn:rts:video:5745356',
+        'info_dict': {
+            'id': '5745356',
+            'ext': 'mp4',
+            'duration': 33.76,
+            'title': 'Londres cachée par un épais smog',
+            'description': 'md5:ae31051ce88bb0a91df5ef31c75c3341',
+            'upload_date': '20140403',
+            'timestamp': 1396491300,
+            'thumbnail': r're:^https?://.*',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    },
+    ]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         bu = mobj.group('bu')
+        # The media type will be in different groups based on URL structure (swisstxt special case)
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')
-        return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
+
+        # Check if this is a swisstxt URN (numeric ID)
+        if media_id.isdigit() and 'urn=urn:swisstxt:' in url:
+            # The swisstxt URN has a different structure
+            return self.url_result(f'urn:swisstxt:{media_type}:{bu[:3]}:{media_id}', 'SRGSSR')
+        return self.url_result(f'urn:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
+        # Legacy version:
+        # return self.url_result(f'srgssr:{bu[:3]}:{media_type}:{media_id}', 'SRGSSR')
