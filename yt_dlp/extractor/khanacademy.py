@@ -138,7 +138,9 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
+        webpage = self._download_webpage(url, display_id, impersonate=True)
+        if '<title>Client Challenge</title>' in webpage:
+            raise ExtractorError('Client challenge captcha')
         self._load_script_src_urls(webpage)
 
         data = self._download_json(
