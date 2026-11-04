@@ -23,6 +23,7 @@ class _MatchParser:
     def __init__(self, string):
         self._data = string
         self._pos = 0
+        self._used_replace = False
 
     def match(self, r):
         if isinstance(r, re.Pattern):
@@ -53,6 +54,20 @@ class _MatchParser:
     def child(self):
         return _MatchChildParser(self)
 
+    def replace(self, pat, repl, ct = 0):
+        """Replaces the first occurrence(s) of `pat` after the cursor with `repl`, `ct` tims."""
+        upd = re.subn(pat, repl, self._data[self._pos:], ct)
+        if upd[1] > 0:
+            self._data = self._data[:self._pos] + upd[0]
+            self._used_replace = True
+
+    def global_replace(self, pat, repl, ct = 0):
+        """Replace the first occurrence(s) of `pat` GLOBALLY in the buffer with `repl`, `ct` times."""
+        upd = re.subn(pat, repl, self._data, ct)
+        if upd[1] > 0:
+            self._data = upd[0]
+            self._used_replace = True
+
 
 class _MatchChildParser(_MatchParser):
     """
@@ -72,6 +87,8 @@ class _MatchChildParser(_MatchParser):
         Advance the parent state to the current position of this child state.
         """
         self.__parent._pos = self._pos
+        if self._used_replace:
+            self.__parent._data = self._data
         return self.__parent
 
 
@@ -159,6 +176,7 @@ class Magic(HeaderBlock):
     _REGEX_TSMAP_LOCAL = re.compile(r'LOCAL:')
     _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
     _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
+    _REGEX_CHECK_IMPROPER_STYLE = re.compile(r'(?x)S[Tt][Yy][Ll][Ee](?::)?[\ \t]*(?=\r\n|[\r\n])')
 
     # This was removed from the spec in the 2017 revision;
     # the last spec draft to describe this syntax element is
@@ -214,6 +232,12 @@ class Magic(HeaderBlock):
             if m:
                 meta += m.group(0)
                 continue
+            if parser.match(cls._REGEX_CHECK_IMPROPER_STYLE):
+                # Some sites (or users?) don't have a blank line before STYLE so it gets caught in the magic section
+                # I couldn't figure out how to determine if the STYLE block needs a preceding line by the time we parse
+                # it, only here, before the last newline is consumed and the cursor is already _at_ STYLE.
+                parser.replace(cls._REGEX_CHECK_IMPROPER_STYLE, "\nSTYLE", 1)
+                break
             raise ParseError(parser)
         parser.commit()
         return cls(extra=extra, mpegts=mpegts, local=local, meta=meta)
@@ -235,11 +259,21 @@ class Magic(HeaderBlock):
 
 
 class StyleBlock(HeaderBlock):
+    #Some sites/users put some variant of "Style:" instead of a proper start block. This now finds and fixes those.
     _REGEX = re.compile(r'''(?x)
-        STYLE[\ \t]*(?:\r\n|[\r\n])
+        S[Tt][Yy][Ll][Ee](?::)?[\ \t]*(?:\r\n|[\r\n])
         ((?:(?!-->)[^\r\n])+(?:\r\n|[\r\n]))*
         (?:\r\n|[\r\n])
     ''')
+    _FIX_REGEX = re.compile(r'^S[Tt][Yy][Ll][Ee](?::)?[\ \t]*(?=\r\n|[\r\n])')
+    @classmethod
+    def parse(cls, parser):
+        m = parser.match(cls._REGEX)
+        if not m:
+            return None
+        parser.advance(m)
+        return cls(raw=re.subn(cls._FIX_REGEX, "STYLE", m.group(0), 1)[0])
+
 
 
 class RegionBlock(HeaderBlock):
@@ -267,6 +301,7 @@ class CueBlock(Block):
     _REGEX_ARROW = re.compile(r'[ \t]+-->[ \t]+')
     _REGEX_SETTINGS = re.compile(r'[ \t]+((?:(?!-->)[^\r\n])+)')
     _REGEX_PAYLOAD = re.compile(r'[^\r\n]+(?:\r\n|[\r\n])?')
+    _REGEX_NEWLINE_AND_TS = re.compile(r'\n[0-9]{2,}:[0-9]{2}:[0-9]{2}\.[0-9]{3}')
 
     @classmethod
     def parse(cls, parser):
@@ -298,6 +333,13 @@ class CueBlock(Block):
         while True:
             m = parser.consume(cls._REGEX_PAYLOAD)
             if not m:
+                if parser.match(_REGEX_EOF):
+                    break
+                if parser.match(cls._REGEX_NEWLINE_AND_TS):
+                    break
+                if parser.match(_REGEX_NL):
+                    parser.consume(_REGEX_NL)
+                    continue
                 break
             text.write(m.group(0))
 
@@ -394,5 +436,4 @@ def parse_fragment(frag_content):
         if block:
             yield block
             continue
-
         raise ParseError(parser)
