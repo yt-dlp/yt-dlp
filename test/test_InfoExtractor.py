@@ -658,6 +658,26 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 }],
             })
 
+    def test_remove_duplicate_formats(self):
+        a = {'url': 'https://example.com/a.mp4'}
+        b = {'url': 'https://example.com/b.mp4'}
+        expected = [{
+            'url': 'https://example.com/manifest.mpd',
+            'fragments': fragments,
+        } for fragments in (
+            [a, b],
+            [{**a, 'byte_range': {'start': 0, 'end': 10}}, b],
+            [{**a, 'byte_range': {'start': 1, 'end': 10}}, b],
+            [{**a, 'byte_range': {'start': 0, 'end': 20}}, b],
+        )]
+        formats = expected * 2
+        formats.append({
+            'url': 'https://example.com/manifest.mpd',
+            'fragments': [b, a, a],
+        })
+        self.ie._remove_duplicate_formats(formats)
+        self.assertEqual(formats, expected)
+
     def test_parse_m3u8_formats(self):
         _TEST_CASES = [
             (
