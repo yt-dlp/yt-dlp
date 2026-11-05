@@ -54,18 +54,11 @@ class _MatchParser:
     def child(self):
         return _MatchChildParser(self)
 
-    def replace(self, pat, repl, ct = 0):
+    def replace(self, pat, repl, ct=0):
         """Replaces the first occurrence(s) of `pat` after the cursor with `repl`, `ct` tims."""
-        upd = re.subn(pat, repl, self._data[self._pos:], ct)
+        upd = re.subn(pattern=pat, repl=repl, string=self._data[self._pos:], count=ct)
         if upd[1] > 0:
             self._data = self._data[:self._pos] + upd[0]
-            self._used_replace = True
-
-    def global_replace(self, pat, repl, ct = 0):
-        """Replace the first occurrence(s) of `pat` GLOBALLY in the buffer with `repl`, `ct` times."""
-        upd = re.subn(pat, repl, self._data, ct)
-        if upd[1] > 0:
-            self._data = upd[0]
             self._used_replace = True
 
 
@@ -233,10 +226,6 @@ class Magic(HeaderBlock):
                 meta += m.group(0)
                 continue
             if parser.match(cls._REGEX_CHECK_IMPROPER_STYLE):
-                # Some sites (or users?) don't have a blank line before STYLE so it gets caught in the magic section
-                # I couldn't figure out how to determine if the STYLE block needs a preceding line by the time we parse
-                # it, only here, before the last newline is consumed and the cursor is already _at_ STYLE.
-                parser.replace(cls._REGEX_CHECK_IMPROPER_STYLE, "\nSTYLE", 1)
                 break
             raise ParseError(parser)
         parser.commit()
@@ -259,21 +248,21 @@ class Magic(HeaderBlock):
 
 
 class StyleBlock(HeaderBlock):
-    #Some sites/users put some variant of "Style:" instead of a proper start block. This now finds and fixes those.
+    # Some sites/users put some variant of "Style:" instead of a proper start block. This now finds and fixes those.
     _REGEX = re.compile(r'''(?x)
         S[Tt][Yy][Ll][Ee](?::)?[\ \t]*(?:\r\n|[\r\n])
         ((?:(?!-->)[^\r\n])+(?:\r\n|[\r\n]))*
         (?:\r\n|[\r\n])
     ''')
     _FIX_REGEX = re.compile(r'^S[Tt][Yy][Ll][Ee](?::)?[\ \t]*(?=\r\n|[\r\n])')
+
     @classmethod
     def parse(cls, parser):
         m = parser.match(cls._REGEX)
         if not m:
             return None
         parser.advance(m)
-        return cls(raw=re.subn(cls._FIX_REGEX, "STYLE", m.group(0), 1)[0])
-
+        return cls(raw=re.subn(pattern=cls._FIX_REGEX, repl='STYLE', string=m.group(0), count=1)[0])
 
 
 class RegionBlock(HeaderBlock):
