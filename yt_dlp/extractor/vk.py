@@ -961,3 +961,52 @@ class VKPlayLiveIE(VKPlayBaseIE):
             **self._extract_common_meta(stream_info),
             'formats': formats,
         }
+
+class VKVideoAnonIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?vkvideo\.ru/video-(?P<id>\d+_\d+)'
+    _WORKING = True
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(
+            url, video_id, 
+            headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'}
+        )
+        config_json = self._search_regex(
+            [r'window\.videoRawData\s*=\s*({.+?});', r'rawConfig\s*=\s*({.+?});', r'videoData\s*=\s*({.+?});'], 
+            webpage, 'video config', default=None
+        )
+        if not config_json:
+            config_json = self._search_regex(
+                r'id="video_player_config"[^>]*>\s*({.+?})\s*</script>', webpage, 'player config fallback'
+            )
+        config = json.loads(config_json)
+        title = clean_html(config.get('title') or self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title'))
+        formats = []
+        video_list = config.get('playlist', {}).get('base_url') or config.get('player', {}).get('links', {})
+        hls_url = config.get('hls') or config.get('player', {}).get('hls')
+        if hls_url:
+            formats.append({
+                'url': hls_url,
+                'ext': 'mp4',
+                'protocol': 'm3u8_native',
+            })
+        for key, value in video_list.items():
+            if key.startswith('url') and value:
+                height = int(re.sub(r'\D', '', key)) if re.sub(r'\D', '', key) else None
+                formats.append({
+                    'url': value,
+                    'ext': 'mp4',
+                    'height': height,
+                    'format_id': f'mp4-{height}p' if height else key
+                })
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+            'params': {
+                'concurrent_fragment_downloads': 15,
+                'socket_timeout': 5,
+                'retries': 20,
+            }
+        }
