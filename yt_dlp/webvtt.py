@@ -23,7 +23,6 @@ class _MatchParser:
     def __init__(self, string):
         self._data = string
         self._pos = 0
-        self._used_replace = False
 
     def match(self, r):
         if isinstance(r, re.Pattern):
@@ -54,13 +53,6 @@ class _MatchParser:
     def child(self):
         return _MatchChildParser(self)
 
-    def replace(self, pat, repl, ct=0):
-        """Replaces the first occurrence(s) of `pat` after the cursor with `repl`, `ct` tims."""
-        upd = re.subn(pattern=pat, repl=repl, string=self._data[self._pos:], count=ct)
-        if upd[1] > 0:
-            self._data = self._data[:self._pos] + upd[0]
-            self._used_replace = True
-
 
 class _MatchChildParser(_MatchParser):
     """
@@ -80,8 +72,6 @@ class _MatchChildParser(_MatchParser):
         Advance the parent state to the current position of this child state.
         """
         self.__parent._pos = self._pos
-        if self._used_replace:
-            self.__parent._data = self._data
         return self.__parent
 
 
