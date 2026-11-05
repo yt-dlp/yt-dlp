@@ -455,7 +455,8 @@ class RPlayLiveIE(RPlayBaseIE):
                 raise ExtractorError('You do not have access to the livestream', expected=True)
 
             if live_info.get('streamId', '').startswith('byteplus-'):
-                urls = self._download_json('https://api.rplay.live/live/bytedance/play-urls', user_id, query={
+                urls = self._download_turnstile_json(
+                    'https://api.rplay.live/live/bytedance/play-urls', user_id, query={
                     'creatorId': user_id, 'userId': self.user_id or '', 'platformType': 'rplay',
                     **({'token': self.jwt_token} if self.jwt_token else {}),
                 }, headers=self.jwt_header, note='Downloading playurls')['playUrls']
