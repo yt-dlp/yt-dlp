@@ -636,6 +636,7 @@ class NiconicoChannelPlusChannelBaseIE(NicoChannelBaseIE):
                 'page': (page + 1),
                 'per_page': self._PAGE_SIZE,
             },
+            headers={'Fc_site_id': self._get_fanclub_site_id(site_url)},
             note=f'Getting channel info (page {page + 1})',
             errnote=f'Unable to get channel info (page {page + 1})')
 
@@ -785,7 +786,7 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
                 functools.partial(
                     self._fetch_paged_channel_video_list,
                     url,
-                    f'fanclub_sites/{self._get_fanclub_site_id(url)}/video_pages',
+                    f'v2/fanclub_sites/{self._get_fanclub_site_id(url)}/video_pages',
                     filter_dict({
                         'tag': traverse_obj(qs, ('tag', 0)),
                         'sort': traverse_obj(qs, ('sort', 0), default='-released_at'),
