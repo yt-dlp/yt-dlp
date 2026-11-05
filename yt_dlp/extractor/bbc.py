@@ -514,7 +514,10 @@ class BBCCoUkIE(InfoExtractor):
                         value = item.get(p)
                         if value and re.match(r'^[pb][\da-z]{7}$', value):
                             return value
-                get_from_attributes(item)
+
+                if programme_id := get_from_attributes(item):
+                    return programme_id
+
                 mediator = item.find(f'./{{{self._EMP_PLAYLIST_NS}}}mediator')
                 if mediator is not None:
                     return get_from_attributes(mediator)

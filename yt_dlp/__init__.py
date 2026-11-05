@@ -1,8 +1,8 @@
 import sys
 
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 11):
     raise ImportError(
-        f'You are using an unsupported version of Python. Only Python versions 3.10 and above are supported by yt-dlp')  # noqa: F541
+        f'You are using an unsupported version of Python. Only Python versions 3.11 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'The Unlicense'
 
@@ -44,6 +44,7 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
+    UnsafeExecExpansionError,
     download_range_func,
     expand_path,
     float_or_none,
@@ -295,7 +296,7 @@ def validate_options(opts):
             default_step = start if op or limit else 0
             return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
 
-    for key, expr in opts.retry_sleep.items():
+    for key, expr in list(opts.retry_sleep.items()):
         if not expr:
             del opts.retry_sleep[key]
             continue
@@ -618,7 +619,7 @@ def validate_options(opts):
         warnings.append(
             'Using allow-unsafe-ext opens you up to potential attacks. '
             'Use with great care!')
-        _UnsafeExtensionError.sanitize_extension = lambda x, prepend=False: x
+        _UnsafeExtensionError._enabled = False
 
     return warnings, deprecation_warnings
 
@@ -1077,7 +1078,7 @@ def main(argv=None):
     IN_CLI.value = True
     try:
         _exit(*variadic(_real_main(argv)))
-    except (CookieLoadError, DownloadError):
+    except (CookieLoadError, DownloadError, UnsafeExecExpansionError):
         _exit(1)
     except SameFileError as e:
         _exit(f'ERROR: {e}')

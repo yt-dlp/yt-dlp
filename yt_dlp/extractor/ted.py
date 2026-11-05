@@ -46,7 +46,7 @@ class TedTalkIE(TedBaseIE):
         webpage = self._download_webpage(url, display_id)
         talk_info = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['videoData']
         video_id = talk_info['id']
-        player_data = self._parse_json(talk_info.get('playerData'), video_id)
+        player_data = talk_info.get('videoPlayerData') or {}
 
         http_url = None
         formats, subtitles = [], {}
@@ -193,8 +193,8 @@ class TedPlaylistIE(TedBaseIE):
         'url': 'https://www.ted.com/playlists/171/the_most_popular_talks_of_all',
         'info_dict': {
             'id': '171',
-            'title': 'The most popular talks of all time',
-            'description': 'md5:d2f22831dc86c7040e733a3cb3993d78',
+            'title': 'The most popular TED Talks of all time',
+            'description': 'md5:5346ef094754d2edd7e1a4cd3a166168',
         },
         'playlist_mincount': 25,
     }]

@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import datetime as dt
+import email.message
 import io
 import itertools
 import json
@@ -48,6 +49,7 @@ from yt_dlp.utils import (
     determine_ext,
     determine_file_encoding,
     dfxp2srt,
+    disposition_filename,
     encode_base_n,
     encode_compat_str,
     expand_path,
@@ -107,6 +109,7 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
+    setproctitle,
     shell_quote,
     strftime_or_none,
     smuggle_url,
@@ -125,6 +128,7 @@ from yt_dlp.utils import (
     url_basename,
     url_or_none,
     urlencode_postdata,
+    urlhandle_detect_ext,
     urljoin,
     urshift,
     variadic,
@@ -134,7 +138,10 @@ from yt_dlp.utils import (
     xpath_text,
     xpath_with_ns,
 )
-from yt_dlp.utils._utils import _UnsafeExtensionError
+from yt_dlp.utils._utils import (
+    _UnsafeExtensionError,
+    _desktop_entry_localestring,
+)
 from yt_dlp.utils.networking import (
     HTTPHeaderDict,
     escape_rfc3986,
@@ -327,6 +334,12 @@ class TestUtil(unittest.TestCase):
             with self.assertRaises(_UnsafeExtensionError):
                 prepend_extension('abc.unexpected_ext', ext, 'ext')
 
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(prepend_extension('abc.ext', 'un/safe'), 'abc.un/safe.ext')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
+
     def test_replace_extension(self):
         self.assertEqual(replace_extension('abc.ext', 'temp'), 'abc.temp')
         self.assertEqual(replace_extension('abc.ext', 'temp', 'ext'), 'abc.temp')
@@ -344,6 +357,12 @@ class TestUtil(unittest.TestCase):
                 replace_extension('abc.ext', ext, 'ext')
             with self.assertRaises(_UnsafeExtensionError):
                 replace_extension('abc.unexpected_ext', ext, 'ext')
+
+        # Test allow-unsafe-ext compat option
+        _UnsafeExtensionError._enabled = False
+        self.assertEqual(replace_extension('abc.ext', 'bin'), 'abc.bin')
+        # Re-enable sanitization for other tests
+        _UnsafeExtensionError._enabled = True
 
     def test_subtitles_filename(self):
         self.assertEqual(subtitles_filename('abc.ext', 'en', 'vtt'), 'abc.en.vtt')
@@ -407,15 +426,15 @@ class TestUtil(unittest.TestCase):
 
     def test_datetime_round(self):
         self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
-                         dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
+                         dt.datetime(1820, 5, 12, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
-                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
-                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
-                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
-                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.UTC))
 
     def test_strftime_or_none(self):
         self.assertEqual(strftime_or_none(-4722192000), '18200512')
@@ -598,6 +617,14 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(res_url, url)
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
 
+    @unittest.mock.patch('ctypes.cdll.LoadLibrary')
+    def test_setproctitle(self, load_library):
+        for title in ('yt-dlp', 'café'):
+            with self.subTest(title=title):
+                setproctitle(title)
+                buf = load_library.return_value.prctl.call_args.args[1]
+                self.assertEqual(bytes(buf), title.encode() + b'\0')
+
     def test_shell_quote(self):
         args = ['ffmpeg', '-i', 'ñ€ß\'.mp4']
         self.assertEqual(
@@ -611,6 +638,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(float_or_none(None), None)
         self.assertEqual(float_or_none([]), None)
         self.assertEqual(float_or_none(set()), None)
+        self.assertEqual(float_or_none(sys.float_info.radix ** sys.float_info.max_exp), None)
 
     def test_int_or_none(self):
         self.assertEqual(int_or_none('42'), 42)
@@ -677,8 +705,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(url_or_none('//foo.de'), '//foo.de')
         self.assertEqual(url_or_none('s3://foo.de'), None)
         self.assertEqual(url_or_none('rtmpte://foo.de'), 'rtmpte://foo.de')
-        self.assertEqual(url_or_none('mms://foo.de'), 'mms://foo.de')
-        self.assertEqual(url_or_none('rtspu://foo.de'), 'rtspu://foo.de')
         self.assertEqual(url_or_none('ftps://foo.de'), 'ftps://foo.de')
         self.assertEqual(url_or_none('ws://foo.de'), 'ws://foo.de')
         self.assertEqual(url_or_none('wss://foo.de'), 'wss://foo.de')
@@ -1333,15 +1359,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(extract_attributes('<e _:funny-name1=1>'), {'_:funny-name1': '1'})
         self.assertEqual(extract_attributes('<e x="Fáilte 世界 \U0001f600">'), {'x': 'Fáilte 世界 \U0001f600'})
         self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
-        # "Narrow" Python builds don't support unicode code points outside BMP.
-        try:
-            chr(0x10000)
-            supports_outside_bmp = True
-        except ValueError:
-            supports_outside_bmp = False
-        if supports_outside_bmp:
-            self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
-        # Malformed HTML should not break attributes extraction on older Python
+        self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
+        # Malformed HTML should not break attribute extraction
         self.assertEqual(extract_attributes('<mal"formed/>'), {})
 
     def test_clean_html(self):
@@ -1393,7 +1412,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
+        self.assertEqual(parse_resolution('1080p60'), {'height': 1080})
+        self.assertEqual(parse_resolution('1080p120', parse_fps=True), {'height': 1080, 'fps': 120})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K60'), {'height': 2160})
+        self.assertEqual(parse_resolution('4K120', parse_fps=True), {'height': 2160, 'fps': 120})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
         self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('ep1x2'), {})
@@ -1934,6 +1957,27 @@ Line 1
         self.assertEqual(
             iri_to_uri('http://导航.中国/'),
             'http://xn--fet810g.xn--fiqs8s/')
+        self.assertEqual(
+            iri_to_uri('file://example.org/run.exe', allowed_schemes=('file',)),
+            'file://example.org/run.exe')
+        self.assertRaises(ValueError, iri_to_uri, 'file://example.org/run.exe')
+
+    def test_desktop_entry_localestring(self):
+        self.assertEqual(
+            _desktop_entry_localestring('A B'),
+            'A\\sB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\nB'),
+            'A\\nB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\tB'),
+            'A\\tB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\rB'),
+            'A\\rB')
+        self.assertEqual(
+            _desktop_entry_localestring('A\\B'),
+            'A\\\\B')
 
     def test_clean_podcast_url(self):
         self.assertEqual(clean_podcast_url('https://www.podtrac.com/pts/redirect.mp3/chtbl.com/track/5899E/traffic.megaphone.fm/HSW7835899191.mp3'), 'https://traffic.megaphone.fm/HSW7835899191.mp3')
@@ -2082,6 +2126,32 @@ Line 1
         self.assertEqual(get_compatible_ext(
             vcodecs=['av1'], acodecs=['mp4a'], vexts=['webm'], aexts=['m4a'], preferences=('webm', 'mkv')), 'mkv')
 
+    def test_disposition_filename(self):
+        test_cases = (
+            (None, None),
+            ('attachment', None),
+            ('attachment; filename="video.mp4"', 'video.mp4'),
+            ('attachment; FILENAME="video.mp4"', 'video.mp4'),
+            ('inline; filename=video.mp4', 'video.mp4'),
+            ('attachment; filename=" video.mp4 "', 'video.mp4'),
+            ("attachment; filename*=UTF-8''r%C3%A9sum%C3%A9.mp4", 'résumé.mp4'),
+            ("attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm", 'actual.webm'),
+            ("attachment; filename*=UTF-8''actual.webm; filename=fallback.mp4", 'actual.webm'),
+        )
+
+        for content_disposition, expected in test_cases:
+            headers = email.message.Message()
+            if content_disposition is not None:
+                headers['Content-Disposition'] = content_disposition
+            with self.subTest(content_disposition=content_disposition):
+                self.assertEqual(disposition_filename(headers), expected)
+
+    def test_urlhandle_detect_ext(self):
+        headers = email.message.Message()
+        headers['Content-Disposition'] = "attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm"
+        headers['Content-Type'] = 'video/mp4'
+        self.assertEqual(urlhandle_detect_ext(unittest.mock.Mock(headers=headers)), 'webm')
+
     def test_try_call(self):
         def total(*x, **kwargs):
             return sum(x) + sum(kwargs.values())
@@ -2107,8 +2177,7 @@ Line 1
         self.assertEqual(variadic(None), (None, ))
         self.assertEqual(variadic('spam'), ('spam', ))
         self.assertEqual(variadic('spam', allowed_types=dict), 'spam')
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with warnings.catch_warnings(action='ignore'):
             self.assertEqual(variadic('spam', allowed_types=[dict]), 'spam')
 
     def test_http_header_dict(self):
@@ -2159,6 +2228,10 @@ Line 1
         # test if picklable
         headers6 = HTTPHeaderDict(a=1, b=2)
         self.assertEqual(pickle.loads(pickle.dumps(headers6)), headers6)
+
+        headers7 = HTTPHeaderDict()
+        headers7 |= {'X-dlp': 'data'}
+        self.assertEqual(headers7.sensitive(), {'X-dlp': 'data'})
 
     def test_extract_basic_auth(self):
         assert extract_basic_auth('http://:foo.bar') == ('http://:foo.bar', None)

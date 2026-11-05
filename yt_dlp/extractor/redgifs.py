@@ -30,7 +30,7 @@ class RedGifsBaseIE(InfoExtractor):
         quality = qualities(tuple(self._FORMATS.keys()))
 
         orig_height = int_or_none(gif_data.get('height'))
-        aspect_ratio = try_get(gif_data, lambda x: orig_height / x['width'])
+        aspect_ratio = try_get(gif_data, lambda x: x['width'] / orig_height)
 
         formats = []
         for format_id, height in self._FORMATS.items():
@@ -41,7 +41,7 @@ class RedGifsBaseIE(InfoExtractor):
             formats.append({
                 'url': video_url,
                 'format_id': format_id,
-                'width': height * aspect_ratio if aspect_ratio else None,
+                'width': int_or_none(height * aspect_ratio) if aspect_ratio else None,
                 'height': height,
                 'quality': quality(format_id),
             })
