@@ -113,91 +113,115 @@ class FanslyIE(InfoExtractor):
             account = traverse_obj(res, ('response', 'accounts'))[0]
         except IndexError:
             raise ExtractorError('Could not find account info for post')
+        
+        media_ids = []
+        for bundle in traverse_obj(res, ('response', 'accountMediaBundles')):
+            for id in traverse_obj(bundle, 'accountMediaIds'):
+                media_ids.append(id)
 
         playlist = []
         for media in traverse_obj(res, ('response', 'accountMedia', lambda _, v: v['media'])):
-            thumbnail = None
             m = media['media']
             metadata = json.loads(m.get('metadata'))
             media_id = media.get('mediaId')
-
             try:
-                formats = [{
-                    'url': m.get('locations')[0].get('location'),
-                    'format_id': str(m.get('type')),
-                    'width': m.get('width'),
-                    'height': m.get('height'),
-                    'fps': metadata.get('frameRate'),
-                    'http_headers': {
-                        'Cookie': '; '.join(['CloudFront-' + k + '=' + v for k, v in m.get('locations')[0].get('metadata').items()]),
-                    } if m.get('locations')[0].get('metadata') else {},
-                }]
-                for variant in traverse_obj(m, ('variants', lambda _, v: v['mimetype'] and v['locations'])):
-                    mimetype = variant.get('mimetype')
-                    try:
-                        location = variant['locations'][0]
-                    except IndexError:
-                        self.report_warning(f'Could not get variant location for ID {variant.get("id")}, skipping (you may need to log in)', video_id)
-                        continue
-                    headers = {
-                        'Cookie': '; '.join(['CloudFront-' + k + '=' + v for k, v in location.get('metadata').items()]),
-                    } if location.get('metadata') else {}
-                    if mimetype == 'application/vnd.apple.mpegurl':
-                        f = self._extract_m3u8_formats(location.get('location'), media_id, ext='mp4', headers=headers)
-                        for fmt in f:
-                            fmt['http_headers'] = headers
-                        formats.extend(f)
-                    elif mimetype == 'application/dash+xml':
-                        f = self._extract_mpd_formats(location.get('location'), media_id, headers=headers)
-                        for fmt in f:
-                            fmt['http_headers'] = headers
-                        formats.extend(f)
-                    else:
-                        vmetadata = json.loads(variant.get('metadata'))
-                        formats.append({
-                            'url': location.get('location'),
-                            'format_id': str(variant.get('type')),
-                            'width': variant.get('width'),
-                            'height': variant.get('height'),
-                            'fps': vmetadata.get('frameRate') or metadata.get('frameRate'),
-                            'http_headers': headers,
-                        })
-                    if mimetype == 'image/jpeg' and thumbnail is None:  # TODO: this assumes the first is highest res - is this important and/or reliable?
-                        thumbnail = location.get('location')
-            except IndexError:
-                self.report_warning(f'Could not get media locations for ID {m.get("id")}. You may need to authenticate with --username and --password.', video_id)
-                formats = []
+                media_ids.remove(media.get('id'))
+            except:
+                pass
+            playlist.append(self._make_video(video_id, media_id, metadata, m, account, media, post))
 
-            if any(v.get('price') > 0 or (v.get('metadata') != '' and v.get('metadata') != '{}') for v in traverse_obj(media, ('permissions', 'permissionFlags')) or []):
-                availability = 'premium_only'
-            elif len(formats) == 0:
-                availability = 'needs_auth'
-            else:
-                availability = 'public'
-
-            playlist.append({
-                'id': media_id,
-                'title': '',
-                'formats': formats,
-                'thumbnail': thumbnail,
-                'uploader': account.get('username'),
-                'timestamp': m.get('createdAt'),
-                'release_timestamp': media.get('createdAt'),
-                'modified_timestamp': m.get('updatedAt'),
-                'uploader_id': post.get('accountId'),
-                'uploader_url': 'https://fansly.com/' + account.get('username'),
-                'channel_id': post.get('accountId'),
-                'channel_url': 'https://fansly.com/' + account.get('username'),
-                'channel_follower_count': account.get('followCount'),
-                'channel_is_verified': True,  # TODO: this is probably true for all accounts that are able to post? or maybe it's a flag
-                'location': account.get('location'),
-                'duration': metadata.get('duration'),
-                'like_count': media.get('likeCount'),
-                'comment_count': post.get('replyCount') or 0,
-                'age_limit': 18,
-                'tags': re.findall(r'#[^ ]+', post.get('content') or ''),
-                'is_live': False,
-                'availability': availability,
-            })
+        if len(media_ids) > 0:
+            res = self._download_json(
+                f'https://apiv3.fansly.com/api/v1/account/media?ids={",".join(media_ids)}&ngsw-bypass=true',
+                video_id, impersonate=True, headers=self._auth_headers)
+            if not res.get('success') or not res.get('response'):
+                raise ExtractorError('Failed to get extra media info')  # TODO: is there an error message returned?
+            for media in traverse_obj(res, ('response')):
+                m = media['media']
+                metadata = json.loads(m.get('metadata'))
+                media_id = media.get('mediaId')
+                playlist.append(self._make_video(video_id, media_id, metadata, m, account, media, post))
 
         return self.playlist_result(playlist, video_id, playlist_description=post.get('content'))
+
+
+    def _make_video(self, video_id, media_id, metadata, m, account, media, post):
+        thumbnail = None
+        try:
+            formats = [{
+                'url': m.get('locations')[0].get('location'),
+                'format_id': str(m.get('type')),
+                'width': m.get('width'),
+                'height': m.get('height'),
+                'fps': metadata.get('frameRate'),
+                'http_headers': {
+                    'Cookie': '; '.join(['CloudFront-' + k + '=' + v for k, v in m.get('locations')[0].get('metadata').items()]),
+                } if m.get('locations')[0].get('metadata') else {},
+            }]
+            for variant in traverse_obj(m, ('variants', lambda _, v: v['mimetype'] and v['locations'])):
+                mimetype = variant.get('mimetype')
+                try:
+                    location = variant['locations'][0]
+                except IndexError:
+                    self.report_warning(f'Could not get variant location for ID {variant.get("id")}, skipping (you may need to log in)', video_id)
+                    continue
+                headers = {
+                    'Cookie': '; '.join(['CloudFront-' + k + '=' + v for k, v in location.get('metadata').items()]),
+                } if location.get('metadata') else {}
+                if mimetype == 'application/vnd.apple.mpegurl':
+                    f = self._extract_m3u8_formats(location.get('location'), media_id, ext='mp4', headers=headers)
+                    for fmt in f:
+                        fmt['http_headers'] = headers
+                    formats.extend(f)
+                elif mimetype == 'application/dash+xml':
+                    f = self._extract_mpd_formats(location.get('location'), media_id, headers=headers)
+                    for fmt in f:
+                        fmt['http_headers'] = headers
+                    formats.extend(f)
+                else:
+                    vmetadata = json.loads(variant.get('metadata'))
+                    formats.append({
+                        'url': location.get('location'),
+                        'format_id': str(variant.get('type')),
+                        'width': variant.get('width'),
+                        'height': variant.get('height'),
+                        'fps': vmetadata.get('frameRate') or metadata.get('frameRate'),
+                        'http_headers': headers,
+                    })
+                if mimetype == 'image/jpeg' and thumbnail is None:  # TODO: this assumes the first is highest res - is this important and/or reliable?
+                    thumbnail = location.get('location')
+        except IndexError:
+            self.report_warning(f'Could not get media locations for ID {m.get("id")}. You may need to authenticate with --username and --password.', video_id)
+            formats = []
+
+        if any(v.get('price') > 0 or (v.get('metadata') != '' and v.get('metadata') != '{}') for v in traverse_obj(media, ('permissions', 'permissionFlags')) or []):
+            availability = 'premium_only'
+        elif len(formats) == 0:
+            availability = 'needs_auth'
+        else:
+            availability = 'public'
+
+        return {
+            'id': media_id,
+            'title': '',
+            'formats': formats,
+            'thumbnail': thumbnail,
+            'uploader': account.get('username'),
+            'timestamp': m.get('createdAt'),
+            'release_timestamp': media.get('createdAt'),
+            'modified_timestamp': m.get('updatedAt'),
+            'uploader_id': post.get('accountId'),
+            'uploader_url': 'https://fansly.com/' + account.get('username'),
+            'channel_id': post.get('accountId'),
+            'channel_url': 'https://fansly.com/' + account.get('username'),
+            'channel_follower_count': account.get('followCount'),
+            'channel_is_verified': True,  # TODO: this is probably true for all accounts that are able to post? or maybe it's a flag
+            'location': account.get('location'),
+            'duration': metadata.get('duration'),
+            'like_count': media.get('likeCount'),
+            'comment_count': post.get('replyCount') or 0,
+            'age_limit': 18,
+            'tags': re.findall(r'#[^ ]+', post.get('content') or ''),
+            'is_live': False,
+            'availability': availability,
+        }
