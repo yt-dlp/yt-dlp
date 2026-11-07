@@ -12,12 +12,17 @@ from ..utils import (
     str_or_none,
     strip_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
 )
 
 
-class TVPIE(InfoExtractor):
+class TVPBaseIE(InfoExtractor):
+    # site does not provide actual country list: we just assume availability in PL if geo-restricted
+    _GEO_COUNTRIES = ['PL']
+    _GEO_BYPASS = False
+
+
+class TVPIE(TVPBaseIE):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
     _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|belsat\.eu)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)(?:[/?#]|$)'
@@ -89,7 +94,17 @@ class TVPIE(InfoExtractor):
         }
 
     def _parse_news(self, url, news_data, page_id):
-        videos = [self._parse_video(url, video_data, page_id) for video_data in traverse_obj(news_data, ('video', 'items'))]
+        def extract_videos(which):
+            return [
+                self._parse_video(url, video_data, page_id)
+                for video_data in traverse_obj(news_data, (
+                    (None, ('text_paragraph_standard', ...)),
+                    which, 'items', lambda _, v: v.get('type') == 'video' and v.get('_id')),
+                )]
+
+        videos = extract_videos('video') or extract_videos('video_links')
+        if not videos:
+            return
         info_dict = {
             'id': str_or_none(news_data.get('id')) or page_id,
             'title': news_data['title'],
@@ -156,6 +171,10 @@ class TVPIE(InfoExtractor):
             'description': directory_data.get('lead'),
         }
 
+    def _parse_transmission(self, url, xmsn_data, page_id):
+        transmission_video = traverse_obj(xmsn_data, ('epg_item', 'video', {dict}))
+        return self._parse_video(url, transmission_video, page_id) if transmission_video.get('_id') else None
+
     def _find_data(self, data_type, webpage, video_id, **kwargs):
         return self._search_json(
             rf'window\.__{data_type}Data\s*=', webpage, f'{data_type} data', video_id,
@@ -172,6 +191,7 @@ class TVPIE(InfoExtractor):
                 return self.url_result(urlh.url, ie=ie_cls.ie_key(), video_id=page_id)
 
         for (dt, parse) in (
+            ('transmission', self._parse_transmission),
             ('news', self._parse_news),
             ('video', self._parse_video),
             ('website', self._parse_website),
@@ -200,7 +220,7 @@ class TVPIE(InfoExtractor):
         }
 
 
-class TVPStreamIE(InfoExtractor):
+class TVPStreamIE(TVPBaseIE):
     IE_NAME = 'tvp:stream'
     _VALID_URL = r'(?:tvpstream:|https?://(?:tvpstream\.vod|stream)\.tvp\.pl/(?:\?(?:[^&]+[&;])*channel_id=)?)(?P<id>\d*)'
     _TESTS = [{
@@ -242,10 +262,9 @@ class TVPStreamIE(InfoExtractor):
         }
 
 
-class TVPEmbedIE(InfoExtractor):
+class TVPEmbedIE(TVPBaseIE):
     IE_NAME = 'tvp:embed'
     IE_DESC = 'Telewizja Polska'
-    _GEO_BYPASS = False
     _VALID_URL = r'''(?x)
         (?:
             tvp:
@@ -328,11 +347,10 @@ class TVPEmbedIE(InfoExtractor):
 
         content = self._parse_json(datastr, video_id)['content']
         info = content['info']
-        is_live = try_get(info, lambda x: x['isLive'], bool)
+        is_live = traverse_obj(info, 'isLive')
 
         if info.get('isGeoBlocked'):
-            # actual country list is not provided, we just assume it's always available in PL
-            self.raise_geo_restricted(countries=['PL'])
+            self.raise_geo_restricted()
 
         formats = []
         for file in content['files']:
@@ -374,10 +392,10 @@ class TVPEmbedIE(InfoExtractor):
                 'width': thumb.get('width'),
                 'height': thumb.get('height'),
             })
-        age_limit = try_get(info, lambda x: x['ageGroup']['minAge'], int)
+        age_limit = traverse_obj(info, ('ageGroup', 'minAge'))
         if age_limit == 1:
             age_limit = 0
-        duration = try_get(info, lambda x: x['duration'], int) if not is_live else None
+        duration = traverse_obj(info, 'duration') if not is_live else None
 
         subtitles = {}
         for sub in content.get('subtitles') or []:
@@ -412,7 +430,7 @@ class TVPEmbedIE(InfoExtractor):
         return info_dict
 
 
-class TVPVODBaseIE(InfoExtractor):
+class TVPVODBaseIE(TVPBaseIE):
     _API_BASE_URL = 'https://vod.tvp.pl/api/products'
 
     def _call_api(self, resource, video_id, query={}, **kwargs):
