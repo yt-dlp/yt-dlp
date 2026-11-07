@@ -6,7 +6,6 @@ from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
-    dict_get,
     int_or_none,
     js_to_json,
     str_or_none,
@@ -35,6 +34,7 @@ class TVPIE(TVPBaseIE):
             'ext': 'mp4',
             'title': 'Rozmowa tygodnia z Andriusem Vaišnysem o wizycie S. Hołowni',
             'alt_title': 'md5:51cc9faf4623ba33aa5191bb83f3f76a',
+            'description': '',
             'duration': 169,
             'age_limit': 0,
             'release_timestamp': 1707591120,
@@ -279,6 +279,7 @@ class TVPEmbedIE(TVPBaseIE):
         (?P<id>\d+)
     '''
     _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(["\'])(?P<url>{_VALID_URL[4:]})']
+    __geo_block = False
 
     _TESTS = [{
         'url': 'tvp:194536',
@@ -332,7 +333,11 @@ class TVPEmbedIE(TVPBaseIE):
         ))
 
         webpage = self._download_webpage(
-            f'https://www.tvp.pl/sess/TVPlayer2/api.php?id={video_id}&@method=getTvpConfig&@callback={callback}', video_id)
+            'https://www.tvp.pl/sess/TVPlayer2/api.php', video_id, query={
+                'id': video_id,
+                '@method': 'getTvpConfig',
+                '@callback': callback,
+            })
 
         # stripping JSONP padding
         datastr = webpage[15 + len(callback):-3]
@@ -347,10 +352,10 @@ class TVPEmbedIE(TVPBaseIE):
 
         content = self._parse_json(datastr, video_id)['content']
         info = content['info']
-        is_live = traverse_obj(info, 'isLive')
+        is_live = traverse_obj(info, ('isLive', {bool}))
 
         if info.get('isGeoBlocked'):
-            self.raise_geo_restricted()
+            self.__geo_block = True
 
         formats = []
         for file in content['files']:
@@ -369,6 +374,10 @@ class TVPEmbedIE(TVPBaseIE):
                 formats.extend(self._extract_f4m_formats(video_url, video_id, f4m_id='hds', fatal=False))
             elif video_url.endswith('.ism/manifest'):
                 formats.extend(self._extract_ism_formats(video_url, video_id, ism_id='mss', fatal=False))
+            elif 'material_niedostepny.mp4' in video_url:
+                # https://s.tvp.pl/files/player/video/material_niedostepny.mp4
+                self.__geo_block = True
+                continue
             else:
                 formats.append({
                     'format_id': 'direct',
@@ -380,8 +389,12 @@ class TVPEmbedIE(TVPBaseIE):
                     'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
                 })
 
-        title = dict_get(info, ('subtitle', 'title', 'seoTitle'))
-        description = dict_get(info, ('description', 'seoDescription'))
+
+        if not formats and self.__geo_block:
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+
+        title = traverse_obj(info, (('subtitle', 'title', 'seoTitle'), {str}, any))
+        description = traverse_obj(info, (('description', 'seoDescription'), {str}, any))
         thumbnails = []
         for thumb in content.get('posters') or ():
             thumb_url = thumb.get('src')
@@ -392,9 +405,7 @@ class TVPEmbedIE(TVPBaseIE):
                 'width': thumb.get('width'),
                 'height': thumb.get('height'),
             })
-        age_limit = traverse_obj(info, ('ageGroup', 'minAge'))
-        if age_limit == 1:
-            age_limit = 0
+        age_limit = traverse_obj(info, ('ageGroup', 'minAge', {int_or_none}, {lambda x: 0 if x == 1 else x}))
         duration = traverse_obj(info, 'duration') if not is_live else None
 
         subtitles = {}
@@ -441,19 +452,22 @@ class TVPVODBaseIE(TVPBaseIE):
             expected_status=lambda x: is_valid(x) or 400 <= x < 500, **kwargs)
         if is_valid(urlh.status):
             return document
-        raise ExtractorError(f'Woronicza said: {document.get("code")} (HTTP {urlh.status})')
+        code = traverse_obj(document, 'code') or '**nothing**'
+        if urlh.status == 403 and code == 'GEOIP_FILTER_FAILED':
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+        raise ExtractorError(f'Woronicza said: {code} (HTTP {urlh.status})')
 
     def _parse_video(self, video, with_url=True):
         info_dict = traverse_obj(video, {
             'id': ('id', {str_or_none}),
             'title': 'title',
+            'description': (('lead', 'description'), {clean_html}, any),
             'age_limit': ('rating', {int_or_none}),
             'duration': ('duration', {int_or_none}),
             'episode_number': ('number', {int_or_none}),
             'series': ('season', 'serial', 'title', {str_or_none}),
             'thumbnails': ('images', ..., ..., {'url': ('url', {url_or_none})}),
         })
-        info_dict['description'] = clean_html(dict_get(video, ('lead', 'description')))
         if with_url:
             info_dict.update({
                 '_type': 'url',
@@ -473,7 +487,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'id': '311357',
             'ext': 'mp4',
             'title': 'Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
-            'description': 'md5:1d4098d3e537092ccbac1abf49b7cd4c',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'duration': 300,
             'episode_number': 24,
             'episode': 'Episode 24',
@@ -502,7 +516,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'id': '398869',
             'ext': 'mp4',
             'title': 'odc. 7',
-            'description': 'md5:dd2bb33f023dc5c2fbaddfbe4cb5dba0',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'duration': 2750,
             'age_limit': 16,
             'series': 'Polowanie na ćmy',
@@ -517,6 +531,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'id': '399731',
             'ext': 'mp4',
             'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'description': '',
             'live_status': 'is_live',
             'thumbnail': 're:https?://.+',
         },
@@ -564,7 +579,7 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             'age_limit': 12,
             'categories': ['seriale'],
         },
-        'playlist_count': 130,
+        'playlist_mincount': 130,
     }, {
         'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
         'only_matching': True,
