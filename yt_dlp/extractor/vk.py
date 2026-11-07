@@ -835,8 +835,9 @@ class VKPlayBaseIE(InfoExtractor):
             raise ExtractorError('Unable to extract video info from html inline initial state')
         return video_info
 
-    def _extract_formats(self, stream_info, video_id):
+    def _extract_formats_and_subtitles(self, stream_info, video_id):
         formats = []
+        subtitles = {}
         for stream in traverse_obj(stream_info, (
                 'data', 0, 'playerUrls', lambda _, v: url_or_none(v['url']) and v['type'])):
             url = stream['url']
@@ -844,7 +845,9 @@ class VKPlayBaseIE(InfoExtractor):
             if format_id in ('hls', 'live_hls', 'live_playback_hls') or '.m3u8' in url:
                 formats.extend(self._extract_m3u8_formats(url, video_id, m3u8_id=format_id, fatal=False))
             elif format_id == 'dash':
-                formats.extend(self._extract_mpd_formats(url, video_id, mpd_id=format_id, fatal=False))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(url, video_id, mpd_id=format_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif format_id in ('live_dash', 'live_playback_dash'):
                 self.write_debug(f'Not extracting unsupported format "{format_id}"')
             else:
@@ -854,7 +857,7 @@ class VKPlayBaseIE(InfoExtractor):
                     'format_id': format_id,
                     **parse_resolution(self._RESOLUTIONS.get(format_id)),
                 })
-        return formats
+        return formats, subtitles
 
     def _extract_common_meta(self, stream_info):
         return traverse_obj(stream_info, {
@@ -909,10 +912,12 @@ class VKPlayIE(VKPlayBaseIE):
         if not record_info:
             record_info = self._extract_from_initial_state(url, video_id, ('record', 'currentRecord', 'data'))
 
+        formats, subtitles = self._extract_formats_and_subtitles(record_info, video_id)
         return {
             **self._extract_common_meta(record_info),
             'id': video_id,
-            'formats': self._extract_formats(record_info, video_id),
+            'formats': formats,
+            'subtitles': subtitles,
         }
 
 
@@ -953,11 +958,12 @@ class VKPlayLiveIE(VKPlayBaseIE):
         if not stream_info:
             stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
 
-        formats = self._extract_formats(stream_info, username)
+        formats, subtitles = self._extract_formats_and_subtitles(stream_info, username)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
             raise UserNotLive(video_id=username)
 
         return {
             **self._extract_common_meta(stream_info),
             'formats': formats,
+            'subtitles': subtitles,
         }
