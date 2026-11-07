@@ -597,7 +597,7 @@ class FacebookIE(InfoExtractor):
         if not video_data:
             data = extract_relay_prefetched_data(
                 r'"(?:dash_manifest|playable_url(?:_quality_hd)?)',
-                target_keys=('video', 'event', 'nodes', 'node', 'mediaset'))
+                target_keys=('video', 'event', 'nodes', 'node', 'mediaset', 'videoDeliveryResponseFragment'))
             if data:
                 entries = []
 
@@ -726,6 +726,10 @@ class FacebookIE(InfoExtractor):
 
                 video = traverse_obj(data, (
                     'event', 'cover_media_renderer', 'cover_video'), 'video', expected_type=dict) or {}
+                if not video and 'videoDeliveryResponseFragment' in data:
+                    # some pages have the video data unwrapped at the top level
+                    # of "result"."data" instead of nested inside "video" etc.
+                    video = data
                 if video:
                     attachments = try_get(video, [
                         lambda x: x['story']['attachments'],
