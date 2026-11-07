@@ -389,7 +389,6 @@ class TVPEmbedIE(TVPBaseIE):
                     'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
                 })
 
-
         if not formats and self.__geo_block:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
