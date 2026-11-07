@@ -122,6 +122,7 @@ from .arte import (
     ArteTVIE,
     ArteTVPlaylistIE,
 )
+from .ashemaletube import AShemaleTubeIE
 from .asobichannel import (
     AsobiChannelIE,
     AsobiChannelTagURLIE,
