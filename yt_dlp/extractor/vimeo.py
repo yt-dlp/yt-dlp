@@ -477,6 +477,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 urlh = self._request_webpage(
                     HEADRequest(download_url), video_id, fatal=False, note='Determining source extension')
                 ext = urlh and urlhandle_detect_ext(urlh)
+            if not ext or ext == 'octet-stream':
+                ext = self._detect_media_ext(download_url, video_id)
             return {
                 'url': download_url,
                 'ext': ext or 'unknown_video',
