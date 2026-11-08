@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import urllib.parse
 
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
@@ -18,39 +19,28 @@ class ARYPlusIE(InfoExtractor):
     IE_NAME = 'aryplus'
     IE_DESC = 'ARY Plus (aryplus.tv)'
 
-    # Matches:
-    # - https://aryplus.tv/video/v2/3/<video_id>/<series_id>
-    # - https://aryplus.tv/video/v2/3/<video_id>
-    # - https://aryplus.tv/video/api/v2/3/<video_id>
+    # Supports:
+    # - https://aryplus.tv/video/v2/3/<episode_id>/<series_id>
+    # - https://aryplus.tv/video/v2/1/<video_id>
     # - https://aryplus.tv/title/<series_id>
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?aryplus\.tv/
         (?:
-            video/(?:api/)?v2/(?P<vtype>\d+)/(?P<id>[0-9a-fA-F]{24})(?:/(?P<series_id>[0-9a-fA-F]{24}))? |
+            video/v2/(?P<vtype>\d+)/(?P<id>[0-9a-fA-F]{24})(?:/(?P<series_id>[0-9a-fA-F]{24}))? |
             (?P<route>title|watch|live)/(?P<title_id>[0-9a-fA-F]{24})
         )
         (?:[/?#&]|$)
     '''
 
     _TESTS = [{
-        # Direct v2 episode player URL (Dar-E-Nijaat)
-        'url': 'https://aryplus.tv/video/v2/3/6aa569699ce8620de08e66f1/6a57868b5bf57c474cc00a50',
+        'url': 'https://aryplus.tv/video/v2/3/6a6e0b1e9bc4b079859bc14b/6a57868b5bf57c474cc00a50',
         'info_dict': {
-            'id': '6aa569699ce8620de08e66f1',
+            'id': '6a6e0b1e9bc4b079859bc14b',
             'ext': 'mp4',
             'title': str,
         },
     }, {
-        # Direct v2 episode player URL (Tamasha Season 5)
-        'url': 'https://aryplus.tv/video/v2/3/6aac3ae8aba453733d851a7a/6a2da7d7088916f961f22e52',
-        'only_matching': True,
-    }, {
-        # Direct v2 API link passed into yt-dlp
-        'url': 'https://aryplus.tv/video/api/v2/3/6aa569699ce8620de08e66f1',
-        'only_matching': True,
-    }, {
-        # Series / Title page (Main Tera)
-        'url': 'https://aryplus.tv/title/6a4bbae15bf57c474cab6d0a',
+        'url': 'https://aryplus.tv/title/6a57868b5bf57c474cc00a50',
         'only_matching': True,
     }]
 
@@ -60,113 +50,160 @@ class ARYPlusIE(InfoExtractor):
         'playback_url', 'manifestUrl', 'file', 'source', 'url', 'link',
     )
 
-    def _get_api_headers(self, referer_url):
-        headers = {
-            'Accept': 'application/json, text/plain, */*',
-            'Origin': 'https://aryplus.tv',
-            'Referer': referer_url,
-        }
-        api_key = os.environ.get('ARYPLUS_API_KEY')
-        if api_key:
-            headers['x-api-key'] = api_key
-            headers['Authorization'] = f'Bearer {api_key}' if not api_key.startswith('Bearer ') else api_key
-        return headers
+    _cached_api_config = None
 
-    def _call_v2_api(self, vtype, target_id, referer_url, extra_id=None):
-        """Query aryplus.tv/video/api/v2/<vtype>/<id> endpoints."""
-        base = os.environ.get('ARYPLUS_API_BASE', 'https://aryplus.tv').rstrip('/')
-        headers = self._get_api_headers(referer_url)
+    def _unescape(self, text):
+        if not text:
+            return ''
+        return (
+            text.replace(r'\/', '/')
+            .replace(r'\"', '"')
+            .replace(r'\u0026', '&')
+            .replace(r'\u003d', '=')
+        )
 
-        candidate_urls = [
-            f'{base}/video/api/v2/{vtype}/{target_id}',
-        ]
-        if extra_id:
-            candidate_urls.extend([
-                f'{base}/video/api/v2/{vtype}/{target_id}/{extra_id}',
-                f'{base}/video/api/v2/{vtype}/{extra_id}/{target_id}',
-                f'{base}/video/api/v2/{vtype}/{extra_id}',
-            ])
+    def _discover_api_config(self, webpage, page_url, video_id):
+        """
+        Extract ARYPLUS_API_BASE and ARYPLUS_API_KEY (public client key) from env
+        or by scanning aryplus.tv's Next.js client chunks.
+        """
+        if self._cached_api_config:
+            return self._cached_api_config
 
-        for api_url in candidate_urls:
-            data = self._download_json(
-                api_url, target_id,
-                note=f'Fetching v2 API: {api_url}',
-                headers=headers, fatal=False)
-            if data:
-                return data
-        return None
+        env_base = os.environ.get('ARYPLUS_API_BASE', '').strip().rstrip('/')
+        env_key = os.environ.get('ARYPLUS_API_KEY', '').strip()
 
-    def _extract_nextjs_rsc_json(self, webpage):
-        """Parse JSON chunks from Next.js App Router self.__next_f.push() scripts."""
-        objs = []
-        for match in re.finditer(r'self\.__next_f\.push\(\s*\[\s*\d+\s*,\s*("(?:\\.|[^"\\])*")\s*\]\s*\)', webpage):
-            try:
-                raw_chunk = json.loads(match.group(1))
-            except Exception:
+        discovered_bases = [env_base] if env_base else []
+        discovered_keys = [env_key] if env_key else []
+        discovered_routes = []
+
+        script_srcs = re.findall(r'<script[^>]+src=["\']([^"\']+\.js[^"\']*)["\']', webpage)
+        # Prioritize page/layout/app chunks over framework/polyfill chunks
+        script_srcs.sort(key=lambda s: 1 if any(k in s for k in ('polyfills', 'framework', 'webpack')) else 0)
+
+        for src in script_srcs[:12]:
+            full_src = urllib.parse.urljoin(page_url, src)
+            js = self._download_webpage(
+                full_src, video_id,
+                note=f'Inspecting JS bundle {src.split("/")[-1]}',
+                fatal=False)
+            if not js:
                 continue
-            for line in raw_chunk.splitlines():
-                _, sep, payload = line.partition(':')
-                if not sep:
-                    continue
-                payload = payload.strip()
-                if payload.startswith(('{', '[')):
-                    try:
-                        objs.append(json.loads(payload))
-                    except Exception:
-                        pass
+
+            ujs = self._unescape(js)
+
+            # 1. Find backend API hosts (aryzap.com / aryplus.tv / aryservices / cloudfront / etc.)
+            for m in re.finditer(
+                r'https?://[a-zA-Z0-9.-]+\.(?:aryzap\.com|aryplus\.tv|aryservices\.com|onedigital\.tv)(?::\d+)?(?:/api(?:/v\d+)?)?',
+                ujs
+            ):
+                host = m.group(0).rstrip('/')
+                if not any(host.endswith(ext) for ext in ('.js', '.css', '.png', '.jpg', '.svg', '.woff2')):
+                    if host not in discovered_bases:
+                        discovered_bases.append(host)
+
+            # 2. Find public client keys / Bearer tokens / x-api-key values in JS
+            for km in re.finditer(
+                r'(?:x-api-key|apiKey|api_key|clientKey|client_key|NEXT_PUBLIC_[A-Z0-9_]*KEY|Authorization)["\'\s:=]+["\']([A-Za-z0-9._\-+/=]{16,128})["\']',
+                ujs, re.I
+            ):
+                key_val = km.group(1).strip()
+                if key_val not in discovered_keys and not key_val.startswith('http'):
+                    discovered_keys.append(key_val)
+
+            # 3. Find API path templates containing v2, episode, series, single, or media
+            for pm in re.finditer(
+                r'["\']((?:/api)?/v[12]/[a-zA-Z0-9_/${}:.-]+|/api/[a-zA-Z0-9_/${}:.-]+)["\']',
+                ujs
+            ):
+                route = pm.group(1)
+                if not route.endswith(('.js', '.css')) and route not in discovered_routes:
+                    discovered_routes.append(route)
+
+        self.write_debug(f'Discovered API bases: {discovered_bases}')
+        self.write_debug(f'Discovered API keys count: {len(discovered_keys)}')
+        self.write_debug(f'Discovered API routes: {discovered_routes}')
+
+        self._cached_api_config = {
+            'bases': discovered_bases or [
+                'https://backend.aryzap.com/api',
+                'https://api.aryzap.com/api',
+                'https://node.aryzap.com/api',
+                'https://aryplus.tv/api',
+            ],
+            'keys': discovered_keys,
+            'routes': discovered_routes,
+        }
+        return self._cached_api_config
+
+    def _extract_rsc_objects(self, webpage):
+        """Parse JSON objects embedded inside Next.js App Router self.__next_f.push() scripts."""
+        objs = []
+        marker = 'self.__next_f.push('
+        pos = 0
+        while True:
+            idx = webpage.find(marker, pos)
+            if idx == -1:
+                break
+            start = idx + len(marker)
+            end = webpage.find(')</script>', start)
+            if end == -1:
+                end = webpage.find(');', start)
+            if end == -1:
+                break
+            raw = webpage[start:end].strip()
+            pos = end + 1
+            try:
+                parsed_outer = json.loads(raw)
+                if isinstance(parsed_outer, list) and len(parsed_outer) >= 2 and isinstance(parsed_outer[1], str):
+                    for line in parsed_outer[1].splitlines():
+                        _, sep, payload = line.partition(':')
+                        if sep and payload.strip().startswith(('{', '[')):
+                            try:
+                                objs.append(json.loads(payload.strip()))
+                            except Exception:
+                                pass
+            except Exception:
+                pass
         return objs
 
-    def _find_stream_url(self, obj):
-        """Find a playable .m3u8, .mp4, or external stream URL inside a dict."""
-        if not isinstance(obj, dict):
+    def _find_stream_in_dict(self, d):
+        if not isinstance(d, dict):
             return None
-        for key in self._STREAM_KEYS:
-            val = obj.get(key)
+        for k in self._STREAM_KEYS:
+            val = d.get(k)
             if isinstance(val, str) and val.strip():
-                if any(x in val for x in ('.m3u8', '.mp4', 'aryzap.com', 'aryplus.tv', 'youtube.com', 'youtu.be', 'dailymotion.com')):
+                if any(tok in val for tok in ('.m3u8', '.mp4', 'aryzap', 'cdn.', 'vod.', 'youtube.com', 'youtu.be', 'dailymotion.com')):
                     return val.strip()
-            elif isinstance(val, list):
-                for item in val:
-                    if isinstance(item, dict):
-                        nested = self._find_stream_url(item)
-                        if nested:
-                            return nested
-                    elif isinstance(item, str) and ('.m3u8' in item or '.mp4' in item):
-                        return item.strip()
-            elif isinstance(val, dict):
-                nested = self._find_stream_url(val)
-                if nested:
-                    return nested
         return None
 
-    def _collect_nodes(self, root):
-        """Walk arbitrary JSON response to collect episode dicts, stream URLs, and series metadata."""
+    def _search_json_tree(self, root, target_id=None):
+        """Recursively collect episode dicts, stream URLs, and metadata from any JSON structure."""
         episodes = []
         streams = []
-        dicts_by_id = {}
+        matched_meta = {}
         series_meta = {}
 
         def _walk(node):
             if isinstance(node, dict):
-                node_id = str(node.get('_id') or node.get('id') or '')
-                if re.match(r'^[0-9a-fA-F]{24}$', node_id):
-                    dicts_by_id.setdefault(node_id, {}).update(node)
-
+                nid = str(node.get('_id') or node.get('id') or '')
                 if traverse_obj(node, 'is_drm', 'drm', 'widevineUrl', 'fairplayUrl'):
-                    self.report_drm(node_id or 'aryplus')
+                    self.report_drm(nid or target_id or 'aryplus')
 
-                stream = self._find_stream_url(node)
+                stream = self._find_stream_in_dict(node)
                 if stream:
-                    streams.append((node_id, stream, node))
+                    streams.append((nid, stream, node))
 
-                # Check if node holds a list of episodes
+                if target_id and nid == target_id:
+                    matched_meta.update(node)
+
                 for list_key in ('episode', 'episodes', 'episodeList', 'videos', 'data', 'items', 'results'):
                     arr = node.get(list_key)
                     if isinstance(arr, list) and arr and isinstance(arr[0], dict):
                         for item in arr:
                             if isinstance(item, dict) and (
-                                self._find_stream_url(item)
-                                or any(k in item for k in ('episodeNumber', 'episode_number', 'epNo', 'title', 'name', '_id'))
+                                self._find_stream_in_dict(item)
+                                or any(k in item for k in ('episodeNumber', 'episode_number', 'title', 'name', '_id'))
                             ):
                                 episodes.append(item)
 
@@ -181,21 +218,68 @@ class ARYPlusIE(InfoExtractor):
                     _walk(item)
 
         _walk(root)
-        return dicts_by_id, episodes, streams, series_meta
+        return episodes, streams, matched_meta, series_meta
 
-    def _build_video_info(self, stream_url, video_id, meta, fallback_title=None, series_title=None):
+    def _build_Headers(self, referer_url, api_keys):
+        headers = {
+            'Accept': 'application/json, text/plain, */*',
+            'Origin': 'https://aryplus.tv',
+            'Referer': referer_url,
+        }
+        if api_keys:
+            key = api_keys[0]
+            headers['x-api-key'] = key
+            headers['Authorization'] = key if key.startswith('Bearer ') else f'Bearer {key}'
+        return headers
+
+    def _query_backend_apis(self, config, video_id, series_id, vtype, referer_url):
+        headers = self._build_Headers(referer_url, config.get('keys'))
+        candidate_urls = []
+
+        for base in config.get('bases', []):
+            base = base.rstrip('/')
+            # Build candidate API URLs using discovered bases
+            candidate_urls.extend([
+                f'{base}/v2/{vtype}/{video_id}' + (f'/{series_id}' if series_id else ''),
+                f'{base}/v2/{vtype}/{video_id}',
+                f'{base}/episode/{video_id}',
+                f'{base}/single/{video_id}',
+                f'{base}/media/{video_id}',
+                f'{base}/vod/{video_id}',
+            ])
+            if series_id:
+                candidate_urls.extend([
+                    f'{base}/v2/{vtype}/{series_id}',
+                    f'{base}/series/{series_id}',
+                    f'{base}/episode/bySeries/{series_id}',
+                ])
+
+        seen = set()
+        for api_url in candidate_urls:
+            if api_url in seen:
+                continue
+            seen.add(api_url)
+            res = self._download_json(
+                api_url, video_id,
+                note=f'Querying API {api_url}',
+                headers=headers, fatal=False, expected_status=lambda s: True)
+            if isinstance(res, (dict, list)) and res:
+                episodes, streams, matched_meta, series_meta = self._search_json_tree(res, video_id)
+                if streams or episodes:
+                    return episodes, streams, matched_meta, series_meta
+        return [], [], {}, {}
+
+    def _format_video_result(self, stream_url, video_id, meta, webpage='', series_title=None):
         meta = meta or {}
         title = (
             traverse_obj(meta, 'title', 'name', 'episodeTitle', 'episode_title')
-            or fallback_title
+            or (self._og_search_title(webpage, default=None) if webpage else None)
+            or (self._html_extract_title(webpage, default=None) if webpage else None)
             or video_id
         )
-        headers = {
-            'Referer': 'https://aryplus.tv/',
-            'Origin': 'https://aryplus.tv',
-        }
+        title = re.sub(r'^\s*Watch\s+|\s*\|\s*ARY Plus.*$', '', title, flags=re.I).strip()
 
-        # Handle YouTube / Dailymotion embeds if returned by API
+        # Check if stream is a YouTube ID or external player URL
         if re.match(r'^[A-Za-z0-9_-]{11}$', stream_url):
             return self.url_result(
                 f'https://www.youtube.com/watch?v={stream_url}',
@@ -205,6 +289,7 @@ class ARYPlusIE(InfoExtractor):
         if 'dailymotion.com/' in stream_url or 'dai.ly/' in stream_url:
             return self.url_result(stream_url, 'Dailymotion', video_id=video_id, video_title=title)
 
+        headers = {'Referer': 'https://aryplus.tv/', 'Origin': 'https://aryplus.tv'}
         formats, subtitles = [], {}
         if '.m3u8' in stream_url:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
@@ -220,18 +305,22 @@ class ARYPlusIE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
-            'description': clean_html(traverse_obj(meta, 'description', 'synopsis', 'storyline', 'plot')),
-            'thumbnail': traverse_obj(
-                meta, 'thumbnail', 'poster', 'image', 'imagePoster', 'cover', 'mobileImage',
-                expected_type=url_or_none),
+            'description': clean_html(
+                traverse_obj(meta, 'description', 'synopsis', 'storyline')
+                or (self._og_search_description(webpage, default=None) if webpage else None)
+            ),
+            'thumbnail': (
+                traverse_obj(meta, 'thumbnail', 'poster', 'image', 'imagePoster', 'mobileImage', expected_type=url_or_none)
+                or (self._og_search_thumbnail(webpage, default=None) if webpage else None)
+            ),
             'duration': (
                 int_or_none(traverse_obj(meta, 'duration', 'length'))
                 or parse_duration(traverse_obj(meta, 'duration', 'time', expected_type=str))
             ),
-            'episode_number': int_or_none(traverse_obj(meta, 'episodeNumber', 'episode_number', 'epNo', 'episode')),
+            'episode_number': int_or_none(traverse_obj(meta, 'episodeNumber', 'episode_number', 'epNo')),
             'season_number': int_or_none(traverse_obj(meta, 'seasonNumber', 'season_number', 'season')),
-            'series': series_title or traverse_obj(meta, 'seriesTitle', 'series_name', ('seriesId', 'title')),
-            'timestamp': unified_timestamp(traverse_obj(meta, 'createdAt', 'created_at', 'publishedAt', 'releaseDate')),
+            'series': series_title or traverse_obj(meta, 'seriesTitle', ('seriesId', 'title')),
+            'timestamp': unified_timestamp(traverse_obj(meta, 'createdAt', 'created_at', 'publishedAt')),
             'formats': formats,
             'subtitles': subtitles,
             'http_headers': headers,
@@ -242,114 +331,64 @@ class ARYPlusIE(InfoExtractor):
         vtype = mobj.group('vtype') or '3'
         video_id = mobj.group('id')
         series_id = mobj.group('series_id')
-        route = mobj.group('route')
         title_id = mobj.group('title_id')
+        active_id = video_id or title_id
 
-        # ------------------------------------------------------------------
-        # CASE 1: /video/v2/<vtype>/<video_id>(/<series_id>) or /video/api/v2/...
-        # ------------------------------------------------------------------
-        if video_id:
-            page_url = f'https://aryplus.tv/video/v2/{vtype}/{video_id}' + (f'/{series_id}' if series_id else '')
-            api_data = self._call_v2_api(vtype, video_id, page_url, extra_id=series_id)
+        webpage = self._download_webpage(url, active_id)
+        unescaped_html = self._unescape(webpage)
 
-            webpage = ''
-            if not api_data:
-                webpage = self._download_webpage(page_url, video_id, fatal=False) or ''
-                rsc_chunks = self._extract_nextjs_rsc_json(webpage)
-                next_data = self._search_nextjs_data(webpage, video_id, fatal=False)
-                api_data = [x for x in ([next_data] + rsc_chunks) if x]
+        # 1. Check Next.js RSC payload & raw HTML first
+        rsc_objs = self._extract_rsc_objects(webpage)
+        episodes, streams, matched_meta, series_meta = self._search_json_tree(rsc_objs, active_id)
 
-            dicts_by_id, episodes, streams, series_meta = self._collect_nodes(api_data)
+        if not streams:
+            for m3u8 in re.findall(r'https?://[a-zA-Z0-9.-]+/[a-zA-Z0-9._/~%&=\-+:?]+\.m3u8(?:\?[a-zA-Z0-9._/~%&=\-+:]+)?', unescaped_html):
+                streams.append((active_id, m3u8, {}))
 
-            # 1a. Exact match for video_id in collected nodes
-            target_meta = dicts_by_id.get(video_id) or {}
-            target_stream = self._find_stream_url(target_meta)
+        # 2. If not embedded in HTML, discover API base & client key from JS bundles and query API
+        if not streams and not (title_id and episodes):
+            config = self._discover_api_config(webpage, url, active_id)
+            episodes, streams, matched_meta, series_meta = self._query_backend_apis(
+                config, active_id, series_id, vtype, url)
 
-            # 1b. If not on dicts_by_id directly, check streams list
-            if not target_stream:
-                for sid, s_url, s_node in streams:
-                    if sid == video_id:
-                        target_stream = s_url
-                        target_meta = s_node
-                        break
-                if not target_stream and streams:
-                    target_stream = streams[0][1]
-                    target_meta = target_meta or streams[0][2]
+        series_title = traverse_obj(series_meta, 'title', 'name')
 
-            # 1c. Last-resort regex scan on the player HTML for vod.aryzap.com / .m3u8
-            if not target_stream:
-                if not webpage:
-                    webpage = self._download_webpage(page_url, video_id, fatal=False) or ''
-                m3u8_matches = re.findall(
-                    r'https?://(?:[a-zA-Z0-9-]+\.)?(?:aryzap\.com|aryplus\.tv)/[^"\'\s<>\\]+\.m3u8(?:\?[^"\'\s<>\\]+)?',
-                    webpage)
-                if m3u8_matches:
-                    target_stream = m3u8_matches[0]
-
-            if not target_stream:
-                raise ExtractorError(
-                    f'No stream URL found for video {video_id} (v2/{vtype}). '
-                    'Try passing browser cookies with --cookies-from-browser chrome',
-                    expected=True)
-
-            series_title = traverse_obj(series_meta, 'title', 'name')
-            return self._build_video_info(target_stream, video_id, target_meta, series_title=series_title)
-
-        # ------------------------------------------------------------------
-        # CASE 2: /title/<title_id> (Series / Movie Landing Page)
-        # ------------------------------------------------------------------
-        webpage = self._download_webpage(url, title_id, fatal=False) or ''
-        page_title = (
-            self._og_search_title(webpage, default=None)
-            or self._html_extract_title(webpage, default=None)
-            or title_id
-        )
-        page_title = re.sub(r'^\s*Watch\s+|\s*\|\s*ARY Plus.*$', '', page_title, flags=re.I).strip()
-
-        # Try v2 API for series/episodes (type 3, then 1 and 2) + page RSC payload
-        payloads = []
-        for candidate_vtype in ('3', '1', '2'):
-            data = self._call_v2_api(candidate_vtype, title_id, url)
-            if data:
-                payloads.append(data)
-                break
-
-        next_data = self._search_nextjs_data(webpage, title_id, fatal=False)
-        if next_data:
-            payloads.append(next_data)
-        payloads.extend(self._extract_nextjs_rsc_json(webpage))
-
-        dicts_by_id, episodes, streams, series_meta = self._collect_nodes(payloads)
-        series_title = traverse_obj(series_meta, 'title', 'name') or page_title
-
-        if episodes:
+        # 3. Handle /title/<series_id> Playlist
+        if title_id and episodes:
             entries = []
-            seen = set()
+            seen_ids = set()
             for idx, ep in enumerate(episodes, 1):
                 ep_id = str(traverse_obj(ep, '_id', 'id') or '')
-                if not ep_id or ep_id in seen:
+                if not ep_id or ep_id in seen_ids:
                     continue
-                seen.add(ep_id)
-
-                ep_title = traverse_obj(ep, 'title', 'name', 'episodeTitle') or f'{series_title} - Episode {idx}'
-                ep_stream = self._find_stream_url(ep)
+                seen_ids.add(ep_id)
+                ep_title = traverse_obj(ep, 'title', 'name', 'episodeTitle') or f'{series_title or title_id} - Episode {idx}'
+                ep_stream = self._find_stream_in_dict(ep)
                 if ep_stream:
-                    entries.append(self._build_video_info(ep_stream, ep_id, ep, fallback_title=ep_title, series_title=series_title))
-                elif re.match(r'^[0-9a-fA-F]{24}$', ep_id):
+                    entries.append(self._format_video_result(ep_stream, ep_id, ep, series_title=series_title))
+                else:
                     entries.append(self.url_result(
                         f'https://aryplus.tv/video/v2/3/{ep_id}/{title_id}',
                         ie=ARYPlusIE.ie_key(), video_id=ep_id, video_title=ep_title))
+            return self.playlist_result(entries, title_id, series_title)
 
-            if entries:
-                return self.playlist_result(
-                    entries, title_id, series_title,
-                    description=clean_html(traverse_obj(series_meta, 'description', 'storyline')))
+        # 4. Handle Single Video (/video/v2/3/<video_id>/<series_id>)
+        target_stream = self._find_stream_in_dict(matched_meta)
+        if not target_stream:
+            for sid, s_url, s_node in streams:
+                if sid == active_id:
+                    target_stream = s_url
+                    matched_meta = matched_meta or s_node
+                    break
+            if not target_stream and streams:
+                target_stream = streams[0][1]
+                matched_meta = matched_meta or streams[0][2]
 
-        if streams:
-            return self._build_video_info(streams[0][1], title_id, streams[0][2], fallback_title=series_title)
+        if target_stream:
+            return self._format_video_result(target_stream, active_id, matched_meta, webpage=webpage, series_title=series_title)
 
         raise ExtractorError(
-            f'Could not extract episodes or stream from {url}. '
-            'Use a direct video link (https://aryplus.tv/video/v2/3/<ep_id>/<series_id>) or pass --cookies-from-browser chrome.',
+            f'Could not resolve stream for {active_id}. Run `yt-dlp -v "{url}"` and check the '
+            '"Discovered API bases" debug output, or set ARYPLUS_API_BASE and ARYPLUS_API_KEY.',
             expected=True)
-            
+    
