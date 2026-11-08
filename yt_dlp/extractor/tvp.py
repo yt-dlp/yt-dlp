@@ -262,7 +262,6 @@ class TVPEmbedIE(TVPBaseIE):
             'series': 'Czas honoru',
             'episode': 'Episode 13',
             'episode_number': 13,
-            'season': 'sezon 1',
             'thumbnail': r're:https://.+',
         },
     }, {
@@ -271,6 +270,7 @@ class TVPEmbedIE(TVPBaseIE):
             'id': '51247504',
             'ext': 'mp4',
             'title': 'Razmova 091220',
+            'description': '',
             'duration': 876,
             'age_limit': 0,
             'thumbnail': r're:https://.+',
