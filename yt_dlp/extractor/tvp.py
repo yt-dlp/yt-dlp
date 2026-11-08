@@ -231,48 +231,6 @@ class TVPIE(TVPBaseIE):
         }
 
 
-class TVPStreamIE(TVPBaseIE):
-    IE_NAME = 'tvp:stream'
-    _VALID_URL = r'(?:tvpstream:|https?://(?:tvpstream\.vod|stream)\.tvp\.pl/(?:\?(?:[^&]+[&;])*channel_id=)?)(?P<id>\d*)'
-    _TESTS = [{
-        'url': 'https://stream.tvp.pl/?channel_id=56969941',
-        'only_matching': True,
-    }, {
-        # untestable as "video" id changes many times across a day
-        'url': 'https://tvpstream.vod.tvp.pl/?channel_id=1455',
-        'only_matching': True,
-    }, {
-        'url': 'tvpstream:39821455',
-        'only_matching': True,
-    }, {
-        # the default stream when you provide no channel_id, most probably TVP Info
-        'url': 'tvpstream:',
-        'only_matching': True,
-    }, {
-        'url': 'https://tvpstream.vod.tvp.pl/',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        channel_id = self._match_id(url)
-        channel_url = self._proto_relative_url(f'//stream.tvp.pl/?channel_id={channel_id}')
-        webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
-        channels = self._search_json(
-            r'window\.__channels\s*=', webpage, 'channel list', channel_id,
-            contains_pattern=r'\[\s*{(?s:.+)}\s*]')
-        channel = traverse_obj(channels, (lambda _, v: channel_id == str(v['id'])), get_all=False) if channel_id else channels[0]
-        audition = traverse_obj(channel, ('items', lambda _, v: v['is_live'] is True), get_all=False)
-        return {
-            '_type': 'url_transparent',
-            'id': channel_id or channel['id'],
-            'url': 'tvp:{}'.format(audition['video_id']),
-            'title': audition.get('title'),
-            'alt_title': channel.get('title'),
-            'is_live': True,
-            'ie_key': 'TVPEmbed',
-        }
-
-
 class TVPEmbedIE(TVPBaseIE):
     IE_NAME = 'tvp:embed'
     IE_DESC = 'Telewizja Polska'
