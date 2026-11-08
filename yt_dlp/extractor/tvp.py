@@ -44,8 +44,7 @@ class TVPIE(TVPBaseIE):
             'id': '75866176',
             'ext': 'mp4',
             'title': 'Rozmowa tygodnia z Andriusem Vaišnysem o wizycie S. Hołowni',
-            'alt_title': 'md5:51cc9faf4623ba33aa5191bb83f3f76a',
-            'description': '',
+            'alt_title': 'W mijającym tygodniu z oficjalną wizytą na Litwie gościł marszałek\npolskiego sejmu Szymon Hołownia.\nPodczas spotkań z władzami Litwy mówił, że zadaniem polityków\njest zbudowanie jak najwięcej struktur współpracy.',
             'duration': 169,
             'age_limit': 0,
             'release_timestamp': 1707591120,
@@ -270,7 +269,6 @@ class TVPEmbedIE(TVPBaseIE):
             'id': '51247504',
             'ext': 'mp4',
             'title': 'Razmova 091220',
-            'description': '',
             'duration': 876,
             'age_limit': 0,
             'thumbnail': r're:https://.+',
@@ -373,7 +371,7 @@ class TVPEmbedIE(TVPBaseIE):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         title = traverse_obj(info, (('subtitle', 'title', 'seoTitle'), {str}, any))
-        description = traverse_obj(info, (('description', 'seoDescription'), {str}, any))
+        description = traverse_obj(info, (('description', 'seoDescription'), {str}, filter, any))
         thumbnails = []
         for thumb in content.get('posters') or ():
             thumb_url = thumb.get('src')
@@ -510,7 +508,6 @@ class TVPVODVideoIE(TVPVODBaseIE):
             'id': '399731',
             'ext': 'mp4',
             'title': r're:TVP WORLD \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-            'description': '',
             'live_status': 'is_live',
             'thumbnail': 're:https?://.+',
         },
