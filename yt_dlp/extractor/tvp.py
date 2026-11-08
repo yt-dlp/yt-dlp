@@ -1,11 +1,13 @@
 import itertools
 import random
+import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     clean_html,
     determine_ext,
+    filter_dict,
     int_or_none,
     js_to_json,
     str_or_none,
@@ -19,6 +21,15 @@ class TVPBaseIE(InfoExtractor):
     # site does not provide actual country list: we just assume availability in PL if geo-restricted
     _GEO_COUNTRIES = ['PL']
     _GEO_BYPASS = False
+    _DIRECT_QUALITIES = {
+        (400, 224): 2,
+        (480, 272): 3,
+        (640, 360): 4,
+        (800, 448): 5,
+        (960, 540): 6,
+        (1280, 720): 7,
+        (1920, 1080): 9,
+    }
 
 
 class TVPIE(TVPBaseIE):
@@ -379,14 +390,25 @@ class TVPEmbedIE(TVPBaseIE):
                 self.__geo_block = True
                 continue
             else:
+                direct_format_match = re.search(r'/video-(\d+)\.mp4($|[?#])', video_url)
+                direct_id = direct_format_match.group(1) if direct_format_match else None
+                width, height = None, None
+                original_upload = direct_id == '1'
+                if direct_id and not original_upload:
+                    direct_num = int(direct_id)
+                    for dimensions, num in self._DIRECT_QUALITIES.items():
+                        if num == direct_num:
+                            width, height = dimensions
+                            break
                 formats.append({
-                    'format_id': 'direct',
+                    'format_id': direct_id if direct_id else 'direct',
+                    'format_note': 'original upload' if original_upload else None,
                     'url': video_url,
                     'ext': ext or file.get('type'),
                     'fps': int_or_none(traverse_obj(file, ('quality', 'fps'))),
                     'tbr': int_or_none(traverse_obj(file, ('quality', 'bitrate')), scale=1000),
-                    'width': int_or_none(traverse_obj(file, ('quality', 'width'))),
-                    'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
+                    'width': int_or_none(traverse_obj(file, ('quality', 'width'))) or width,
+                    'height': int_or_none(traverse_obj(file, ('quality', 'height'))) or height,
                 })
 
         if not formats and self.__geo_block:
@@ -549,8 +571,27 @@ class TVPVODVideoIE(TVPVODBaseIE):
         playlist = self._call_api(f'{video_id}/videos/playlist', video_id, query={'videoType': 'MOVIE'})
 
         info_dict['formats'] = []
+        mp4_formats = []
         for manifest_url in traverse_obj(playlist, ('sources', 'HLS', ..., 'src')):
-            info_dict['formats'].extend(self._extract_m3u8_formats(manifest_url, video_id, fatal=False))
+            hls_formats = self._extract_m3u8_formats(manifest_url, video_id, fatal=False)
+            info_dict['formats'].extend(hls_formats)
+            for fmt in hls_formats:
+                if not fmt.get('manifest_url', '').endswith('/video.ism/video.m3u8'):
+                    continue
+                q = self._DIRECT_QUALITIES.get((fmt.get('width'), fmt.get('height')))
+                if not q:
+                    continue
+                mp4_fmt = filter_dict(fmt, lambda k, _: k not in ('protocol', 'manifest_url'))
+                mp4_fmt.update({
+                    # 15 is len('.ism/video.m3u8')
+                    'url': '{}-{}.mp4'.format(fmt['manifest_url'][:-15], q),
+                    'format_id': fmt['format_id'].replace('hls', 'mp4'),
+                    'ext': 'mp4',
+                })
+                mp4_formats.append(mp4_fmt)
+        self._check_formats(mp4_formats, video_id)
+        info_dict['formats'].extend(mp4_formats)
+
         for manifest_url in traverse_obj(playlist, ('sources', 'DASH', ..., 'src')):
             info_dict['formats'].extend(self._extract_mpd_formats(manifest_url, video_id, fatal=False))
 
