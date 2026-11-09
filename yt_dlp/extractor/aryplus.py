@@ -1,11 +1,22 @@
-from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    traverse_obj,
-    url_or_none,
-)
+# Support both in-tree use (relative imports) and standalone plugin use (absolute imports)
+try:
+    from .common import InfoExtractor
+    from ..utils import (
+        ExtractorError,
+        int_or_none,
+        parse_iso8601,
+        traverse_obj,
+        url_or_none,
+    )
+except ImportError:
+    from yt_dlp.extractor.common import InfoExtractor
+    from yt_dlp.utils import (
+        ExtractorError,
+        int_or_none,
+        parse_iso8601,
+        traverse_obj,
+        url_or_none,
+    )
 
 
 class ARYPlusBaseIE(InfoExtractor):
