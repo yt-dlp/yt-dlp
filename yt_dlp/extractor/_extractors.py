@@ -122,6 +122,12 @@ from .arte import (
     ArteTVIE,
     ArteTVPlaylistIE,
 )
+from .aryplus import (
+    ARYPlusIE,
+    ARYPlusLiveIE,
+    ARYPlusSeriesIE,
+    ARYPlusShortsIE,
+)
 from .asobichannel import (
     AsobiChannelIE,
     AsobiChannelTagURLIE,
