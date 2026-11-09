@@ -11,15 +11,7 @@ class PixabayBaseIE(InfoExtractor):
 
     def _get_info(self, url, video_id, object_type):
         webpage = self._download_webpage(url, video_id, headers=self._headers)
-        info = self._search_json_ld(webpage, video_id, expected_type=object_type)
-
-        return traverse_obj(info, {
-            'url': ('url', {url_or_none}),
-            'thumbnail': ('thumbnails', 0, 'url', {url_or_none}),
-            'view_count': ('view_count', {int}),
-            'description': ('description', {str}),
-            'title': ('title', {str}),
-        })
+        return self._search_json_ld(webpage, video_id, expected_type=object_type)
 
 
 class PixabaySoundMusicIE(PixabayBaseIE):
