@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes, url_or_none
+from ..utils import extract_attributes, parse_duration, url_or_none
 from ..utils.traversal import traverse_obj
 
 
@@ -10,6 +10,7 @@ class StudyflixIE(InfoExtractor):
         'info_dict': {
             'id': '371',
             'ext': 'mp4',
+            'duration': 459,
             'thumbnail': r're:^https?://.*\.(?:png|jpg)',
             'title': 'Arbeit und Energie Übung',
         },
@@ -19,6 +20,7 @@ class StudyflixIE(InfoExtractor):
             'id': '1533',
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.(?:png|jpg)',
+            'duration': 315,
             'title': 'Winkelgeschwindigkeit',
         },
     }]
@@ -34,6 +36,7 @@ class StudyflixIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(up_info['stream_urls'][0], video_id),
+            'duration': parse_duration(up_info['duration']),
             **traverse_obj(up_info, {
                 'thumbnail': ('poster_url', {url_or_none}),
                 'title': ('title', {str}),
