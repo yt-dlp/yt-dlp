@@ -13,6 +13,7 @@ from ..utils import (
     int_or_none,
     orderedSet,
     parse_iso8601,
+    str_or_none,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -465,7 +466,7 @@ class AfreecaTVUserIE(AfreecaTVBaseIE):
         for item in info['data']:
             yield self.url_result(
                 f'https://vod.sooplive.com/player/{item["title_no"]}/',
-                AfreecaTVIE, item['title_no'], item.get('title_name'))
+                AfreecaTVIE, str_or_none(item['title_no']), item.get('title_name'))
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')

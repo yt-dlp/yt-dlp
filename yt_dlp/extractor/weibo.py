@@ -94,7 +94,7 @@ class WeiboBaseIE(InfoExtractor):
                         **parse_resolution(resolution),
                         **traverse_obj(media_info, (
                             'video_details', lambda _, v: v['label'].startswith(format_id), {
-                                'size': ('size', {int_or_none}),
+                                'filesize': ('size', {int_or_none}),
                                 'tbr': ('bitrate', {int_or_none}),
                             },
                         ), get_all=False),

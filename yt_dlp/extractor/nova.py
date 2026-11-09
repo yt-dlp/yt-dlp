@@ -110,7 +110,7 @@ class NovaEmbedIE(InfoExtractor):
 
         title = self._og_search_title(
             webpage, default=None) or self._search_regex(
-            (r'<value>(?P<title>[^<]+)',
+            (r'<value>(?P<value>[^<]+)',
              r'videoTitle\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1'), webpage,
             'title', group='value')
         thumbnail = self._og_search_thumbnail(

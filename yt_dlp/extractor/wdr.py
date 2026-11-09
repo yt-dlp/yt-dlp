@@ -88,7 +88,7 @@ class WDRIE(InfoExtractor):
                         manifest_url, video_id, f4m_id='hds', fatal=False))
                 elif ext == 'smil':
                     formats.extend(self._extract_smil_formats(
-                        medium_url, 'stream', fatal=False))
+                        medium_url, video_id, fatal=False))
                 else:
                     a_format = {
                         'url': medium_url,

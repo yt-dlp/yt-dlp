@@ -1,6 +1,6 @@
 from .bunnycdn import BunnyCdnIE
 from .common import InfoExtractor
-from ..utils import make_archive_id, try_get, unified_timestamp
+from ..utils import make_archive_id, str_or_none, try_get, unified_timestamp
 
 
 class SovietsClosetBaseIE(InfoExtractor):
@@ -182,7 +182,7 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
         entries = [{
             **self.url_result(f'https://sovietscloset.com/video/{stream["id"]}', ie=SovietsClosetIE.ie_key()),
             **self.video_meta(
-                video_id=stream['id'], game_name=game['name'], category_name=category.get('name'),
+                video_id=str_or_none(stream['id']), game_name=game['name'], category_name=category.get('name'),
                 episode_number=i + 1, stream_date=stream.get('date')),
         } for i, stream in enumerate(category['streams'])]
 

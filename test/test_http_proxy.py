@@ -83,6 +83,12 @@ class HTTPProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
 
         self.server.close_request(self.request)
 
+    def finish(self):
+        try:
+            super().finish()
+        finally:
+            self.server.close_request(self.request)
+
 
 if urllib3:
     import urllib3.util.ssltransport
@@ -132,7 +138,11 @@ class HTTPSProxyHandler(HTTPProxyHandler):
             request = SSLTransport(request, ssl_context=sslctx, server_side=True)
         else:
             request = sslctx.wrap_socket(request, server_side=True)
-        super().__init__(request, *args, **kwargs)
+        try:
+            super().__init__(request, *args, **kwargs)
+        except Exception:
+            request.close()
+            raise
 
 
 class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
@@ -163,6 +173,12 @@ class HTTPConnectProxyHandler(BaseHTTPRequestHandler, HTTPProxyAuthMixin):
         self.request_handler(self.request, self.client_address, self.server, proxy_info=proxy_info)
         self.server.close_request(self.request)
 
+    def finish(self):
+        try:
+            super().finish()
+        finally:
+            self.server.close_request(self.request)
+
 
 class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
     def __init__(self, request, *args, **kwargs):
@@ -171,7 +187,11 @@ class HTTPSConnectProxyHandler(HTTPConnectProxyHandler):
         sslctx.load_cert_chain(certfn, None)
         request = sslctx.wrap_socket(request, server_side=True)
         self._original_request = request
-        super().__init__(request, *args, **kwargs)
+        try:
+            super().__init__(request, *args, **kwargs)
+        except Exception:
+            request.close()
+            raise
 
     def do_CONNECT(self):
         super().do_CONNECT()

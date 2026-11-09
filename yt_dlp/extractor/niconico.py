@@ -3,6 +3,7 @@ import functools
 import itertools
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..networking.exceptions import HTTPError
@@ -14,6 +15,7 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_bitrate,
     parse_iso8601,
     parse_qs,
@@ -31,8 +33,10 @@ from ..utils import (
 )
 from ..utils.traversal import (
     find_element,
+    find_elements,
     require,
     traverse_obj,
+    trim_str,
 )
 
 
@@ -1080,3 +1084,98 @@ class NiconicoLiveIE(NiconicoBaseIE):
             'thumbnails': thumbnails,
             'formats': formats,
         }
+
+
+class NiconicoChannelIE(NiconicoBaseIE):
+    IE_NAME = 'niconico:channel'
+
+    _PAGE_SIZE = 20
+    _SEARCH_PAGE_SIZE = 32
+    _VALID_URL = [
+        r'https?://ch\.nicovideo\.jp/(?P<id>[\w-]+)/(?P<type>video)/?(?P<slug>continuation|member|pay|so\d{8})?(?:[/?#]|$)',
+        r'https?://ch\.nicovideo\.jp/(?P<type>search)/(?P<id>[^/?#]+)',
+    ]
+    _TESTS = [{
+        'url': 'https://ch.nicovideo.jp/higurashianime/video',
+        'info_dict': {
+            'id': 'higurashianime',
+            'title': '「ひぐらしのなく頃に」オフィシャルチャンネル',
+        },
+        'playlist_mincount': 54,
+    }, {
+        'url': 'https://ch.nicovideo.jp/amiami-ssr/video?page=2',
+        'info_dict': {
+            'id': 'amiami-ssr',
+            'title': 'あみあみSSRチャンネル',
+        },
+        'playlist_count': 20,
+    }, {
+        'url': 'https://ch.nicovideo.jp/yukarisama/video/pay',
+        'info_dict': {
+            'id': 'yukarisama',
+            'title': '縁結びのゆかり様',
+        },
+        'playlist_mincount': 16,
+    }, {
+        'url': 'https://ch.nicovideo.jp/mokou1/video/member',
+        'info_dict': {
+            'id': 'mokou1',
+            'title': 'もこう。',
+        },
+        'playlist_mincount': 49,
+    }, {
+        'url': 'https://ch.nicovideo.jp/amiami-ch/video/continuation',
+        'info_dict': {
+            'id': 'amiami-ch',
+            'title': 'あみあみチャンネル',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://ch.nicovideo.jp/search/%E3%81%AF%E3%81%AA%E3%81%BE%E3%81%8D%E3%81%93%E3%82%82%E3%81%A1%E3%81%83?channel_id=ch2585696&type=video',
+        'info_dict': {
+            'id': 'secondshot',
+            'title': 'セカンドショットちゃんねる - はなまきこもちぃ',
+        },
+        'playlist_mincount': 115,
+    }, {
+        'url': 'https://ch.nicovideo.jp/amiami-ch/video/so44060088',
+        'only_matching': True,
+    }]
+
+    def _fetch_page(self, url, playlist_id, page):
+        page += 1
+        webpage = self._download_webpage(
+            url, playlist_id, f'Downloading page {page}', query={'page': page})
+        for url in traverse_obj(webpage, (
+            {find_elements(cls='watchLink', html=True)},
+            ..., {extract_attributes}, 'href', {url_or_none},
+        )):
+            yield self.url_result(url, NiconicoIE)
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        display_id = urllib.parse.unquote(mobj.group('id'))
+        playlist_type = mobj.group('type')
+
+        if playlist_type == 'search':
+            keyword = display_id
+            page_size = self._SEARCH_PAGE_SIZE
+        else:
+            if (slug := mobj.group('slug')) and slug.startswith('so'):
+                return self.url_result(
+                    f'{self._BASE_URL}/watch/{slug}', NiconicoIE)
+            keyword = None
+            page_size = self._PAGE_SIZE
+
+        webpage = self._download_webpage(url, display_id)
+        channel_name = traverse_obj(webpage, (
+            {find_element(cls='channel_name')}, {find_element(tag='a', html=True)},
+            {extract_attributes}, 'href', {str}, {trim_str(start='/')}, filter))
+        site_name = self._og_search_property('site_name', webpage, default=None)
+
+        fetch_page = functools.partial(self._fetch_page, url, display_id)
+        page = traverse_obj(parse_qs(url), ('page', -1, {int_or_none}))
+        entries = fetch_page(page - 1) if page else OnDemandPagedList(fetch_page, page_size)
+
+        return self.playlist_result(
+            entries, channel_name, join_nonempty(site_name, keyword, delim=' - '))
