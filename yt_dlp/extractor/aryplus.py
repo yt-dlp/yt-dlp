@@ -41,9 +41,10 @@ class ARYPlusIE(ARYPlusBaseIE):
             'id': '6a6e0b1e9bc4b079859bc14b',
             'ext': 'mp4',
             'title': 'Episode 1',
-            'description': 'md5:6ae2e5fc6f0e9b9222e96e053f36a4fa',
+            'description': 'md5:4f666fb01c940e7800a07c43a0e56a37',
             'duration': 2273,
             'episode_number': 1,
+            'episode': 'Episode 1',
             'series_id': '6a57868b5bf57c474cc00a50',
             'thumbnail': r're:^https?://.*\.webp$',
         },
@@ -54,9 +55,9 @@ class ARYPlusIE(ARYPlusBaseIE):
             'id': '6aea0c13c1b320805cff33cb',
             'ext': 'mp4',
             'title': 'Mera Ghar',
-            'description': str,
-            'duration': int,
+            'description': 'md5:2167d32e92c2bfba91730bb544ae5d0e',
             'thumbnail': r're:^https?://.*',
+            'cast': ['Zubab Rana', 'Shahroz Sabzwari', 'Uzma Hassan'],
         },
         'params': {'skip_download': True},
     }]
@@ -175,7 +176,7 @@ class ARYPlusSeriesIE(ARYPlusBaseIE):
         'info_dict': {
             'id': '6a57868b5bf57c474cc00a50',
             'title': 'Dar-E-Nijaat',
-            'description': 'md5:f6c5bbff44bb652b4124e6a0d4bbf528',
+            'description': 'md5:9b6254ef7fbf1592a35624d3e64e936a',
         },
         'playlist_mincount': 20,
     }]
@@ -303,6 +304,7 @@ class ARYPlusShortsIE(ARYPlusBaseIE):
             'like_count': int,
             'timestamp': 1783440765,
             'upload_date': '20260707',
+            'tags': ['Drama'],
         },
         'params': {'skip_download': True},
     }]
