@@ -461,6 +461,9 @@ class RPlayLiveIE(RPlayBaseIE):
                         **({'token': self.jwt_token} if self.jwt_token else {}),
                     }, headers=self.jwt_header, note='Downloading playurls')['playUrls']
                 formats = [{'format_id': k, 'url': v} for k, v in urls.items()]
+            elif m3u8_url := traverse_obj(live_info, ('livestreamUrl', {url_or_none})):
+                formats = self._extract_m3u8_formats(
+                    m3u8_url, user_id, headers={'Referer': 'https://rplay.live'})
             else:
                 key2 = traverse_obj(self._download_json(
                     'https://api.rplay.live/live/key2', user_id, 'getting live key',
