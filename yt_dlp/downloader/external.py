@@ -249,7 +249,7 @@ class CurlFD(ExternalFD):
         return cmd
 
     def _call_process(self, cmd, info_dict):
-        if self._curl_version > self._MIN_VERSION_FOR_STDIN_COOKIES or os.path.islink('/dev/fd/0'):
+        if self._curl_version >= self._MIN_VERSION_FOR_STDIN_COOKIES or os.path.islink('/dev/fd/0'):
             # Supports `--cookies -` or reading from device file as `--cookies /dev/fd/0`
             buffer = io.StringIO()
             self.ydl.cookiejar._really_save(buffer, True, True)
@@ -375,7 +375,7 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms', 'http_dash_segments')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtmp', 'rtmp_ffmpeg', 'http_dash_segments')
     SUPPORTED_FEATURES = (Features.TO_STDOUT, Features.MULTIPLE_FORMATS)
 
     @classmethod

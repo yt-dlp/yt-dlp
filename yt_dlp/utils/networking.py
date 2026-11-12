@@ -17,7 +17,7 @@ from .traversal import traverse_obj
 def random_user_agent():
     USER_AGENT_TMPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{}.0.0.0 Safari/537.36'
     # Target versions released within the last ~6 months
-    CHROME_MAJOR_VERSION_RANGE = (144, 150)
+    CHROME_MAJOR_VERSION_RANGE = (145, 151)
     return USER_AGENT_TMPL.format(random.randint(*CHROME_MAJOR_VERSION_RANGE))
 
 

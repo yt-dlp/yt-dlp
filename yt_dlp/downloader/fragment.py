@@ -396,7 +396,7 @@ class FragmentFD(FileDownloader):
                         return future.result(0.1)
                     except KeyboardInterrupt:
                         raise
-                    except concurrent.futures.TimeoutError:
+                    except TimeoutError:
                         continue
         else:
             def future_result(future):
