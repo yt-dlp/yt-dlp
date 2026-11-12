@@ -384,6 +384,7 @@ class ARDBetaMediathekIE(InfoExtractor):
 class ARDMediathekCollectionIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:(?:beta|www)\.)?ardmediathek\.de/
+        (?![^/?#]+/video/)
         (?:[^/?#]+/)?
         (?P<playlist>sendung|serie|sammlung|radiobremen|rbb|sw?r|(?:nd|md|b|h)r)/
         (?:(?P<display_id>[^?#]+?)/)?
