@@ -1,7 +1,7 @@
 name: Test and lint workflows
 on:
   push:
-    branches: ['master']
+    branches: ['**']
   # This workflow contains required checks and needs to run for EVERY pull_request
   pull_request:
     branches: ['**']
@@ -30,9 +30,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
-          python-version: "3.13"  # Keep this in sync with release.yml's prepare job
+          python-version: '3.14'  # Keep this in sync with release.yml's prepare job
 
       - name: Install Python dependencies
         run: |
@@ -83,7 +83,7 @@ jobs:
           persist-credentials: false
 
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482  # v0.6.4
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b  # v0.8.0
         with:
           advanced-security: false
           persona: pedantic

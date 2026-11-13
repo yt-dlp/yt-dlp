@@ -9,6 +9,8 @@ if [ -n "${SKIP_ONEFILE_BUILD:-}" ]; then
     echo "Extracting zip to verify onedir build"
     if command -v python3 >/dev/null 2>&1; then
         python3 -m zipfile -e "/build/${EXE_NAME}.zip" ./
+    elif command -v py3.14 >/dev/null 2>&1; then
+        py3.14 -m zipfile -e "/build/${EXE_NAME}.zip" ./
     else
         echo "Attempting to install unzip"
         if command -v dnf >/dev/null 2>&1; then

@@ -95,7 +95,7 @@ You can install yt-dlp using [the binaries](#release-files), [pip](https://pypi.
 File|Description
 :---|:---
 [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
-[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win8+) standalone x64 binary (recommended for **Windows**)
+[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win10+) standalone x64 binary (recommended for **Windows**)
 [yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|Universal MacOS (10.15+) standalone executable (recommended for **MacOS**)
 
 #### Alternatives
@@ -111,11 +111,11 @@ File|Description
 [yt-dlp_musllinux.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_musllinux.zip)|Unpackaged Linux (musl 1.2+) x86_64 executable (no auto-update)
 [yt-dlp_musllinux_aarch64](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_musllinux_aarch64)|Linux (musl 1.2+) standalone aarch64 binary
 [yt-dlp_musllinux_aarch64.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_musllinux_aarch64.zip)|Unpackaged Linux (musl 1.2+) aarch64 executable (no auto-update)
-[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Win8+) standalone x86 (32-bit) binary
-[yt-dlp_win_x86.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win_x86.zip)|Unpackaged Windows (Win8+) x86 (32-bit) executable (no auto-update)
+[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Win10+) standalone x86 (32-bit) binary
+[yt-dlp_win_x86.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win_x86.zip)|Unpackaged Windows (Win10+) x86 (32-bit) executable (no auto-update)
 [yt-dlp_arm64.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_arm64.exe)|Windows (Win10+) standalone ARM64 binary
 [yt-dlp_win_arm64.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win_arm64.zip)|Unpackaged Windows (Win10+) ARM64 executable (no auto-update)
-[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows (Win8+) x64 executable (no auto-update)
+[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows (Win10+) x64 executable (no auto-update)
 [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
 
 #### Misc
@@ -193,7 +193,7 @@ When running a yt-dlp version that is older than 90 days, you will see a warning
 You can suppress this warning by adding `--no-update` to your command or configuration file.
 
 ## DEPENDENCIES
-Python versions 3.10+ (CPython) and 3.11+ (PyPy) are supported. Other versions and implementations may or may not work correctly.
+Python versions 3.11+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
 <!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
@@ -275,7 +275,7 @@ On some systems, you may need to use `py` or `python3` instead of `python`.
 **Important**: Running `pyinstaller` directly **instead of** using `python -m bundle.pyinstaller` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
-You will need the build tools `python` (3.10+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
+You will need the build tools `python` (3.11+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
 
 After installing these, simply run `make`.
 
@@ -2313,8 +2313,8 @@ Features marked with a **\*** have been back-ported to youtube-dl
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
-* yt-dlp supports only [Python 3.10+](## "Windows 8"), and will remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
-* The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
+* yt-dlp supports only [Python 3.11+](#dependencies), and will remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
+* Some options no longer work. See [removed options](#removed) for details
 * `avconv` is not supported as an alternative to `ffmpeg`
 * yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
 * The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s-%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
@@ -2476,10 +2476,7 @@ These options may no longer work as intended
     --no-include-ads                 Default
     --write-annotations              No supported site has annotations now
     --no-write-annotations           Default
-    --avconv-location                Removed alias for --ffmpeg-location
     --cn-verification-proxy URL      Removed alias for --geo-verification-proxy URL
-    --dump-headers                   Removed alias for --print-traffic
-    --dump-intermediate-pages        Removed alias for --dump-pages
     --youtube-skip-dash-manifest     Removed alias for --extractor-args "youtube:skip=dash" (Alias: --no-youtube-include-dash-manifest)
     --youtube-skip-hls-manifest      Removed alias for --extractor-args "youtube:skip=hls" (Alias: --no-youtube-include-hls-manifest)
     --youtube-include-dash-manifest  Default (Alias: --no-youtube-skip-dash-manifest)
@@ -2491,10 +2488,13 @@ These options may no longer work as intended
     --compat-options no-youtube-prefer-utc-upload-date  No longer supported
 
 #### Removed
-These options were deprecated since 2014 and have now been entirely removed
+These aliases have been removed and may be reused. Please update your scripts and configuration files accordingly
 
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
     -t, -l, --title, --literal       -o "%(title)s-%(id)s.%(ext)s"
+    --avconv-location                --ffmpeg-location
+    --dump-headers                   --print-traffic
+    --dump-intermediate-pages        --dump-pages
 
 
 # CONTRIBUTING

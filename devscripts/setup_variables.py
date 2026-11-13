@@ -57,7 +57,7 @@ def setup_variables(environment):
 
     revision = None
     if INPUTS['prerelease'] or not json.loads(environment['HAS_RELEASE_KEY']):
-        revision = dt.datetime.now(tz=dt.timezone.utc).strftime('%H%M%S')
+        revision = dt.datetime.now(tz=dt.UTC).strftime('%H%M%S')
 
     version = calculate_version(INPUTS.get('version') or revision)
 
