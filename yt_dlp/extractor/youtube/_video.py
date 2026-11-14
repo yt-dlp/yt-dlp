@@ -4049,8 +4049,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pemr = get_first(
                 playability_statuses,
                 ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
-            reason = self._get_text(pemr, 'reason') or get_first(playability_statuses, 'reason')
-            subreason = clean_html(self._get_text(pemr, 'subreason') or '')
+            ivm = get_first(
+                playability_statuses,
+                ('errorScreen', 'playerInterstitialRenderer', 'content', 'interstitialViewModel', {dict})) or {}
+            reason = (
+                self._get_text(pemr, 'reason')
+                or get_first(playability_statuses, 'reason')
+                or traverse_obj(ivm, ('title', 'content', {str}))
+                or '')
+            subreason = clean_html(self._get_text(pemr, 'subreason')) or traverse_obj(ivm, ('description', 'content', {clean_html}))
             if subreason:
                 if subreason.startswith('The uploader has not made this video available in your country'):
                     countries = get_first(microformats, 'availableCountries')
@@ -4058,7 +4065,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
                     self.raise_geo_restricted(subreason, countries, metadata_available=True)
-                reason += f'. {subreason}'
+                if subreason != reason:
+                    reason += f'. {subreason}'
             if reason:
                 if 'sign in' in reason.lower():
                     reason = remove_end(reason, 'This helps protect our community. Learn more')
@@ -4533,7 +4541,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
         )
         upload_date = (
-            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            dt.datetime.fromtimestamp(timestamp, dt.UTC).strftime('%Y%m%d') if timestamp else
             (
                 unified_strdate(get_first(microformats, 'uploadDate'))
                 or unified_strdate(search_meta('uploadDate'))
@@ -4553,7 +4561,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.UTC)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
                     if fmt.get('protocol') == 'm3u8_native':
