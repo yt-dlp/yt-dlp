@@ -409,6 +409,11 @@ class FacebookIE(InfoExtractor):
     }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
+    },
+        {
+        # Age-restricted video
+        'url': 'https://www.facebook.com/reel/1388064706077874',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # <iframe> embed
@@ -468,10 +473,10 @@ class FacebookIE(InfoExtractor):
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
+        post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+            r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
 
         def extract_metadata(webpage):
-            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
@@ -760,6 +765,8 @@ class FacebookIE(InfoExtractor):
                     'id="login_form"',
                     'id="loginbutton"')):
                 self.raise_login_required()
+            elif traverse_obj(post_data, (..., 'require', ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., 'is_age_gated', {bool}, any)):
+                self.raise_login_required('This video is age restricted')
 
         if not video_data and '/watchparty/' in url:
             post_data = {
