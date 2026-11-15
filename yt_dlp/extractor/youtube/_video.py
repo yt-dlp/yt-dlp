@@ -29,6 +29,7 @@ from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, 
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking import HEADRequest
+from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -2045,7 +2046,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         note=False, errnote='Fragment request failed')
                 except ExtractorError as e:
                     self.write_debug(e.msg)
-                    urlh = None
+                    # On some clients (e.g. tv_samsung), a HEAD request may yield HTTP Error 500,
+                    # but the response still has the X-Head-Seqnum header value that is needed.
+                    # See https://github.com/yt-dlp/yt-dlp/issues/18031
+                    if isinstance(e.cause, HTTPError) and e.cause.status >= 500:
+                        urlh = e.cause.response
+                    else:
+                        urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
                     urlh.close()
