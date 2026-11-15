@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Dubdeck: a "D" built from a tape guide and a reel. -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="#1d1c1a"/>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="none" stroke="#3a3833" stroke-width="8"/>
+  <rect x="232" y="252" width="112" height="520" rx="28" fill="#f3f1ec"/>
+  <circle cx="584" cy="512" r="204" fill="none" stroke="#f3f1ec" stroke-width="112"/>
+  <circle cx="584" cy="512" r="60" fill="#e8622a"/>
+  <g fill="#1d1c1a">
+    <circle cx="584" cy="308" r="22"/>
+    <circle cx="760.7" cy="614" r="22"/>
+    <circle cx="407.3" cy="614" r="22"/>
+  </g>
+</svg>

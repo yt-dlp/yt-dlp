@@ -190,7 +190,14 @@ export class Engine {
       const m = /^([0-9a-f]{64})\s+\*?(\S+)$/i.exec(line.trim());
       if (m) sums.set(m[2], m[1].toLowerCase());
     }
-    const found = /\/releases\/download\/([^/]+)\//.exec(res.url)?.[1] ?? tag;
+    let found = /\/releases\/download\/([^/]+)\//.exec(res.url)?.[1] ?? tag;
+    if (!found) {
+      // some network stacks hide the final address; ask where "latest" points instead
+      try {
+        const hop = await this.fetchImpl(`${base}/SHA2-256SUMS`, { redirect: 'manual' });
+        found = /\/releases\/download\/([^/]+)\//.exec(hop.headers.get('location') ?? '')?.[1] ?? null;
+      } catch { /* the version stays unknown; checksums still decide */ }
+    }
     return { base: found ? `https://github.com/${repo}/releases/download/${found}` : base, tag: found ?? null, sums, repo };
   }
 
@@ -203,8 +210,9 @@ export class Engine {
       let available: boolean;
       if (rel.tag && current) available = compareVersions(rel.tag, current) > 0;
       else {
+        // the release did not say which version it is, so compare the files themselves
         const r = this.resolve();
-        available = r.source === 'source' || (await sha256(r.path)) !== rel.sums.get(asset);
+        available = r.source !== 'source' && (await sha256(r.path)) !== rel.sums.get(asset);
       }
       return { state: available ? 'available' : 'current', current, latest: rel.tag ?? undefined };
     } catch (e) {

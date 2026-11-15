@@ -254,7 +254,7 @@ section('logging', [
   ['--simulate', 'Simulate', 'Go through the motions without downloading the video or writing anything to disk.'],
   ['--skip-download', 'Skip the video itself', 'Do everything except download the video. Related files such as subtitles, thumbnails and info JSON are still written.'],
   ['--ignore-no-formats-error', 'Carry on when there are no formats', 'Do not treat "no formats found" as an error. Useful for collecting metadata of videos that cannot be downloaded.'],
-  ['--print', 'Print fields', 'Print a field name or output template for each video, then stop without downloading (add "Simulate: off" to download as well). The result appears in the Output tab of the download. ' + WHEN, { placeholder: '%(title)s — %(duration>%H:%M:%S)s' }],
+  ['--print', 'Print fields', 'Print a field name or output template for each video, then stop without downloading (add "Simulate: off" to download as well). The result appears in the Output tab of the download. ' + WHEN, { placeholder: '%(title)s (%(duration>%H:%M:%S)s)' }],
   ['--print-to-file', 'Print fields to a file', 'Append a line to a file for each video. The first box is the template, the second the file name (which may itself be a template). ' + WHEN, { parts: ['Template', 'File'] }],
   ['--dump-json', 'Print JSON for each video', 'Print the full information about each video as a line of JSON, without downloading.'],
   ['--dump-single-json', 'Print JSON for each link', 'Print one JSON document per link. For a playlist, the whole playlist is one document.'],

@@ -6,7 +6,10 @@
   "author": "Nardi05",
   "license": "Unlicense",
   "homepage": "https://github.com/Nardi05/yt-dlp",
-  "repository": { "type": "git", "url": "https://github.com/Nardi05/yt-dlp.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nardi05/yt-dlp.git"
+  },
   "private": true,
   "main": "dist/main/main.js",
   "scripts": {
@@ -20,7 +23,8 @@
     "engine": "node scripts/build-engine.mjs",
     "ffmpeg": "node scripts/fetch-ffmpeg.mjs",
     "dist": "npm run build && electron-builder --publish never",
-    "dist:dir": "npm run build && electron-builder --dir --publish never"
+    "dist:dir": "npm run build && electron-builder --dir --publish never",
+    "icon": "node scripts/gen-app-icon.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -36,5 +40,74 @@
     "preact": "^10.25.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
+  },
+  "build": {
+    "appId": "io.github.nardi05.dubdeck",
+    "productName": "Dubdeck",
+    "copyright": "Public domain (Unlicense)",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/icon.png",
+      "package.json",
+      "!dist/**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/engine",
+        "to": "engine"
+      },
+      {
+        "from": "vendor/ffmpeg",
+        "to": "ffmpeg"
+      }
+    ],
+    "asar": true,
+    "artifactName": "Dubdeck-${version}-${os}-${arch}.${ext}",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ],
+      "category": "AudioVideo",
+      "icon": "assets/icon.png",
+      "synopsis": "A desktop app for yt-dlp",
+      "maintainer": "Nardi05"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Dubdeck-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Dubdeck-Portable-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.video",
+      "icon": "assets/icon.png",
+      "identity": null
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Nardi05",
+        "repo": "yt-dlp"
+      }
+    ]
   }
 }

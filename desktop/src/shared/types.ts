@@ -178,6 +178,7 @@ export interface ConfigImport { path: string; parsed: ParsedArgs }
 /** Everything the window can ask the main process to do. */
 export interface Api {
   platform: string;
+  pathForFile?(file: File): string;
   getSettings(): Promise<Settings>;
   setSettings(patch: Partial<Settings>): Promise<Settings>;
   listPresets(): Promise<Preset[]>;
