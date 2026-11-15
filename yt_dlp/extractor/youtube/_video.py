@@ -4045,7 +4045,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._list_formats(video_id, microformats, video_details, player_responses, player_url, duration)
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         if live_status == 'post_live':
-            self.write_debug(f'{video_id}: Video is in Post-Live Manifestless mode')
+            self.to_screen(
+                f'{video_id}: Video is in Post-Live Manifestless mode\n'
+                'While the video\'s live_status is post_live, some formats may not yet be available '
+                'and, in rare cases, the beginning of the stream may not yet be downloadable. '
+                'If this matters to you, wait until stream has been fully processed by YouTube and try again')
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
