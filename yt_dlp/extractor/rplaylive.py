@@ -59,9 +59,9 @@ class RPlayBaseIE(InfoExtractor):
         self._cf_turnstile_pass = new_pass
 
     def _download_turnstile_json(self, url_or_request, video_id, *args, headers={}, **kwargs):
-        if provider := self._configuration_arg('turnstile_provider', ie_key='rplaylive', default=[None]):
+        if provider := self._configuration_arg('turnstile_provider', ie_key='rplaylive', default=[None])[0]:
             query = {'url': 'https://rplay.live', 'sitekey': '0x4AAAAAAFpJTWip4zXSkTi4'}
-            headers = {**headers, **self._download_json(provider, query=query, note='request turnstile headers')}
+            headers = {**headers, **self._download_json(provider, None, query=query, note='request turnstile headers')}
         elif self.cf_turnstile_pass:
             headers['x-browser-pass'] = self.cf_turnstile_pass
         elif token := self._configuration_arg('turnstile_token', ie_key='rplaylive', casesense=True, default=[None])[0]:
