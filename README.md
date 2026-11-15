@@ -11,6 +11,9 @@
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
 
 </div>
+
+> **Prefer an app?** [Dubdeck](desktop/README.md) is a desktop app (Windows, macOS, Linux) built on this fork, with every option available from a graphical interface. See the [user guide](desktop/docs/USER_GUIDE.md) and the [feature matrix](FEATURE_MATRIX.md).
+
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 yt-dlp is a feature-rich command-line audio/video downloader with support for [thousands of sites](supportedsites.md). The project is a fork of [youtube-dl](https://github.com/ytdl-org/youtube-dl) based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc).

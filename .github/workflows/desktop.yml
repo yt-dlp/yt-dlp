@@ -1,0 +1,73 @@
+name: Desktop app
+
+# Builds Dubdeck installers for Windows, macOS and Linux.
+# Push a tag such as desktop-v1.0.0 to publish them as a GitHub release,
+# which is also where the app's built-in updater looks for new versions.
+
+on:
+  push:
+    tags: ['desktop-v*']
+    paths: ['desktop/**', 'yt_dlp/**', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest, macos-13]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install ffmpeg for the integration tests
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Integration tests (real engine, local server)
+        if: runner.os == 'Linux'
+        run: npm test
+      - name: Parity test (every flag against the real engine)
+        if: runner.os == 'Linux'
+        run: npm run parity
+      - name: Build the yt-dlp engine from this repository
+        run: npm run engine
+      - name: Fetch ffmpeg
+        run: npm run ffmpeg
+      - name: Build installers
+        if: "!startsWith(github.ref, 'refs/tags/desktop-v')"
+        run: npm run dist
+      - name: Build and publish installers
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dubdeck-${{ matrix.os }}
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.dmg
+            desktop/release/*.zip
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+            desktop/release/*.tar.gz
+          if-no-files-found: ignore

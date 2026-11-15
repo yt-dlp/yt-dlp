@@ -55,6 +55,7 @@ const cases: [string, string, string?][] = [
   ['impersonate', 'Impersonate target "chrome-999" is not available. Use --list-impersonate-targets to see available targets.'],
   ['bad-option', 'yt-dlp: error: invalid retries count specified', 'starting'],
   ['bad-option', 'yt-dlp: error: no such option: --frobnicate', 'starting'],
+  ['needs-input', 'Traceback (most recent call last):\n  File "getpass.py", line 148, in _raw_input\n    raise EOFError\nEOFError', 'starting'],
   ['engine-missing', 'spawn /opt/app/engine/yt-dlp ENOENT', 'starting'],
 ];
 

@@ -17,11 +17,12 @@ const run = (cmd, args, cwd = repo) => { console.log(`> ${cmd} ${args.join(' ')}
 if (!existsSync(vpy)) run(py, ['-m', 'venv', venv]);
 run(vpy, ['-m', 'pip', 'install', '--quiet', '--upgrade', 'pip']);
 // the same optional dependencies the official builds ship with, plus the bundler
-run(vpy, ['-m', 'pip', 'install', '--quiet', '.[default,curl-cffi,pyinstaller]']);
+run(vpy, ['-m', 'pip', 'install', '--quiet', '.[default,curl-cffi]', 'pyinstaller==6.22.0']);
 run(vpy, ['devscripts/make_lazy_extractors.py']);
 const dist = path.join(desktop, 'build-engine', 'dist');
 rmSync(dist, { recursive: true, force: true });
-run(vpy, ['-m', 'bundle.pyinstaller', '--onefile', `--distpath=${dist}`, `--workpath=${path.join(desktop, 'build-engine', 'work')}`, `--specpath=${path.join(desktop, 'build-engine')}`]);
+run(vpy, ['-m', 'bundle.pyinstaller', '--onefile', `--distpath=${dist}`, `--workpath=${path.join(desktop, 'build-engine', 'work')}`]);
+for (const f of readdirSync(repo)) if (f.endsWith('.spec')) rmSync(path.join(repo, f), { force: true });
 rmSync(path.join(repo, 'yt_dlp', 'extractor', 'lazy_extractors.py'), { force: true });
 
 const built = readdirSync(dist).find((f) => f.startsWith('yt-dlp'));

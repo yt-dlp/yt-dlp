@@ -1,6 +1,7 @@
 // Downloads ffmpeg and ffprobe for the platform being built into
 // desktop/vendor/ffmpeg, so installers ship with them inside.
-import { createWriteStream, chmodSync, mkdirSync, renameSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createReadStream, createWriteStream, chmodSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -19,10 +20,19 @@ mkdirSync(out, { recursive: true });
 for (const tool of ['ffmpeg', 'ffprobe']) {
   const url = `${RELEASE}/${tool}-${plat}-${cpu}.gz`;
   console.log(`Fetching ${url}`);
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`${url} answered ${res.status}`);
   const tmp = path.join(out, `${tool}.download`);
-  await pipeline(Readable.fromWeb(res.body), createGunzip(), createWriteStream(tmp));
+  const gz = `${tmp}.gz`;
+  try {
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok) throw new Error(`${url} answered ${res.status}`);
+    await pipeline(Readable.fromWeb(res.body), createWriteStream(gz));
+  } catch (e) {
+    // some proxies break Node's streaming fetch; curl is on every build machine
+    console.log(`  fetch failed (${e.message}), retrying with curl`);
+    execFileSync('curl', ['-fsSL', '--retry', '3', '-o', gz, url], { stdio: 'inherit' });
+  }
+  await pipeline(createReadStream(gz), createGunzip(), createWriteStream(tmp));
+  rmSync(gz, { force: true });
   const target = path.join(out, `${tool}${exe}`);
   renameSync(tmp, target);
   if (!exe) chmodSync(target, 0o755);

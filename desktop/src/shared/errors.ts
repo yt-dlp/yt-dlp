@@ -72,6 +72,16 @@ const rules: Rule[] = [
     stage: 'starting',
   },
   {
+    code: 'needs-input',
+    match: /EOFError|EOF when reading a line|getpass|Password: ?$/im,
+    title: 'The engine wanted to ask a question',
+    what: 'The engine stopped to ask for something, usually a password, and there is no terminal to type it into.',
+    why: 'A username was given without its password, or an option asked to read from the keyboard.',
+    tryThis: ['Fill in both Username and Password (or the TV provider pair) under Sign-in and cookies.', 'Or use cookies from your browser instead of a password.'],
+    fixes: ['edit-options', 'browser-cookies'],
+    stage: 'starting',
+  },
+  {
     code: 'bad-option',
     match: /^(?:yt-dlp|yt_dlp|__main__\.py|Usage:).*?error: |^yt-dlp: error:|invalid .* specified|no such option|option .* requires|wrong .* format|Invalid (?:format|filter|retry|playlist-items)|is not a valid (?!URL)/im,
     title: 'One of the options was not accepted',

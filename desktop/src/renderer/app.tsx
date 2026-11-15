@@ -117,7 +117,7 @@ function App() {
         <div class="side-foot">
           <button type="button" onClick={() => go('engine')} title="Open the Engine screen">
             Engine {s.engine?.version || (s.engine ? 'missing' : '…')}<br />
-            {eu.state === 'available' ? <span class="flag">Update available: {eu.latest}</span>
+            {eu.state === 'available' ? <span class="flag">{eu.latest ? `Update available: ${eu.latest}` : 'Engine update available'}</span>
               : s.engine && !s.engine.ffmpeg.version ? <span class="flag">ffmpeg is missing</span>
               : s.engine?.source === 'missing' ? <span class="flag">Engine is missing</span>
               : eu.state === 'downloading' ? `Updating… ${eu.percent ?? 0}%` : eu.state === 'current' ? 'Up to date' : `Dubdeck ${s.appVersion}`}

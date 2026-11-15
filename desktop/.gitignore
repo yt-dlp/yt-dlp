@@ -10,3 +10,6 @@ build-engine/
 !assets/*.icns
 !docs/*.png
 !src/**/*.json
+!docs/screenshots/*.png
+build-engine.log
+dist.log

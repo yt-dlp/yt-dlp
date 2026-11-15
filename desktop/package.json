@@ -13,18 +13,21 @@
   "private": true,
   "main": "dist/main/main.js",
   "scripts": {
-    "gen": "python3 scripts/gen_options.py && node scripts/gen-icons.mjs && node scripts/gen-matrix.mjs",
+    "gen": "python3 scripts/gen_options.py && node scripts/gen-icons.mjs",
     "build": "node build.mjs",
     "start": "node build.mjs && electron .",
     "dev": "node build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test --test-reporter=spec test/*.test.ts",
-    "parity": "python3 scripts/parity.py",
+    "parity": "tsx scripts/parity.ts",
     "engine": "node scripts/build-engine.mjs",
     "ffmpeg": "node scripts/fetch-ffmpeg.mjs",
     "dist": "npm run build && electron-builder --publish never",
     "dist:dir": "npm run build && electron-builder --dir --publish never",
-    "icon": "node scripts/gen-app-icon.cjs"
+    "icon": "node scripts/gen-app-icon.cjs",
+    "matrix": "tsx scripts/parity.ts && tsx scripts/gen-matrix.ts",
+    "test:unit": "node --import tsx --test --test-reporter=spec test/core.test.ts test/errors.test.ts",
+    "release": "npm run build && electron-builder --publish always"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
@@ -76,7 +79,9 @@
       "category": "AudioVideo",
       "icon": "assets/icon.png",
       "synopsis": "A desktop app for yt-dlp",
-      "maintainer": "Nardi05"
+      "maintainer": "Nardi05",
+      "syncDesktopName": true,
+      "executableName": "dubdeck"
     },
     "win": {
       "target": [
@@ -109,5 +114,6 @@
         "repo": "yt-dlp"
       }
     ]
-  }
+  },
+  "desktopName": "dubdeck.desktop"
 }

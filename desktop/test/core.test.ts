@@ -165,3 +165,13 @@ test('secrets are removed from log text', () => {
   assert.ok(t.includes(MASK));
   assert.equal(redactText('C:\\Users\\alice\\Downloads', undefined, 'alice'), 'C:\\Users\\user\\Downloads');
 });
+
+import { preflight } from '../src/shared/preflight';
+test('preflight catches option combinations the engine would choke on', () => {
+  assert.equal(preflight({}).length, 0);
+  assert.equal(preflight({ '--username': 'a', '--password': 'b' }).length, 0);
+  assert.match(preflight({ '--username': 'a' })[0], /no password/);
+  assert.match(preflight({ '--password': 'b' })[0], /without a username/);
+  assert.match(preflight({ '--max-sleep-interval': '5' })[0], /Wait before each download/);
+  assert.equal(preflight({ '--username': 'a', '--netrc-cmd': 'pass {}' }).length, 0);
+});

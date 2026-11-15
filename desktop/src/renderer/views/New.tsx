@@ -5,6 +5,7 @@ import { redactArgs } from '../../shared/redact';
 import type { OptionValues } from '../../shared/schema';
 import { quote } from '../../shared/shlex';
 import { audioFormats, audioQualities, describeSimple, effectiveValues, simpleToValues, videoContainers, videoQualities, type SimpleChoices } from '../../shared/simple';
+import { preflight } from '../../shared/preflight';
 import type { FormatInfo, JobSpec, ProbeResult } from '../../shared/types';
 import { Advanced, extraProblems } from '../Advanced';
 import { api, applyPreset, blankDraft, get, go, parseLinks, saveSettings, set, setDraft, toast, useStore, type Draft } from '../state';
@@ -64,7 +65,7 @@ function Formats({ url, formats }: { url: string; formats: FormatInfo[] }) {
               <div class="frow num" role="option" tabIndex={0} aria-checked={ids.has(f.id)} aria-selected={ids.has(f.id)} onClick={() => pick(f)}
                 onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pick(f); } }} title={f.note}>
                 <span class="radio" /><span class="ellipsis">{f.id}</span><span>{f.ext}</span><span class="ellipsis">{f.resolution}</span><span>{f.fps ? Math.round(f.fps) : ''}</span>
-                <span class="ellipsis">{[f.vcodec, f.acodec].filter(Boolean).join(' + ')}{f.note ? ` · ${f.note}` : ''}</span>
+                <span class="ellipsis">{[[f.vcodec, f.acodec].filter(Boolean).join(' + '), f.note].filter(Boolean).join(' · ')}</span>
                 <span class="right">{f.size ? `${f.sizeApprox ? '~' : ''}${formatBytes(f.size)}` : ''}</span>
               </div>
             ))}
@@ -273,6 +274,8 @@ export function NewView() {
 
   const submit = async () => {
     if (problem) { toast('Fix the extra arguments first.'); setDraft({ tab: 'advanced' }); return; }
+    const blockers = preflight(values);
+    if (blockers.length && !d.editPresetId) { ask({ title: 'Check the options first', body: blockers.join('\n'), confirm: 'Edit options', onConfirm: () => setDraft({ tab: 'advanced' }) }); return; }
     if (d.editPresetId) {
       const p = s.presets.find((x) => x.id === d.editPresetId);
       if (p) {

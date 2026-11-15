@@ -439,7 +439,9 @@ export class JobManager {
       this.pump();
       return;
     }
-    const friendly = run.errors.length ? translate(run.errors.join('\n'), job.stage) : translateExit(code, signal, job.stage);
+    const tail = this.deps.logs.readJob(job.id).split('\n').slice(-40).join('\n');
+    const friendly = run.errors.length ? translate(run.errors.join('\n'), job.stage)
+      : /Traceback \(most recent call last\)/.test(tail) ? translate(tail, job.stage) : translateExit(code, signal, job.stage);
     if (run.errors.length > 1) job.note = `${run.errors.length} problems were reported. The first is shown.`;
     this.fail(job, friendly, code);
   }

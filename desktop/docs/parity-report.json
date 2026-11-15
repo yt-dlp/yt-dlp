@@ -1,0 +1,2025 @@
+{
+ "engineVersion": "2026.10.26",
+ "date": "2026-11-15",
+ "total": 323,
+ "passed": 323,
+ "results": {
+  "--update": {
+   "id": "--update",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-update": {
+   "id": "--no-update",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--update-to": {
+   "id": "--update-to",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ignore-errors": {
+   "id": "--ignore-errors",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-abort-on-error": {
+   "id": "--no-abort-on-error",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--abort-on-error": {
+   "id": "--abort-on-error",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--list-extractors": {
+   "id": "--list-extractors",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--extractor-descriptions": {
+   "id": "--extractor-descriptions",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--use-extractors": {
+   "id": "--use-extractors",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--default-search": {
+   "id": "--default-search",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ignore-config": {
+   "id": "--ignore-config",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-config-locations": {
+   "id": "--no-config-locations",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--config-locations": {
+   "id": "--config-locations",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--plugin-dirs": {
+   "id": "--plugin-dirs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-plugin-dirs": {
+   "id": "--no-plugin-dirs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--js-runtimes": {
+   "id": "--js-runtimes",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-js-runtimes": {
+   "id": "--no-js-runtimes",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--remote-components": {
+   "id": "--remote-components",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-remote-components": {
+   "id": "--no-remote-components",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--flat-playlist": {
+   "id": "--flat-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-flat-playlist": {
+   "id": "--no-flat-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--live-from-start": {
+   "id": "--live-from-start",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-live-from-start": {
+   "id": "--no-live-from-start",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--wait-for-video": {
+   "id": "--wait-for-video",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-wait-for-video": {
+   "id": "--no-wait-for-video",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--mark-watched": {
+   "id": "--mark-watched",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-mark-watched": {
+   "id": "--no-mark-watched",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--color": {
+   "id": "--color",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--compat-options": {
+   "id": "--compat-options",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--alias": {
+   "id": "--alias",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "defined and then used"
+  },
+  "--preset-alias": {
+   "id": "--preset-alias",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--proxy": {
+   "id": "--proxy",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--socket-timeout": {
+   "id": "--socket-timeout",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--source-address": {
+   "id": "--source-address",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--impersonate": {
+   "id": "--impersonate",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--list-impersonate-targets": {
+   "id": "--list-impersonate-targets",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--force-ipv4": {
+   "id": "--force-ipv4",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--force-ipv6": {
+   "id": "--force-ipv6",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--enable-file-urls": {
+   "id": "--enable-file-urls",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--geo-verification-proxy": {
+   "id": "--geo-verification-proxy",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--xff": {
+   "id": "--xff",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--playlist-items": {
+   "id": "--playlist-items",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--min-filesize": {
+   "id": "--min-filesize",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--max-filesize": {
+   "id": "--max-filesize",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--date": {
+   "id": "--date",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--datebefore": {
+   "id": "--datebefore",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--dateafter": {
+   "id": "--dateafter",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--match-filters": {
+   "id": "--match-filters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-match-filters": {
+   "id": "--no-match-filters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--break-match-filters": {
+   "id": "--break-match-filters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-break-match-filters": {
+   "id": "--no-break-match-filters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-playlist": {
+   "id": "--no-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--yes-playlist": {
+   "id": "--yes-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--age-limit": {
+   "id": "--age-limit",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--download-archive": {
+   "id": "--download-archive",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-download-archive": {
+   "id": "--no-download-archive",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--max-downloads": {
+   "id": "--max-downloads",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--break-on-existing": {
+   "id": "--break-on-existing",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-break-on-existing": {
+   "id": "--no-break-on-existing",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--break-per-input": {
+   "id": "--break-per-input",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-break-per-input": {
+   "id": "--no-break-per-input",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--skip-playlist-after-errors": {
+   "id": "--skip-playlist-after-errors",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--concurrent-fragments": {
+   "id": "--concurrent-fragments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--limit-rate": {
+   "id": "--limit-rate",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--throttled-rate": {
+   "id": "--throttled-rate",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--retries": {
+   "id": "--retries",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--file-access-retries": {
+   "id": "--file-access-retries",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--fragment-retries": {
+   "id": "--fragment-retries",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--retry-sleep": {
+   "id": "--retry-sleep",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--skip-unavailable-fragments": {
+   "id": "--skip-unavailable-fragments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--abort-on-unavailable-fragments": {
+   "id": "--abort-on-unavailable-fragments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--keep-fragments": {
+   "id": "--keep-fragments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-keep-fragments": {
+   "id": "--no-keep-fragments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--buffer-size": {
+   "id": "--buffer-size",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--resize-buffer": {
+   "id": "--resize-buffer",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-resize-buffer": {
+   "id": "--no-resize-buffer",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--http-chunk-size": {
+   "id": "--http-chunk-size",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--playlist-random": {
+   "id": "--playlist-random",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--lazy-playlist": {
+   "id": "--lazy-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-lazy-playlist": {
+   "id": "--no-lazy-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--hls-use-mpegts": {
+   "id": "--hls-use-mpegts",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-hls-use-mpegts": {
+   "id": "--no-hls-use-mpegts",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--download-sections": {
+   "id": "--download-sections",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--downloader": {
+   "id": "--downloader",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--downloader-args": {
+   "id": "--downloader-args",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--batch-file": {
+   "id": "--batch-file",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-batch-file": {
+   "id": "--no-batch-file",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--paths": {
+   "id": "--paths",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--output": {
+   "id": "--output",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--output-na-placeholder": {
+   "id": "--output-na-placeholder",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--restrict-filenames": {
+   "id": "--restrict-filenames",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-restrict-filenames": {
+   "id": "--no-restrict-filenames",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--windows-filenames": {
+   "id": "--windows-filenames",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-windows-filenames": {
+   "id": "--no-windows-filenames",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--trim-filenames": {
+   "id": "--trim-filenames",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-overwrites": {
+   "id": "--no-overwrites",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--force-overwrites": {
+   "id": "--force-overwrites",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-force-overwrites": {
+   "id": "--no-force-overwrites",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--continue": {
+   "id": "--continue",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-continue": {
+   "id": "--no-continue",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--part": {
+   "id": "--part",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-part": {
+   "id": "--no-part",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--mtime": {
+   "id": "--mtime",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-mtime": {
+   "id": "--no-mtime",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-description": {
+   "id": "--write-description",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-description": {
+   "id": "--no-write-description",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-info-json": {
+   "id": "--write-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-info-json": {
+   "id": "--no-write-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-playlist-metafiles": {
+   "id": "--write-playlist-metafiles",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-playlist-metafiles": {
+   "id": "--no-write-playlist-metafiles",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--clean-info-json": {
+   "id": "--clean-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-clean-info-json": {
+   "id": "--no-clean-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-comments": {
+   "id": "--write-comments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-comments": {
+   "id": "--no-write-comments",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--load-info-json": {
+   "id": "--load-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--cookies": {
+   "id": "--cookies",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-cookies": {
+   "id": "--no-cookies",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--cookies-from-browser": {
+   "id": "--cookies-from-browser",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-cookies-from-browser": {
+   "id": "--no-cookies-from-browser",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--cache-dir": {
+   "id": "--cache-dir",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-cache-dir": {
+   "id": "--no-cache-dir",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--rm-cache-dir": {
+   "id": "--rm-cache-dir",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-thumbnail": {
+   "id": "--write-thumbnail",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-thumbnail": {
+   "id": "--no-write-thumbnail",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-all-thumbnails": {
+   "id": "--write-all-thumbnails",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--list-thumbnails": {
+   "id": "--list-thumbnails",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-link": {
+   "id": "--write-link",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-url-link": {
+   "id": "--write-url-link",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-webloc-link": {
+   "id": "--write-webloc-link",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-desktop-link": {
+   "id": "--write-desktop-link",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--quiet": {
+   "id": "--quiet",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-quiet": {
+   "id": "--no-quiet",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-warnings": {
+   "id": "--no-warnings",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--simulate": {
+   "id": "--simulate",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-simulate": {
+   "id": "--no-simulate",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ignore-no-formats-error": {
+   "id": "--ignore-no-formats-error",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-ignore-no-formats-error": {
+   "id": "--no-ignore-no-formats-error",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--skip-download": {
+   "id": "--skip-download",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--print": {
+   "id": "--print",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--print-to-file": {
+   "id": "--print-to-file",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--dump-json": {
+   "id": "--dump-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--dump-single-json": {
+   "id": "--dump-single-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--force-write-archive": {
+   "id": "--force-write-archive",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--newline": {
+   "id": "--newline",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-progress": {
+   "id": "--no-progress",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--progress": {
+   "id": "--progress",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--console-title": {
+   "id": "--console-title",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--progress-template": {
+   "id": "--progress-template",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--progress-delta": {
+   "id": "--progress-delta",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--verbose": {
+   "id": "--verbose",
+   "ok": true,
+   "reason": "",
+   "printed": "[debug] Override config: ['--ignore-config', '--verbose', 'https://example.com/v']\n"
+  },
+  "--dump-pages": {
+   "id": "--dump-pages",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-pages": {
+   "id": "--write-pages",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--print-traffic": {
+   "id": "--print-traffic",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--encoding": {
+   "id": "--encoding",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--legacy-server-connect": {
+   "id": "--legacy-server-connect",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-check-certificates": {
+   "id": "--no-check-certificates",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--prefer-insecure": {
+   "id": "--prefer-insecure",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--add-headers": {
+   "id": "--add-headers",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--bidi-workaround": {
+   "id": "--bidi-workaround",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sleep-requests": {
+   "id": "--sleep-requests",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sleep-interval": {
+   "id": "--sleep-interval",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--max-sleep-interval": {
+   "id": "--max-sleep-interval",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "tested with --sleep-interval, which the engine requires"
+  },
+  "--sleep-subtitles": {
+   "id": "--sleep-subtitles",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--format": {
+   "id": "--format",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--format-sort": {
+   "id": "--format-sort",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--format-sort-reset": {
+   "id": "--format-sort-reset",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--format-sort-force": {
+   "id": "--format-sort-force",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-format-sort-force": {
+   "id": "--no-format-sort-force",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--video-multistreams": {
+   "id": "--video-multistreams",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-video-multistreams": {
+   "id": "--no-video-multistreams",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--audio-multistreams": {
+   "id": "--audio-multistreams",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-audio-multistreams": {
+   "id": "--no-audio-multistreams",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--prefer-free-formats": {
+   "id": "--prefer-free-formats",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-prefer-free-formats": {
+   "id": "--no-prefer-free-formats",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--check-formats": {
+   "id": "--check-formats",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--check-all-formats": {
+   "id": "--check-all-formats",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-check-formats": {
+   "id": "--no-check-formats",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--list-formats": {
+   "id": "--list-formats",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--merge-output-format": {
+   "id": "--merge-output-format",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-subs": {
+   "id": "--write-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-subs": {
+   "id": "--no-write-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--write-auto-subs": {
+   "id": "--write-auto-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-write-auto-subs": {
+   "id": "--no-write-auto-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--list-subs": {
+   "id": "--list-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sub-format": {
+   "id": "--sub-format",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sub-langs": {
+   "id": "--sub-langs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--username": {
+   "id": "--username",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "tested with --password; alone, the engine asks for the password in the terminal (the app always passes both)"
+  },
+  "--password": {
+   "id": "--password",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "tested with --username, which the engine requires"
+  },
+  "--twofactor": {
+   "id": "--twofactor",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--netrc": {
+   "id": "--netrc",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--netrc-location": {
+   "id": "--netrc-location",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--netrc-cmd": {
+   "id": "--netrc-cmd",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--video-password": {
+   "id": "--video-password",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ap-mso": {
+   "id": "--ap-mso",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ap-username": {
+   "id": "--ap-username",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "tested with --ap-password"
+  },
+  "--ap-password": {
+   "id": "--ap-password",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "tested with --ap-username, which the engine requires"
+  },
+  "--ap-list-mso": {
+   "id": "--ap-list-mso",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--client-certificate": {
+   "id": "--client-certificate",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--client-certificate-key": {
+   "id": "--client-certificate-key",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--client-certificate-password": {
+   "id": "--client-certificate-password",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--extract-audio": {
+   "id": "--extract-audio",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--audio-format": {
+   "id": "--audio-format",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--audio-quality": {
+   "id": "--audio-quality",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--remux-video": {
+   "id": "--remux-video",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--recode-video": {
+   "id": "--recode-video",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--postprocessor-args": {
+   "id": "--postprocessor-args",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--keep-video": {
+   "id": "--keep-video",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-keep-video": {
+   "id": "--no-keep-video",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--post-overwrites": {
+   "id": "--post-overwrites",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-post-overwrites": {
+   "id": "--no-post-overwrites",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--embed-subs": {
+   "id": "--embed-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-embed-subs": {
+   "id": "--no-embed-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--embed-thumbnail": {
+   "id": "--embed-thumbnail",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-embed-thumbnail": {
+   "id": "--no-embed-thumbnail",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--embed-metadata": {
+   "id": "--embed-metadata",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-embed-metadata": {
+   "id": "--no-embed-metadata",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--embed-chapters": {
+   "id": "--embed-chapters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-embed-chapters": {
+   "id": "--no-embed-chapters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--embed-info-json": {
+   "id": "--embed-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-embed-info-json": {
+   "id": "--no-embed-info-json",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--parse-metadata": {
+   "id": "--parse-metadata",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--replace-in-metadata": {
+   "id": "--replace-in-metadata",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--xattrs": {
+   "id": "--xattrs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--concat-playlist": {
+   "id": "--concat-playlist",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--fixup": {
+   "id": "--fixup",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ffmpeg-location": {
+   "id": "--ffmpeg-location",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--exec": {
+   "id": "--exec",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-exec": {
+   "id": "--no-exec",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--convert-subs": {
+   "id": "--convert-subs",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--convert-thumbnails": {
+   "id": "--convert-thumbnails",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--split-chapters": {
+   "id": "--split-chapters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-split-chapters": {
+   "id": "--no-split-chapters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--remove-chapters": {
+   "id": "--remove-chapters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-remove-chapters": {
+   "id": "--no-remove-chapters",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--force-keyframes-at-cuts": {
+   "id": "--force-keyframes-at-cuts",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-force-keyframes-at-cuts": {
+   "id": "--no-force-keyframes-at-cuts",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--use-postprocessor": {
+   "id": "--use-postprocessor",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sponsorblock-mark": {
+   "id": "--sponsorblock-mark",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sponsorblock-remove": {
+   "id": "--sponsorblock-remove",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sponsorblock-chapter-title": {
+   "id": "--sponsorblock-chapter-title",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-sponsorblock": {
+   "id": "--no-sponsorblock",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--sponsorblock-api": {
+   "id": "--sponsorblock-api",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--extractor-retries": {
+   "id": "--extractor-retries",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--allow-dynamic-mpd": {
+   "id": "--allow-dynamic-mpd",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--ignore-dynamic-mpd": {
+   "id": "--ignore-dynamic-mpd",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--hls-split-discontinuity": {
+   "id": "--hls-split-discontinuity",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--no-hls-split-discontinuity": {
+   "id": "--no-hls-split-discontinuity",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--extractor-args": {
+   "id": "--extractor-args",
+   "ok": true,
+   "reason": "",
+   "printed": ""
+  },
+  "--force-generic-extractor": {
+   "id": "--force-generic-extractor",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-colors": {
+   "id": "--no-colors",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--geo-bypass": {
+   "id": "--geo-bypass",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-geo-bypass": {
+   "id": "--no-geo-bypass",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--geo-bypass-country": {
+   "id": "--geo-bypass-country",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--geo-bypass-ip-block": {
+   "id": "--geo-bypass-ip-block",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--playlist-start": {
+   "id": "--playlist-start",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--playlist-end": {
+   "id": "--playlist-end",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--match-title": {
+   "id": "--match-title",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--reject-title": {
+   "id": "--reject-title",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--min-views": {
+   "id": "--min-views",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--max-views": {
+   "id": "--max-views",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--break-on-reject": {
+   "id": "--break-on-reject",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--test": {
+   "id": "--test",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--playlist-reverse": {
+   "id": "--playlist-reverse",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-playlist-reverse": {
+   "id": "--no-playlist-reverse",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--hls-prefer-native": {
+   "id": "--hls-prefer-native",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--hls-prefer-ffmpeg": {
+   "id": "--hls-prefer-ffmpeg",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--id": {
+   "id": "--id",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--autonumber-size": {
+   "id": "--autonumber-size",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--autonumber-start": {
+   "id": "--autonumber-start",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-url": {
+   "id": "--get-url",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-title": {
+   "id": "--get-title",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-id": {
+   "id": "--get-id",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-thumbnail": {
+   "id": "--get-thumbnail",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-description": {
+   "id": "--get-description",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-duration": {
+   "id": "--get-duration",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-filename": {
+   "id": "--get-filename",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--get-format": {
+   "id": "--get-format",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--print-json": {
+   "id": "--print-json",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--load-pages": {
+   "id": "--load-pages",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--user-agent": {
+   "id": "--user-agent",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--referer": {
+   "id": "--referer",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--all-formats": {
+   "id": "--all-formats",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--list-formats-as-table": {
+   "id": "--list-formats-as-table",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--list-formats-old": {
+   "id": "--list-formats-old",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--allow-unplayable-formats": {
+   "id": "--allow-unplayable-formats",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-allow-unplayable-formats": {
+   "id": "--no-allow-unplayable-formats",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--all-subs": {
+   "id": "--all-subs",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--metadata-from-title": {
+   "id": "--metadata-from-title",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--exec-before-download": {
+   "id": "--exec-before-download",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-exec-before-download": {
+   "id": "--no-exec-before-download",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--xattr-set-filesize": {
+   "id": "--xattr-set-filesize",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--dump-user-agent": {
+   "id": "--dump-user-agent",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--youtube-include-dash-manifest": {
+   "id": "--youtube-include-dash-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-youtube-skip-dash-manifest": {
+   "id": "--no-youtube-skip-dash-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--youtube-skip-dash-manifest": {
+   "id": "--youtube-skip-dash-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-youtube-include-dash-manifest": {
+   "id": "--no-youtube-include-dash-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--youtube-include-hls-manifest": {
+   "id": "--youtube-include-hls-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-youtube-skip-hls-manifest": {
+   "id": "--no-youtube-skip-hls-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--youtube-skip-hls-manifest": {
+   "id": "--youtube-skip-hls-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-youtube-include-hls-manifest": {
+   "id": "--no-youtube-include-hls-manifest",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--youtube-print-sig-code": {
+   "id": "--youtube-print-sig-code",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--sponskrub": {
+   "id": "--sponskrub",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-sponskrub": {
+   "id": "--no-sponskrub",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--sponskrub-cut": {
+   "id": "--sponskrub-cut",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-sponskrub-cut": {
+   "id": "--no-sponskrub-cut",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--sponskrub-force": {
+   "id": "--sponskrub-force",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-sponskrub-force": {
+   "id": "--no-sponskrub-force",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--prefer-avconv": {
+   "id": "--prefer-avconv",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-prefer-ffmpeg": {
+   "id": "--no-prefer-ffmpeg",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--prefer-ffmpeg": {
+   "id": "--prefer-ffmpeg",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-prefer-avconv": {
+   "id": "--no-prefer-avconv",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "-C": {
+   "id": "-C",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--call-home": {
+   "id": "--call-home",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-call-home": {
+   "id": "--no-call-home",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--include-ads": {
+   "id": "--include-ads",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-include-ads": {
+   "id": "--no-include-ads",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--write-annotations": {
+   "id": "--write-annotations",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--no-write-annotations": {
+   "id": "--no-write-annotations",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--sponskrub-location": {
+   "id": "--sponskrub-location",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--sponskrub-args": {
+   "id": "--sponskrub-args",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--cn-verification-proxy": {
+   "id": "--cn-verification-proxy",
+   "ok": true,
+   "reason": "",
+   "printed": "",
+   "note": "deprecated or hidden; typed into Extra arguments"
+  },
+  "--help": {
+   "id": "--help",
+   "ok": true,
+   "reason": "",
+   "note": "run through the engine, since it prints and exits"
+  },
+  "--version": {
+   "id": "--version",
+   "ok": true,
+   "reason": "",
+   "note": "run through the engine, since it prints and exits"
+  }
+ }
+}

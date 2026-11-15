@@ -98,7 +98,7 @@ function Row({ control: c, own, inherited, inheritedFrom, onChange, onHelp }: Ro
       <>
         {rows.map((r, i) => (
           <div class="multi" key={i}>
-            <input class="input mono" value={r} list={m.suggest ? listId : undefined} placeholder={m.placeholder ?? c.option!.metavar ?? ''} aria-label={`${m.label} ${i + 1}`}
+            <input class="input mono" value={r} list={m.suggest ? listId : undefined} placeholder={m.placeholder ?? ''} aria-label={`${m.label} ${i + 1}`}
               onInput={(e) => onChange(rows.map((x, k) => (k === i ? (e.target as HTMLInputElement).value : x)))} />
             {m.widget === 'folder' || m.widget === 'file' ? <Btn icon="folder" small kind="quiet" label="Browse" onClick={() => browse((p) => onChange(rows.map((x, k) => (k === i ? (x.includes(':') && !/^[a-zA-Z]:[\\/]/.test(x) ? `${x.split(':')[0]}:${p}` : p) : x))))} /> : null}
             <Btn icon="minus" small kind="quiet" label="Remove" onClick={() => onChange(rows.filter((_, k) => k !== i))} />
@@ -122,7 +122,7 @@ function Row({ control: c, own, inherited, inheritedFrom, onChange, onHelp }: Ro
       const input = (
         <input class={`input${m.widget === 'password' ? '' : ' mono'}`} type={m.widget === 'password' ? 'password' : 'text'} inputMode={numeric ? 'decimal' : undefined}
           autocomplete="off" value={text} list={m.suggest ? listId : undefined} aria-label={m.label}
-          placeholder={m.placeholder ?? (c.option!.default != null && c.option!.default !== '' && typeof c.option!.default !== 'object' ? String(c.option!.default) : c.option!.metavar ?? '')}
+          placeholder={m.placeholder ?? (c.option!.default != null && c.option!.default !== '' && typeof c.option!.default !== 'object' ? String(c.option!.default) : '')}
           onInput={(e) => onChange((e.target as HTMLInputElement).value)} />
       );
       ctl = m.widget === 'file' || m.widget === 'folder'
