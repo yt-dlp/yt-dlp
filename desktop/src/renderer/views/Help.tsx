@@ -16,7 +16,7 @@ const topics: { id: string; title: string; body: preact.ComponentChildren }[] = 
     <ul>
       <li>Copy the address of the page a video plays on. Choose <b>New download</b> and paste it. Several links can go in at once, one per line.</li>
       <li>After a moment each link shows its title, length and thumbnail. If it is a playlist or channel, <b>Choose items</b> lets you untick the ones you do not want.</li>
-      <li>Pick <b>Video</b> or <b>Audio only</b>, a quality and a file type, then press <b>Download</b>. The date box next to the button starts it later instead.</li>
+      <li>Pick <b>Video</b> or <b>Audio only</b>, a quality and a file type, then press <b>Download</b>. <b>Start now</b> next to it lets you pick a later time instead.</li>
       <li>The file is saved in the folder shown under <b>Save to</b>. Double-click a finished row to open it.</li>
     </ul>
   ) },

@@ -116,6 +116,7 @@ a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px
 .mac .bar > * { -webkit-app-region: no-drag; }
 .bar h1 { margin-right: 8px; }
 .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.status > span { white-space: nowrap; }
 .status { display: flex; align-items: center; gap: 16px; height: 26px; padding: 0 16px; border-top: 1px solid var(--line); background: var(--sunken); color: var(--ink-2); font-size: 12px; flex: none; }
 .status .path { all: unset; cursor: default; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
 .status .path:hover { color: var(--ink); text-decoration: underline; }
@@ -312,6 +313,7 @@ kbd { font: 11px var(--mono); padding: 1px 5px; border: 1px solid var(--line-str
 
 /* ---- two-pane views ----------------------------------------------------------- */
 .split { display: grid; grid-template-columns: 250px 1fr; flex: 1; min-height: 0; }
+.split > * { min-width: 0; min-height: 0; }
 .split > .listcol { border-right: 1px solid var(--line); overflow: auto; }
 .item { display: flex; flex-direction: column; gap: 1px; padding: 7px 16px; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; width: 100%; }
 .item:hover { background: var(--hover); }

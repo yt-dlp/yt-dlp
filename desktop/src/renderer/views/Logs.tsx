@@ -75,7 +75,7 @@ export function LogsView({ searchRef }: { searchRef: { current: HTMLInputElement
                 {shown.map((l) => <span class={`log-line${q && !only && l.toLowerCase().includes(q) ? ' hit' : ''} ${/ERROR|error:/.test(l) ? 'err' : /WARN/.test(l) ? 'wrn' : ''}`}>{l}{'\n'}</span>)}
               </pre>
             </div>
-            <div class="status"><span class="mono ellipsis selectable">{current?.path}</span><div class="grow" /><span>Private details such as passwords and your user name are removed before anything is written.</span></div>
+            <div class="status"><span class="mono ellipsis selectable">{current?.path}</span><div class="grow" /><span class="faint">Passwords and your user name are removed before writing.</span></div>
           </div>
         </div>
       )}
