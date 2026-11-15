@@ -1,6 +1,5 @@
 import functools
 import json
-import random
 import re
 import urllib.parse
 
@@ -364,19 +363,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                 continue
             yield update_url(player_url, query=query_string)
 
-    @staticmethod
-    def _generate_blockbuster_headers():
-        """Randomize our HTTP header fingerprint to bust the HTTP Error 403 block"""
-
-        def random_letters(minimum, maximum):
-            # Omit vowels so we don't generate valid header names like 'authorization', etc
-            return ''.join(random.choices('bcdfghjklmnpqrstvwxz', k=random.randint(minimum, maximum)))
-
-        return {
-            random_letters(8, 24): random_letters(16, 32)
-            for _ in range(random.randint(2, 8))
-        }
-
     def _extract_dailymotion_m3u8_formats_and_subtitles(self, media_url, video_id, live=False):
         """See https://github.com/yt-dlp/yt-dlp/issues/15526"""
 
@@ -384,8 +370,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         last_error = None
 
         for note, kwargs in (
-            ('Downloading m3u8 information', {}),
-            ('Retrying m3u8 download with randomized headers', {
+            ('Downloading m3u8 information with randomized headers', {
                 'headers': self._generate_blockbuster_headers(),
             }),
             ('Retrying m3u8 download with Chrome impersonation', {

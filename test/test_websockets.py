@@ -130,7 +130,11 @@ def ws_validate_and_send(rh, req):
         try:
             return rh.send(req)
         except TransportError as e:
-            if i < (max_tries - 1) and 'connection closed during handshake' in str(e):
+            if i < (max_tries - 1) and (
+                'connection closed during handshake' in str(e)
+                or (isinstance(e.cause, websockets.exceptions.InvalidMessage)
+                    and isinstance(e.cause.__cause__, EOFError))
+            ):
                 # websockets server sometimes hangs on new connections
                 continue
             raise
@@ -186,7 +190,7 @@ class TestWebsSocketRequestHandlerConformance:
 
     def test_ssl_error(self, handler):
         with handler(verify=False) as rh:
-            with pytest.raises(SSLError, match=r'ssl(?:v3|/tls) alert handshake failure') as exc_info:
+            with pytest.raises(SSLError, match=r'(?:sslv3|tls) alert handshake failure') as exc_info:
                 ws_validate_and_send(rh, Request(self.bad_wss_host))
             assert not issubclass(exc_info.type, CertificateVerifyError)
 
