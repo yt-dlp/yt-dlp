@@ -112,7 +112,7 @@ class TestAES(unittest.TestCase):
 
     def test_gcm_carry2_decrypt(self):
         """
-        ffff fffe to test the inc32 in aes_ctr_crypt_base
+        ffff fffe to test aes-ctr increment with nonce
         """
         magic_iv = b'^9m\x17\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00'
         ciphtext = b'N\xe1#sP\x96\xe9&\xbd\xd6\xb9\xf7 \x88\x0b\n\xecM\xb3\x00\xa6\x97\xf7\x93'
