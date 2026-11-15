@@ -1,0 +1,40 @@
+{
+  "name": "dubdeck",
+  "productName": "Dubdeck",
+  "version": "1.0.0",
+  "description": "A desktop app for yt-dlp. Every command line option, none of the command line.",
+  "author": "Nardi05",
+  "license": "Unlicense",
+  "homepage": "https://github.com/Nardi05/yt-dlp",
+  "repository": { "type": "git", "url": "https://github.com/Nardi05/yt-dlp.git" },
+  "private": true,
+  "main": "dist/main/main.js",
+  "scripts": {
+    "gen": "python3 scripts/gen_options.py && node scripts/gen-icons.mjs && node scripts/gen-matrix.mjs",
+    "build": "node build.mjs",
+    "start": "node build.mjs && electron .",
+    "dev": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test --test-reporter=spec test/*.test.ts",
+    "parity": "python3 scripts/parity.py",
+    "engine": "node scripts/build-engine.mjs",
+    "ffmpeg": "node scripts/fetch-ffmpeg.mjs",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:dir": "npm run build && electron-builder --dir --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.1.0",
+    "@fontsource/ibm-plex-sans": "^5.1.0",
+    "@tabler/icons": "^3.24.0",
+    "@types/node": "^22.9.0",
+    "electron": "^45.3.2",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.25.0",
+    "preact": "^10.25.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

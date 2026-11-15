@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noImplicitAny": true, "skipLibCheck": true, "resolveJsonModule": true,
+    "esModuleInterop": true, "jsx": "react-jsx", "jsxImportSource": "preact",
+    "noEmit": true, "types": ["node"], "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src", "test"]
+}

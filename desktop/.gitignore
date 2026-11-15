@@ -1,0 +1,12 @@
+node_modules/
+dist/
+release/
+vendor/
+build-engine/
+*.log
+!assets/*.png
+!assets/*.svg
+!assets/*.ico
+!assets/*.icns
+!docs/*.png
+!src/**/*.json
