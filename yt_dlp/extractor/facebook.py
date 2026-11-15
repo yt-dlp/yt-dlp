@@ -765,8 +765,6 @@ class FacebookIE(InfoExtractor):
                     'id="login_form"',
                     'id="loginbutton"')):
                 self.raise_login_required()
-            elif traverse_obj(post_data, (..., 'require', ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., 'is_age_gated', {bool}, any)):
-                self.raise_login_required('This video is age restricted')
 
         if not video_data and '/watchparty/' in url:
             post_data = {
@@ -830,6 +828,9 @@ class FacebookIE(InfoExtractor):
                     'tahoe js data', default='{}'),
                 video_id, fatal=False)
             video_data = extract_from_jsmods_instances(tahoe_js_data)
+
+        if not video_data and traverse_obj(post_data, (..., 'require', ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., 'is_age_gated', {bool}, any)):
+            self.raise_login_required('This video is age restricted')
 
         if not video_data:
             raise ExtractorError('Cannot parse data')
