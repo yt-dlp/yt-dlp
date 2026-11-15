@@ -2047,7 +2047,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     self.write_debug(e.msg)
                     # On some clients (e.g. tv_samsung), a HEAD request may yield HTTP Error 500,
-                    # but the response still has the x-Head-Seqnum header value that is needed.
+                    # but the response still has the X-Head-Seqnum header value that is needed.
                     # See https://github.com/yt-dlp/yt-dlp/issues/18031
                     if isinstance(e.cause, HTTPError) and e.cause.status >= 500:
                         urlh = e.cause.response
