@@ -2071,9 +2071,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             last_seq += 1
 
-            if not url_feed:
-                last_seq -= 2
-
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
