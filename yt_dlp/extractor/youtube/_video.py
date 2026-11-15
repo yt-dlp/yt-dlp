@@ -4047,7 +4047,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if live_status == 'post_live':
             self.to_screen(
                 f'{video_id}: Video is in Post-Live Manifestless mode\n'
-                'While the video\'s live_status is post_live, some formats may not yet be available '
+                'While the live_status is post_live, some formats may not yet be available '
                 'and, in rare cases, the beginning of the stream may not yet be downloadable. '
                 'If this matters to you, wait until stream has been fully processed by YouTube and try again')
 
