@@ -313,19 +313,19 @@ class CeskaTelevizeIE(InfoExtractor):
             bonus_id = f'BO-{bonus_id}'
             return self._extract_vod(f'bonus/{bonus_id}', bonus_id, page_info)
 
-        if idec := traverse_obj(page_data, ('mediaMeta', 'idec', {str}, {self._clean_idec}, filter)):
+        if idec := traverse_obj(page_data, ('episode', 'idec', {str}, {self._clean_idec}, filter)):
             return self._extract_vod(f'media/external/{idec}', idec, page_info)
 
         # Series pages describe the show; extract the episode their play button opens
         # (the first one, or the latest one for running shows) with its own metadata
-        if idec := traverse_obj(page_data, ('show', 'actionButton', 'idec', {str}, {self._clean_idec}, filter)):
+        if idec := traverse_obj(page_data, ('programme', 'actionButton', 'idec', {str}, {self._clean_idec}, filter)):
             return self._extract_vod(f'media/external/{idec}', idec, {
                 'display_id': display_id,
-                'series': traverse_obj(page_data, ('show', 'title', {str})),
+                'series': traverse_obj(page_data, ('programme', 'title', {str})),
             })
 
         # Pages of single programmes, e.g. films
-        idec = traverse_obj(page_data, ('show', 'idec', {str}, {self._clean_idec}, filter))
+        idec = traverse_obj(page_data, ('programme', 'idec', {str}, {self._clean_idec}, filter))
         if not idec:
             raise ExtractorError('Unable to extract IDEC')
         return self._extract_vod(f'media/external/{idec}', idec, page_info)
