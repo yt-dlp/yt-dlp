@@ -142,7 +142,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv_samsung', 'visionos', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('visionos',)
-    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_samsung', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_samsung', 'web_embedded', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_samsung', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
