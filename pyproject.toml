@@ -116,7 +116,7 @@ dev = [
     {include-group = "test"},
 ]
 pyinstaller = [
-    "pyinstaller==6.22.0",
+    "pyinstaller>=6.22.3",
 ]
 delocate = [
     "delocate>=0.13.0 ; sys_platform == 'darwin'",
