@@ -18,8 +18,8 @@ pefile==2024.8.26 ; sys_platform == 'win32' \
     --hash=sha256:3ff6c5d8b43e8c37bb6e6dd5085658d658a7a0bdcd20b6a07b1fcfc1c4e9d632 \
     --hash=sha256:76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f
     # via pyinstaller
-pyinstaller @ https://github.com/yt-dlp/Pyinstaller-Builds/releases/download/2026.08.19.215425/pyinstaller-6.22.0-py3-none-win_arm64.whl \
-    --hash=sha256:cdb8599f3844825143d40b6dd3e193cb608e1820f90580b665b4f2b139b68cb8
+pyinstaller @ https://github.com/yt-dlp/Pyinstaller-Builds/releases/download/2026.11.16.221544/pyinstaller-6.22.3-py3-none-win_arm64.whl \
+    --hash=sha256:5bb045878828a85f82f49de82a97113ed7309da816fa390a02bd3f00db14d84c
 pyinstaller-hooks-contrib==2026.9 \
     --hash=sha256:2748767901acb5cecd1304652b6c7add5bffcff1d71d01207fe24a5d42942a56 \
     --hash=sha256:fb3e67dd64122561724c48ad0366ac9e8c16e638b63bf7d85de03bf3fdbf06c3
