@@ -409,6 +409,10 @@ class FacebookIE(InfoExtractor):
     }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
+    }, {
+        # Age-restricted video
+        'url': 'https://www.facebook.com/watch/?v=1388064706077874',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # <iframe> embed
