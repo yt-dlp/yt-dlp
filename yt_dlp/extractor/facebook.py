@@ -251,7 +251,7 @@ class FacebookIE(FacebookBaseIE):
         },
         'skip': 'Invalid URL',
     }, {
-        # FIXME
+        # FIXME: falls back to tahoe API request and fails with 404 error
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
         'info_dict': {
@@ -268,7 +268,7 @@ class FacebookIE(FacebookBaseIE):
             'timestamp': 1701975646,
         },
     }, {
-        # FIXME
+        # FIXME: falls back to tahoe API request and fails with 404 error
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid0fqQuVEQyXRa9Dp4RcaTR14KHU3uULHV1EK7eckNXSH63JMuoALsAvVCJ97zAGitil&id=100068861234290',
         'info_dict': {
