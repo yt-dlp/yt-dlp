@@ -826,8 +826,8 @@ class FacebookIE(InfoExtractor):
 
         if not video_data:
             if get_first(post_data, (
-                'require', ..., ..., ..., ..., ..., ..., ...,
-                ..., ..., ..., ..., ..., 'is_age_gated', {bool},
+                'require', ..., ..., ..., '__bbox', 'require', ..., ...,
+                ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'is_age_gated', {bool},
             )):
                 self.raise_login_required('This video is age restricted')
             raise ExtractorError('Cannot parse data')
