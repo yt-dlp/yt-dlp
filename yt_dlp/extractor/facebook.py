@@ -839,7 +839,7 @@ class FacebookIE(FacebookBaseIE):
                 'require', ..., ..., ..., '__bbox', 'require', ..., ...,
                 ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'is_age_gated', {bool},
             )):
-                self.raise_login_required('This video is age restricted')
+                self.raise_login_required('This video is age-restricted and requires authentication')
             raise ExtractorError('Cannot parse data')
 
         if len(video_data) > 1:
