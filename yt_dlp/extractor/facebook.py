@@ -91,7 +91,7 @@ class FacebookIE(FacebookBaseIE):
             'view_count': int,
             'concurrent_view_count': 0,
         },
-        'expected_warnings': ['Cannot parse data'],
+        'skip': 'Video gone',
     }, {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
@@ -121,7 +121,6 @@ class FacebookIE(FacebookBaseIE):
             'concurrent_view_count': int,
             'view_count': int,
         },
-        'expected_warnings': ['Cannot parse data'],
     }, {
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
@@ -252,6 +251,7 @@ class FacebookIE(FacebookBaseIE):
         },
         'skip': 'Invalid URL',
     }, {
+        # FIXME
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
         'info_dict': {
@@ -268,6 +268,7 @@ class FacebookIE(FacebookBaseIE):
             'timestamp': 1701975646,
         },
     }, {
+        # FIXME
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid0fqQuVEQyXRa9Dp4RcaTR14KHU3uULHV1EK7eckNXSH63JMuoALsAvVCJ97zAGitil&id=100068861234290',
         'info_dict': {
@@ -350,7 +351,6 @@ class FacebookIE(FacebookBaseIE):
             'description': '',
             'upload_date': '20190204',
         },
-        'expected_warnings': ['Cannot parse data'],
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
