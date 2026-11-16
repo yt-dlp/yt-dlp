@@ -29,6 +29,7 @@ from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, 
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking import HEADRequest
+from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -142,7 +143,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv_samsung', 'visionos', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('visionos',)
-    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_samsung', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_samsung', 'web_embedded', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_samsung', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
@@ -2045,7 +2046,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         note=False, errnote='Fragment request failed')
                 except ExtractorError as e:
                     self.write_debug(e.msg)
-                    urlh = None
+                    # On some clients (e.g. tv_samsung), a HEAD request may yield HTTP Error 500,
+                    # but the response still has the X-Head-Seqnum header value that is needed.
+                    # See https://github.com/yt-dlp/yt-dlp/issues/18031
+                    if isinstance(e.cause, HTTPError) and e.cause.status >= 500:
+                        urlh = e.cause.response
+                    else:
+                        urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
                     urlh.close()
@@ -2063,9 +2070,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             last_seq += 1
-
-            if not url_feed:
-                last_seq -= 2
 
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
