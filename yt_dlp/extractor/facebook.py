@@ -824,10 +824,12 @@ class FacebookIE(InfoExtractor):
                 video_id, fatal=False)
             video_data = extract_from_jsmods_instances(tahoe_js_data)
 
-        if not video_data and traverse_obj(post_data, (..., 'require', ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., 'is_age_gated', {bool}, any)):
-            self.raise_login_required('This video is age restricted')
-
         if not video_data:
+            if get_first(post_data, (
+                'require', ..., ..., ..., ..., ..., ..., ...,
+                ..., ..., ..., ..., ..., 'is_age_gated', {bool},
+            )):
+                self.raise_login_required('This video is age restricted')
             raise ExtractorError('Cannot parse data')
 
         if len(video_data) > 1:
