@@ -30,7 +30,14 @@ from ..utils import (
 )
 
 
-class FacebookIE(InfoExtractor):
+class FacebookBaseIE(InfoExtractor):
+    @staticmethod
+    def _parse_all_data_sjs(webpage):
+        return traverse_obj(
+            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+
+
+class FacebookIE(FacebookBaseIE):
     _VALID_URL = r'''(?x)
                 (?:
                     https?://
@@ -472,10 +479,9 @@ class FacebookIE(InfoExtractor):
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
-        post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-            r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
 
         def extract_metadata(webpage):
+            post_data = self._parse_all_data_sjs(webpage)
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
@@ -829,7 +835,7 @@ class FacebookIE(InfoExtractor):
             video_data = extract_from_jsmods_instances(tahoe_js_data)
 
         if not video_data:
-            if get_first(post_data, (
+            if get_first(self._parse_all_data_sjs(webpage), (
                 'require', ..., ..., ..., '__bbox', 'require', ..., ...,
                 ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'is_age_gated', {bool},
             )):
@@ -996,7 +1002,7 @@ class FacebookReelIE(InfoExtractor):
             f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)
 
 
-class FacebookAdsIE(InfoExtractor):
+class FacebookAdsIE(FacebookBaseIE):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
     IE_NAME = 'facebook:ads'
     _TESTS = [{
@@ -1141,9 +1147,7 @@ class FacebookAdsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_fb_webpage_and_verify(url, video_id)
-
-        post_data = traverse_obj(
-            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+        post_data = self._parse_all_data_sjs(webpage)
         data = get_first(post_data, (
             'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., (
                 ('__bbox', 'result', 'data', 'ad_library_main', 'deeplink_ad_archive_result', 'deeplink_ad_archive'),
