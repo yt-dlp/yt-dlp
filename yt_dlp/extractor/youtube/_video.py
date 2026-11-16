@@ -4047,8 +4047,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if live_status == 'post_live':
             self.to_screen(
                 f'{video_id}: Video is in Post-Live Manifestless mode\n'
-                'The livestream has ended and is being processed by YouTube (i.e. its live_status '
-                'is post_live). Some formats may not be available until processing is complete')
+                'Livestream has ended and is being processed by YouTube (live_status=post_live). '
+                'Some formats may not be available until processing is complete')
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
