@@ -1596,7 +1596,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
 
 class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]+)'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13,})'
 
     _TESTS = [{
         'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
@@ -1643,7 +1643,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'ext': 'm4a',
             'title': 'あ',
             'description': 'Twitter Space participated by nobody yet',
-            'uploader': '息根とめる',
+            'uploader': '息根とめる@録音機能付き拡声器',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
             'release_date': '20230601',
@@ -1672,6 +1672,23 @@ class TwitterSpacesIE(TwitterBaseIE):
             'release_timestamp': 1723932056,
             'release_date': '20240817',
             'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://x.com/i/spaces/1ybQVJRXmjnKWb',
+        'info_dict': {
+            'id': '1ybQVJRXmjnKWb',
+            'ext': 'mp4',
+            'title': '𝟱𝗞+🔸𝐈𝐧𝐭𝐞𝐫𝐧𝐚𝐭𝐢𝐨𝐧𝐚𝐥 𝗮𝗰𝘁𝗶𝘃𝗲 𝗺𝘂𝘁𝘂𝗮𝗹 🇮🇳 𝗦𝐩𝐚𝐜𝐞 𝐟𝐨𝐫 𝐚𝐥𝐥 ⚡️Turn on 🔔 Host ☑️ 2026-11-17 12:05',
+            'description': 'md5:bb31bcbaea413da307a4bd56d580e9eb',
+            'uploader': 'Tҽαɱ Ɲιтуα™ ✘',
+            'uploader_id': 'taashi2016',
+            'thumbnail': 'https://pbs.twimg.com/profile_images/2116385713436729344/5HgVbAA1_400x400.jpg',
+            'timestamp': 1794880385,
+            'upload_date': '20261117',
+            'release_timestamp': 1794880391,
+            'release_date': '20261117',
+            'live_status': 'is_live',
         },
         'params': {'skip_download': 'm3u8'},
     }]
