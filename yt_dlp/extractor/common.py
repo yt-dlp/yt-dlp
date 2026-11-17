@@ -4053,7 +4053,7 @@ class InfoExtractor:
         video_id = '' if video_id is True else f' {video_id}'
         playlist_id = '' if playlist_id is True else f' {playlist_id}'
         if self.get_param('noplaylist'):
-            self.to_screen(f'Downloading just the {video_label}{video_id} because of --no-playlist')
+            self.to_screen(f'Downloading just the {video_label}{video_id} - add --yes-playlist to download {playlist_label}{playlist_id}')
             return False
         self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
         return True

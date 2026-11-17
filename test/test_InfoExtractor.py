@@ -65,6 +65,16 @@ class TestInfoExtractor(unittest.TestCase):
     def test_ie_key(self):
         self.assertEqual(get_info_extractor(YoutubeIE.ie_key()), YoutubeIE)
 
+    def test_playlist_selection(self):
+        for params, expected in (({}, False), ({'noplaylist': True}, False), ({'noplaylist': False}, True)):
+            with self.subTest(params=params):
+                ie = DummyIE(FakeYDL(params))
+                self.assertIs(ie._yes_playlist('playlist', 'video'), expected)
+                self.assertTrue(ie._yes_playlist('playlist', None))
+                self.assertFalse(ie._yes_playlist(None, 'video'))
+                self.assertFalse(ie._yes_playlist('playlist', 'video', {'force_noplaylist': True}))
+                self.assertTrue(ie._yes_playlist('playlist', 'video', {'force_noplaylist': False}))
+
     def test_get_netrc_login_info(self):
         for params in [
             {'usenetrc': True, 'netrc_location': './test/testdata/netrc/netrc'},

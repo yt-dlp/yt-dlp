@@ -334,7 +334,7 @@ class YoutubeDL:
     skip_download:     Skip the actual download of the video file
     cachedir:          Location of the cache files in the filesystem.
                        False to disable filesystem cache.
-    noplaylist:        Download single video instead of a playlist if in doubt.
+    noplaylist:        Download single video instead of a playlist if in doubt (default: True).
     age_limit:         An integer representing the user's age in years.
                        Unsuitable videos for the given age are skipped.
     min_views:         An integer representing the minimum view count the video
@@ -640,6 +640,7 @@ class YoutubeDL:
         if params is None:
             params = {}
         self.params = params
+        self.params.setdefault('noplaylist', True)
         self._ies = {}
         self._ies_instances = {}
         self._pps = {k: [] for k in POSTPROCESS_WHEN}

@@ -528,7 +528,7 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     download process when a video is rejected
     --no-break-match-filters        Do not use any --break-match-filters (default)
     --no-playlist                   Download only the video, if the URL refers
-                                    to a video and a playlist
+                                    to a video and a playlist (default)
     --yes-playlist                  Download the playlist, if the URL refers to
                                     a video and a playlist
     --age-limit YEARS               Download only videos suitable for the given
@@ -2322,6 +2322,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be preferred. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
 * Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
 * `--no-abort-on-error` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
+* `--no-playlist` is enabled by default. URLs that refer to both a video and a playlist download only the video. Use `--yes-playlist` to download the playlist.
 * When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
 * `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
 * Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this

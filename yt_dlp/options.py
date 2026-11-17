@@ -767,8 +767,8 @@ def create_parser():
         help='Do not use any --break-match-filters (default)')
     selection.add_option(
         '--no-playlist',
-        action='store_true', dest='noplaylist', default=False,
-        help='Download only the video, if the URL refers to a video and a playlist')
+        action='store_true', dest='noplaylist', default=True,
+        help='Download only the video, if the URL refers to a video and a playlist (default)')
     selection.add_option(
         '--yes-playlist',
         action='store_false', dest='noplaylist',

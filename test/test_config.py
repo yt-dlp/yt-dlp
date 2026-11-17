@@ -78,6 +78,18 @@ def _generate_expected_groups():
 class TestConfig(unittest.TestCase):
     maxDiff = None
 
+    def test_playlist_default_and_overrides(self):
+        for args, expected in (
+            ([], True),
+            (['--no-playlist'], True),
+            (['--yes-playlist'], False),
+            (['--no-playlist', '--yes-playlist'], False),
+            (['--yes-playlist', '--no-playlist'], True),
+        ):
+            with self.subTest(args=args):
+                _, opts, _ = parseOpts(args)
+                self.assertIs(opts.noplaylist, expected)
+
     @set_environ()
     def test_config__ENVIRON_DEFAULTS_sanity(self):
         expected = make_expected()
