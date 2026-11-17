@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -6,14 +7,13 @@ from ..utils import (
     int_or_none,
     js_to_json,
 )
-from ..compat import compat_urlparse
 
 
 class UDNEmbedIE(InfoExtractor):
     IE_DESC = '聯合影音'
     _PROTOCOL_RELATIVE_VALID_URL = r'//video\.udn\.com/(?:embed|play)/news/(?P<id>\d+)'
     _VALID_URL = r'https?:' + _PROTOCOL_RELATIVE_VALID_URL
-    _EMBED_REGEX = [r'<iframe[^>]+src="(?:https?:)?(?P<url>%s)"' % _PROTOCOL_RELATIVE_VALID_URL]
+    _EMBED_REGEX = [rf'<iframe[^>]+src="(?:https?:)?(?P<url>{_PROTOCOL_RELATIVE_VALID_URL})"']
     _TESTS = [{
         'url': 'http://video.udn.com/embed/news/300040',
         'info_dict': {
@@ -22,11 +22,7 @@ class UDNEmbedIE(InfoExtractor):
             'title': '生物老師男變女 全校挺"做自己"',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'expected_warnings': ['Failed to parse JSON Expecting value'],
+        'skip': 'Invalid URL',
     }, {
         'url': 'https://video.udn.com/embed/news/300040',
         'only_matching': True,
@@ -34,6 +30,18 @@ class UDNEmbedIE(InfoExtractor):
         # From https://video.udn.com/news/303776
         'url': 'https://video.udn.com/play/news/303776',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
+        'url': 'https://video.udn.com/news/1308561',
+        'info_dict': {
+            'id': '1308561',
+            'ext': 'mp4',
+            'title': '影／丹娜絲颱風暴風圈擴大 上午8:30發布海警',
+            'thumbnail': r're:https?://cdn\.udn\.com/img/.+\.jpg',
+        },
+        'expected_warnings': ['Failed to parse JSON'],
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -66,8 +74,8 @@ class UDNEmbedIE(InfoExtractor):
                 continue
 
             video_url = self._download_webpage(
-                compat_urlparse.urljoin(url, api_url), video_id,
-                note='retrieve url for %s video' % video_type)
+                urllib.parse.urljoin(url, api_url), video_id,
+                note=f'retrieve url for {video_type} video')
 
             ext = determine_ext(video_url)
             if ext == 'm3u8':

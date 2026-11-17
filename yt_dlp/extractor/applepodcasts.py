@@ -1,30 +1,86 @@
+import time
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     clean_podcast_url,
-    get_element_by_class,
     int_or_none,
+    jwt_decode_hs256,
+    jwt_encode,
     parse_iso8601,
-    try_get,
+    try_call,
+    update_url,
+    url_or_none,
+    urljoin,
 )
+from ..utils.traversal import traverse_obj
 
 
-class ApplePodcastsIE(InfoExtractor):
-    _VALID_URL = r'https?://podcasts\.apple\.com/(?:[^/]+/)?podcast(?:/[^/]+){1,2}.*?\bi=(?P<id>\d+)'
+class AppleBaseIE(InfoExtractor):
+    """Subclasses must set _BASE_URL and _JWT_KEY_ID"""
+
+    _jwt_cache = {}
+
+    @staticmethod
+    def _jwt_is_expired(token):
+        return jwt_decode_hs256(token)['exp'] - time.time() < 120
+
+    def _get_token(self, webpage, episode_id):
+        if self._jwt_cache.get(self._BASE_URL) and not self._jwt_is_expired(self._jwt_cache[self._BASE_URL]):
+            return self._jwt_cache[self._BASE_URL]
+
+        js_path = self._search_regex(
+            r'<script [^>]*\bsrc="(/assets/index~[0-9a-f]+\.js)">', webpage, 'JS asset path')
+        js_code = self._download_webpage(
+            urljoin(self._BASE_URL, js_path), episode_id,
+            'Downloading JS asset', 'Unable to download JS asset')
+
+        header = jwt_encode({}, '', headers={'typ': 'JWT', 'alg': 'ES256', 'kid': self._JWT_KEY_ID}).split('.')[0]
+        self._jwt_cache[self._BASE_URL] = self._search_regex(
+            fr'(["\'])(?P<jwt>{header}(?:\.[\w-]+){{2}})\1', js_code, 'JSON Web Token', group='jwt')
+        if self._jwt_is_expired(self._jwt_cache[self._BASE_URL]):
+            raise ExtractorError('The fetched token is already expired')
+
+        return self._jwt_cache[self._BASE_URL]
+
+
+class ApplePodcastsIE(AppleBaseIE):
+    IE_NAME = 'apple:podcasts'
+    IE_DESC = 'Apple Podcasts'
+
+    _VALID_URL = r'https?://podcasts\.apple\.com/(?P<country>[^/?#]+/)?podcast(?:/[^/?#]+){1,2}/?\?(?:[^#]+&)?i=(?P<id>\d+)'
     _TESTS = [{
+        'url': 'https://podcasts.apple.com/us/podcast/urbana-podcast-724-by-david-penn/id1531349107?i=1000748574256',
+        'md5': 'f8a6f92735d0cfbd5e6a7294151e28d8',
+        'info_dict': {
+            'id': '1000748574256',
+            'ext': 'm4a',
+            'title': 'URBANA PODCAST 724 BY DAVID PENN',
+            'episode': 'URBANA PODCAST 724 BY DAVID PENN',
+            'description': 'md5:fec77bacba32db8c9b3dda5486ed085f',
+            'upload_date': '20260206',
+            'timestamp': 1770400801,
+            'duration': 3602,
+            'series': 'Urbana Radio Show',
+            'thumbnail': r're:https://.+/.+\.jpg',
+        },
+    }, {
         'url': 'https://podcasts.apple.com/us/podcast/207-whitney-webb-returns/id1135137367?i=1000482637777',
-        'md5': '41dc31cd650143e530d9423b6b5a344f',
+        'md5': 'baf8a6b8b8aa6062dbb4639ed73d0052',
         'info_dict': {
             'id': '1000482637777',
             'ext': 'mp3',
             'title': '207 - Whitney Webb Returns',
+            'episode': '207 - Whitney Webb Returns',
+            'episode_number': 207,
             'description': 'md5:75ef4316031df7b41ced4e7b987f79c6',
             'upload_date': '20200705',
             'timestamp': 1593932400,
-            'duration': 6454,
+            'duration': 5369,
             'series': 'The Tim Dillon Show',
-            'thumbnail': 're:.+[.](png|jpe?g|webp)',
-        }
+            'thumbnail': r're:https://.+/.+\.jpg',
+        },
     }, {
         'url': 'https://podcasts.apple.com/podcast/207-whitney-webb-returns/id1135137367?i=1000482637777',
         'only_matching': True,
@@ -36,50 +92,77 @@ class ApplePodcastsIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        episode_id = self._match_id(url)
-        webpage = self._download_webpage(url, episode_id)
-        episode_data = {}
-        ember_data = {}
-        # new page type 2021-11
-        amp_data = self._parse_json(self._search_regex(
-            r'(?s)id="shoebox-media-api-cache-amp-podcasts"[^>]*>\s*({.+?})\s*<',
-            webpage, 'AMP data', default='{}'), episode_id, fatal=False) or {}
-        amp_data = try_get(amp_data,
-                           lambda a: self._parse_json(
-                               next(a[x] for x in iter(a) if episode_id in x),
-                               episode_id),
-                           dict) or {}
-        amp_data = amp_data.get('d') or []
-        episode_data = try_get(
-            amp_data,
-            lambda a: next(x for x in a
-                           if x['type'] == 'podcast-episodes' and x['id'] == episode_id),
-            dict)
-        if not episode_data:
-            # try pre 2021-11 page type: TODO: consider deleting if no longer used
-            ember_data = self._parse_json(self._search_regex(
-                r'(?s)id="shoebox-ember-data-store"[^>]*>\s*({.+?})\s*<',
-                webpage, 'ember data'), episode_id) or {}
-            ember_data = ember_data.get(episode_id) or ember_data
-            episode_data = try_get(ember_data, lambda x: x['data'], dict)
-        episode = episode_data['attributes']
-        description = episode.get('description') or {}
+    _BASE_URL = 'https://podcasts.apple.com'
+    _JWT_KEY_ID = 'C4J7GBP74H'
 
-        series = None
-        for inc in (amp_data or ember_data.get('included') or []):
-            if inc.get('type') == 'media/podcast':
-                series = try_get(inc, lambda x: x['attributes']['name'])
-        series = series or clean_html(get_element_by_class('podcast-header__identity', webpage))
+    def _extract_podcast_from_api(self, webpage, episode_id, country_code):
+        data = self._download_json(
+            f'https://amp-api.podcasts.apple.com/v1/catalog/{country_code or "us"}/podcast-episodes/{episode_id}',
+            episode_id, headers={
+                'Authorization': f'Bearer {self._get_token(webpage, episode_id)}',
+                'Origin': self._BASE_URL,
+            },
+            query={
+                # XXX: if video is available, try adding the params 'with=entitlements,hlsVideo'
+                'extend': 'fullDescription',
+                'include': 'podcast',
+                'l': 'en-US',
+            })['data'][0]
+
+        thumb_info = traverse_obj(data, ('attributes', 'artwork', {
+            'url': ('url', {url_or_none}),
+            'h': ('height', {int_or_none}),
+            'w': ('width', {int_or_none}),
+        }))
 
         return {
             'id': episode_id,
-            'title': episode.get('name'),
-            'url': clean_podcast_url(episode['assetUrl']),
-            'description': description.get('standard') or description.get('short'),
-            'timestamp': parse_iso8601(episode.get('releaseDateTime')),
-            'duration': int_or_none(episode.get('durationInMilliseconds'), 1000),
-            'series': series,
+            **traverse_obj(data, {
+                'title': ('attributes', 'name', {str}),
+                'description': ('attributes', 'fullDescription', {clean_html}),
+                'url': ('attributes', 'assetUrl', {clean_podcast_url}, {update_url(scheme='https')}),
+                'timestamp': ('attributes', 'releaseDateTime', {parse_iso8601}),
+                'duration': ('attributes', 'durationInMilliseconds', {int_or_none(scale=1000)}),
+                'episode': ('attributes', 'name', {str}),
+                'episode_number': ('attributes', 'episodeNumber', {int_or_none}),
+                'series': ('relationships', 'podcast', 'data', 0, 'attributes', 'name', {str}),
+            }),
+            'thumbnail': try_call(lambda: thumb_info.pop('url').format(f='jpg', **thumb_info)),
+            'vcodec': 'none',
+        }
+
+    def _extract_podcast_from_webpage(self, webpage, episode_id):
+        server_data = self._search_json(
+            r'<script [^>]*\bid=["\']serialized-server-data["\'][^>]*>', webpage,
+            'server data', episode_id, default=None)
+        model_data = traverse_obj(server_data, (
+            'data', 0, 'data', 'headerButtonItems',
+            lambda _, v: v['$kind'] == 'share' and v['modelType'] == 'EpisodeLockup',
+            'model', {dict}, any))
+        if not model_data:
+            return None
+
+        return {
+            'id': episode_id,
+            **traverse_obj(model_data, {
+                'title': ('title', {str}),
+                'description': ('summary', {clean_html}),
+                'url': ('playAction', 'episodeOffer', 'streamUrl', {clean_podcast_url}),
+                'timestamp': ('releaseDate', {parse_iso8601}),
+                'duration': ('duration', {int_or_none}),
+                'episode': ('title', {str}),
+                'episode_number': ('episodeNumber', {int_or_none}),
+                'series': ('showTitle', {str}),
+            }),
             'thumbnail': self._og_search_thumbnail(webpage),
             'vcodec': 'none',
         }
+
+    def _real_extract(self, url):
+        episode_id, country_code = self._match_valid_url(url).group('id', 'country')
+        # Webpage may be unavailable, see https://github.com/yt-dlp/yt-dlp/issues/17266
+        webpage = self._download_webpage(url, episode_id, expected_status=500)
+
+        return (
+            self._extract_podcast_from_webpage(webpage, episode_id)
+            or self._extract_podcast_from_api(webpage, episode_id, country_code))

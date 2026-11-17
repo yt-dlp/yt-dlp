@@ -1,35 +1,33 @@
+import hashlib
+import hmac
 import re
 import time
-import hmac
-import binascii
-import hashlib
 
-
-from .once import OnceIE
 from .adobepass import AdobePassIE
-from ..networking import Request
+from ..networking import HEADRequest, Request
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
+    find_xpath_attr,
     float_or_none,
     int_or_none,
-    parse_qs,
-    unsmuggle_url,
-    update_url_query,
-    xpath_with_ns,
     mimetype2ext,
-    find_xpath_attr,
+    parse_age_limit,
+    parse_qs,
     traverse_obj,
+    unsmuggle_url,
     update_url,
+    update_url_query,
+    url_or_none,
     urlhandle_detect_ext,
+    xpath_with_ns,
 )
-from ..networking import HEADRequest
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
 
 
-class ThePlatformBaseIE(OnceIE):
+class ThePlatformBaseIE(AdobePassIE):
     _TP_TLD = 'com'
 
     def _extract_theplatform_smil(self, smil_url, video_id, note='Downloading SMIL data'):
@@ -44,8 +42,7 @@ class ThePlatformBaseIE(OnceIE):
                 if exception.get('value') == 'GeoLocationBlocked':
                     self.raise_geo_restricted(error_element.attrib['abstract'])
                 elif error_element.attrib['src'].startswith(
-                        'http://link.theplatform.%s/s/errorFiles/Unavailable.'
-                        % self._TP_TLD):
+                        f'http://link.theplatform.{self._TP_TLD}/s/errorFiles/Unavailable.'):
                     raise ExtractorError(
                         error_element.attrib['abstract'], expected=True)
 
@@ -58,81 +55,70 @@ class ThePlatformBaseIE(OnceIE):
 
         formats = []
         for _format in smil_formats:
-            if OnceIE.suitable(_format['url']):
-                formats.extend(self._extract_once_formats(_format['url']))
-            else:
-                media_url = _format['url']
-                if determine_ext(media_url) == 'm3u8':
-                    hdnea2 = self._get_cookies(media_url).get('hdnea2')
-                    if hdnea2:
-                        _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
+            media_url = _format['url']
+            if determine_ext(media_url) == 'm3u8':
+                hdnea2 = self._get_cookies(media_url).get('hdnea2')
+                if hdnea2:
+                    _format['url'] = update_url_query(media_url, {'hdnea3': hdnea2.value})
 
-                formats.append(_format)
+            formats.append(_format)
 
         return formats, subtitles
 
-    def _download_theplatform_metadata(self, path, video_id):
-        info_url = 'http://link.theplatform.%s/s/%s?format=preview' % (self._TP_TLD, path)
-        return self._download_json(info_url, video_id)
+    def _download_theplatform_metadata(self, path, video_id, fatal=True):
+        return self._download_json(
+            f'https://link.theplatform.{self._TP_TLD}/s/{path}', video_id,
+            fatal=fatal, query={'format': 'preview'}) or {}
 
-    def _parse_theplatform_metadata(self, info):
-        subtitles = {}
-        captions = info.get('captions')
-        if isinstance(captions, list):
-            for caption in captions:
-                lang, src, mime = caption.get('lang', 'en'), caption.get('src'), caption.get('type')
-                subtitles.setdefault(lang, []).append({
-                    'ext': mimetype2ext(mime),
-                    'url': src,
-                })
+    @staticmethod
+    def _parse_theplatform_metadata(tp_metadata):
+        def site_specific_filter(*fields):
+            return lambda k, v: v and k.endswith(tuple(f'${f}' for f in fields))
 
-        duration = info.get('duration')
-        tp_chapters = info.get('chapters', [])
-        chapters = []
-        if tp_chapters:
-            def _add_chapter(start_time, end_time):
-                start_time = float_or_none(start_time, 1000)
-                end_time = float_or_none(end_time, 1000)
-                if start_time is None or end_time is None:
-                    return
-                chapters.append({
-                    'start_time': start_time,
-                    'end_time': end_time,
-                })
+        info = traverse_obj(tp_metadata, {
+            'title': ('title', {str}),
+            'episode': ('title', {str}),
+            'description': ('description', {str}),
+            'thumbnail': ('defaultThumbnailUrl', {url_or_none}),
+            'duration': ('duration', {float_or_none(scale=1000)}),
+            'timestamp': ('pubDate', {float_or_none(scale=1000)}),
+            'uploader': ('billingCode', {str}),
+            'creators': ('author', {str}, filter, all, filter),
+            'categories': (
+                'categories', lambda _, v: v.get('label') in ['category', None],
+                'name', {str}, filter, all, filter),
+            'tags': ('keywords', {str}, filter, {lambda x: re.split(r'[;,]\s?', x)}, filter),
+            'age_limit': ('ratings', ..., 'rating', {parse_age_limit}, any),
+            'season_number': (site_specific_filter('seasonNumber'), {int_or_none}, any),
+            'episode_number': (site_specific_filter('episodeNumber', 'airOrder'), {int_or_none}, any),
+            'series': (site_specific_filter('show', 'seriesTitle', 'seriesShortTitle'), (None, ...), {str}, any),
+            'location': (site_specific_filter('region'), {str}, any),
+            'media_type': (site_specific_filter('programmingType', 'type'), {str}, any),
+        })
 
-            for chapter in tp_chapters[:-1]:
-                _add_chapter(chapter.get('startTime'), chapter.get('endTime'))
-            _add_chapter(tp_chapters[-1].get('startTime'), tp_chapters[-1].get('endTime') or duration)
+        chapters = traverse_obj(tp_metadata, ('chapters', ..., {
+            'start_time': ('startTime', {float_or_none(scale=1000)}),
+            'end_time': ('endTime', {float_or_none(scale=1000)}),
+        }))
+        # Ignore pointless single chapters from short videos that span the entire video's duration
+        if len(chapters) > 1 or traverse_obj(chapters, (0, 'end_time')):
+            info['chapters'] = chapters
 
-        def extract_site_specific_field(field):
-            # A number of sites have custom-prefixed keys, e.g. 'cbc$seasonNumber'
-            return traverse_obj(info, lambda k, v: v and k.endswith(f'${field}'), get_all=False)
+        info['subtitles'] = {}
+        for caption in traverse_obj(tp_metadata, ('captions', lambda _, v: url_or_none(v['src']))):
+            info['subtitles'].setdefault(caption.get('lang') or 'en', []).append({
+                'url': caption['src'],
+                'ext': mimetype2ext(caption.get('type')),
+            })
 
-        return {
-            'title': info['title'],
-            'subtitles': subtitles,
-            'description': info['description'],
-            'thumbnail': info['defaultThumbnailUrl'],
-            'duration': float_or_none(duration, 1000),
-            'timestamp': int_or_none(info.get('pubDate'), 1000) or None,
-            'uploader': info.get('billingCode'),
-            'chapters': chapters,
-            'creator': traverse_obj(info, ('author', {str})) or None,
-            'categories': traverse_obj(info, (
-                'categories', lambda _, v: v.get('label') in ('category', None), 'name', {str})) or None,
-            'tags': traverse_obj(info, ('keywords', {lambda x: re.split(r'[;,]\s?', x) if x else None})),
-            'location': extract_site_specific_field('region'),
-            'series': extract_site_specific_field('show'),
-            'season_number': int_or_none(extract_site_specific_field('seasonNumber')),
-            'media_type': extract_site_specific_field('programmingType') or extract_site_specific_field('type'),
-        }
+        return info
 
     def _extract_theplatform_metadata(self, path, video_id):
         info = self._download_theplatform_metadata(path, video_id)
         return self._parse_theplatform_metadata(info)
 
 
-class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
+class ThePlatformIE(ThePlatformBaseIE):
     _VALID_URL = r'''(?x)
         (?:https?://(?:link|player)\.theplatform\.com/[sp]/(?P<provider_id>[^/]+)/
            (?:(?:(?:[^/]+/)+select/)?(?P<media>media/(?:guid/\d+/)?)?|(?P<config>(?:[^/\?]+/(?:swf|config)|onsite)/select/))?
@@ -142,7 +128,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             <meta\s+
                 property=(["'])(?:og:video(?::(?:secure_)?url)?|twitter:player)\1\s+
                 content=(["'])(?P<url>https?://player\.theplatform\.com/p/.+?)\2''',
-        r'(?s)<(?:iframe|script)[^>]+src=(["\'])(?P<url>(?:https?:)?//player\.theplatform\.com/p/.+?)\1'
+        r'(?s)<(?:iframe|script)[^>]+src=(["\'])(?P<url>(?:https?:)?//player\.theplatform\.com/p/.+?)\1',
     ]
 
     _TESTS = [{
@@ -227,17 +213,14 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         flags = '10' if include_qs else '00'
         expiration_date = '%x' % (int(time.time()) + life)
 
-        def str_to_hex(str):
-            return binascii.b2a_hex(str.encode('ascii')).decode('ascii')
-
-        def hex_to_bytes(hex):
-            return binascii.a2b_hex(hex.encode('ascii'))
+        def str_to_hex(str_data):
+            return str_data.encode('ascii').hex()
 
         relative_path = re.match(r'https?://link\.theplatform\.com/s/([^?]+)', url).group(1)
-        clear_text = hex_to_bytes(flags + expiration_date + str_to_hex(relative_path))
+        clear_text = bytes.fromhex(flags + expiration_date + str_to_hex(relative_path))
         checksum = hmac.new(sig_key.encode('ascii'), clear_text, hashlib.sha1).hexdigest()
         sig = flags + expiration_date + checksum + str_to_hex(sig_secret)
-        return '%s&sig=%s' % (url, sig)
+        return f'{url}&sig={sig}'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -276,7 +259,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
                     break
             if feed_id is None:
                 raise ExtractorError('Unable to find feed id')
-            return self.url_result('http://feed.theplatform.com/f/%s/%s?byGuid=%s' % (
+            return self.url_result('http://feed.theplatform.com/f/{}/{}?byGuid={}'.format(
                 provider_id, feed_id, qs_dict['guid'][0]))
 
         if smuggled_data.get('force_smil_url', False):
@@ -300,13 +283,10 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             config_url = config_url.replace('swf/', 'config/')
             config_url = config_url.replace('onsite/', 'onsite/config/')
             config = self._download_json(config_url, video_id, 'Downloading config')
-            if 'releaseUrl' in config:
-                release_url = config['releaseUrl']
-            else:
-                release_url = 'http://link.theplatform.com/s/%s?mbr=true' % path
+            release_url = config.get('releaseUrl') or f'http://link.theplatform.com/s/{path}?mbr=true'
             smil_url = release_url + '&formats=MPEG4&manifest=f4m'
         else:
-            smil_url = 'http://link.theplatform.com/s/%s?mbr=true' % path
+            smil_url = f'http://link.theplatform.com/s/{path}?mbr=true'
 
         sig = smuggled_data.get('sig')
         if sig:
@@ -389,7 +369,7 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
                 if asset_type in asset_types_query:
                     query.update(asset_types_query[asset_type])
                 cur_formats, cur_subtitles = self._extract_theplatform_smil(update_url_query(
-                    main_smil_url or smil_url, query), video_id, 'Downloading SMIL data for %s' % asset_type)
+                    main_smil_url or smil_url, query), video_id, f'Downloading SMIL data for {asset_type}')
                 formats.extend(cur_formats)
                 subtitles = self._merge_subtitles(subtitles, cur_subtitles)
 
@@ -402,7 +382,7 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
         timestamp = int_or_none(entry.get('media$availableDate'), scale=1000)
         categories = [item['media$name'] for item in entry.get('media$categories', [])]
 
-        ret = self._extract_theplatform_metadata('%s/%s' % (provider_id, first_video_id), video_id)
+        ret = self._extract_theplatform_metadata(f'{provider_id}/{first_video_id}', video_id)
         subtitles = self._merge_subtitles(subtitles, ret['subtitles'])
         ret.update({
             'id': video_id,

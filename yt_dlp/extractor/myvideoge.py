@@ -64,7 +64,7 @@ class MyVideoGeIE(InfoExtractor):
             # translate any ka month to an en one
             re.sub('|'.join(self._MONTH_NAMES_KA),
                    lambda m: MONTH_NAMES['en'][self._MONTH_NAMES_KA.index(m.group(0))],
-                   upload_date, re.I))
+                   upload_date, flags=re.I))
             if upload_date else None)
 
         return {

@@ -23,7 +23,7 @@ class StreamCZIE(InfoExtractor):
             'description': 'md5:8f5f09b9b7bc67df910486cdd88f7165',
             'duration': 1369.6,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://www.stream.cz/kdo-to-mluvi/kdo-to-mluvi-velke-odhaleni-prinasi-novy-porad-uz-od-25-srpna-64087937',
         'md5': '41fd358000086a1ccdb068c77809b158',
@@ -35,7 +35,7 @@ class StreamCZIE(InfoExtractor):
             'description': 'md5:97a811000a6460266029d6c1c2ebcd59',
             'duration': 50.2,
             'view_count': int,
-        }
+        },
     }, {
         'url': 'https://www.stream.cz/tajemno/znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili-64147267',
         'md5': '3ee4d0be040e8f4a543e67e509d55e3f',
@@ -47,7 +47,7 @@ class StreamCZIE(InfoExtractor):
             'description': 'md5:4b8ada6718d34bb011c4e04ca4bc19bf',
             'duration': 442.84,
             'view_count': int,
-        }
+        },
     }]
 
     def _extract_formats(self, spl_url, video):
@@ -86,9 +86,9 @@ class StreamCZIE(InfoExtractor):
                         perex
                         duration
                         views
-                    }'''
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json;charset=UTF-8'}
+                    }''',
+            }).encode(),
+            headers={'Content-Type': 'application/json;charset=UTF-8'},
         )['data']['episode']
 
         spl_url = data['spl'] + 'spl2,3'
@@ -105,7 +105,7 @@ class StreamCZIE(InfoExtractor):
             for ext, sub_url in subs.get('urls').items():
                 subtitles.setdefault(subs['language'], []).append({
                     'ext': ext,
-                    'url': urljoin(spl_url, sub_url)
+                    'url': urljoin(spl_url, sub_url),
                 })
 
         formats = list(self._extract_formats(spl_url, video))

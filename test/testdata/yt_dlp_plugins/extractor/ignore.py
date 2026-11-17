@@ -6,6 +6,7 @@ class IgnoreNotInAllPluginIE(InfoExtractor):
 
 
 class InAllPluginIE(InfoExtractor):
+    _VALID_URL = 'inallpluginie'
     pass
 
 

@@ -1,0 +1,153 @@
+from __future__ import annotations
+
+import dataclasses
+import enum
+import importlib.util
+import json
+
+import pytest
+
+from yt_dlp.extractor.youtube.jsc.provider import (
+    JsChallengeRequest,
+    JsChallengeType,
+    JsChallengeProviderResponse,
+    JsChallengeResponse,
+    NChallengeInput,
+    NChallengeOutput,
+    SigChallengeInput,
+    SigChallengeOutput,
+)
+from yt_dlp.extractor.youtube.jsc._builtin.bun import BunJCP
+from yt_dlp.extractor.youtube.jsc._builtin.deno import DenoJCP
+from yt_dlp.extractor.youtube.jsc._builtin.node import NodeJCP
+from yt_dlp.extractor.youtube.jsc._builtin.quickjs import QuickJSJCP
+
+
+_has_ejs = bool(importlib.util.find_spec('yt_dlp_ejs'))
+pytestmark = pytest.mark.skipif(not _has_ejs, reason='yt-dlp-ejs not available')
+
+
+class Variant(enum.Enum):
+    main = 'player_ias.vflset/en_US/base.js'
+    tcc = 'player_ias_tcc.vflset/en_US/base.js'
+    tce = 'player_ias_tce.vflset/en_US/base.js'
+    es5 = 'player_es5.vflset/en_US/base.js'
+    es6 = 'player_es6.vflset/en_US/base.js'
+    es6_tcc = 'player_es6_tcc.vflset/en_US/base.js'
+    es6_tce = 'player_es6_tce.vflset/en_US/base.js'
+    tv = 'tv-player-ias.vflset/tv-player-ias.js'
+    tv_es6 = 'tv-player-es6.vflset/tv-player-es6.js'
+    phone = 'player-plasma-ias-phone-en_US.vflset/base.js'
+    house = 'house_brand_player.vflset/en_US/base.js'
+
+
+@dataclasses.dataclass
+class Challenge:
+    player: str
+    variant: Variant
+    type: JsChallengeType
+    values: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    def url(self, /):
+        return f'https://www.youtube.com/s/player/{self.player}/{self.variant.value}'
+
+
+CHALLENGES: list[Challenge] = [
+    # 20522
+    Challenge('74edf1a3', Variant.main, JsChallengeType.N, {
+        'IlLiA21ny7gqA2m4p37': '9nRTxrbM1f0yHg',
+        'eabGFpsUKuWHXGh6FR4': 'izmYqDEY6kl7Sg',
+        'eabGF/ps%UK=uWHXGh6FR4': 'LACmqlhaBpiPlgE-a',
+    }),
+    Challenge('74edf1a3', Variant.main, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hzMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzl',
+        '\x00\x01\x02%\x03\x04\x05\x06\x07\x08\x09\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49':
+            '\x00\x01\x02%\x03\x04\x05\x06\x07\x08\x09\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x49\x44\x45\x46\x47\x48\x43',
+    }),
+    # 20523
+    Challenge('901741ab', Variant.main, JsChallengeType.N, {
+        'BQoJvGBkC2nj1ZZLK-': 'UMPovvBZRh-sjb',
+    }),
+    Challenge('901741ab', Variant.main, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'wgwCHlydB9Hg7PMegXoVzaoAXXB8woPSNZqRUC3Pe7vAEiApVSCMlhwmt5ON-8MB=5RPyyzdAM9MPM-kPfjgTxEK0IAhIgRwE0jiEJA',
+    }),
+    # 20524
+    Challenge('e7573094', Variant.main, JsChallengeType.N, {
+        'IlLiA21ny7gqA2m4p37': '3KuQ3235dojTSjo4',
+    }),
+    Challenge('e7573094', Variant.main, JsChallengeType.SIG, {
+        'NJAJEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyyPRt=BM8-XO5tm5hlMCSVpAiEAv7eP3CURqZNSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=gwzz':
+            'yEij0EwRgIhAI0KExTgjfPk-MPM9MAdzyNPRt=BM8-XO5tm5hlMCSVNAiEAvpeP3CURqZJSPow8BXXAoazVoXgeMP7gH9BdylHCwgw=g',
+    }),
+    # 20525
+    Challenge('9fcf08e8', Variant.main, JsChallengeType.N, {
+        'Dyc5ALyWiO0VqwCiT': 'H2PLmmAmJsYjKA',
+    }),
+    Challenge('9fcf08e8', Variant.main, JsChallengeType.SIG, {
+        '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a':
+            '\x6a\x69\x68\x67\x66\x65\x64\x63\x62\x61\x60\x5f\x5e\x5d\x5c\x5b\x5a\x59\x58\x57\x56\x55\x54\x53\x52\x51\x50\x4f\x4e\x4d\x4c\x4b\x4a\x49\x48\x47\x46\x45\x44\x43\x42\x41\x40\x3f\x3e\x3d\x3c\x3b\x3a\x39\x38\x37\x36\x35\x34\x33\x32\x31\x30\x2f\x2e\x2d\x2c\x2b\x2a\x29\x28\x27\x26\x25\x24\x23\x22\x21\x20\x1f\x1e\x1d\x1c\x1b\x1a\x19\x18\x17\x16\x15\x14\x13\x12\x11\x10\x0f\x0e\x0d\x0c\x0b\x03\x09\x08\x07\x06\x05\x04\x0a',
+    }),
+    # 20527
+    Challenge('21cd2156', Variant.main, JsChallengeType.N, {
+        'CiOxDbW1WEE8Ti4w': 'ZcBE4klItiC4rQ',
+    }),
+    Challenge('21cd2156', Variant.main, JsChallengeType.SIG, {
+        '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a':
+            '\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x00\x46\x47\x48\x49\x4a\x4b\x6a\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x4c',
+    }),
+    # 20528
+    Challenge('5e55da5a', Variant.tv, JsChallengeType.N, {
+        'FgTvzyq4jKv482R7': 'l26nyYSotkzDxg',
+    }),
+    Challenge('5e55da5a', Variant.tv, JsChallengeType.SIG, {
+        '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a':
+            '\x46\x66\x65\x64\x63\x62\x61\x60\x5f\x5e\x67\x6a\x5b\x5a\x59\x58\x57\x56\x55\x54\x53\x52\x51\x50\x4f\x4e\x4d\x4c\x4b\x4a\x49\x48\x47\x2c\x45\x44\x43\x42\x41\x40\x3f\x3e\x3d\x3c\x3b\x3a\x39\x38\x13\x36\x35\x34\x33\x32\x31\x30\x2f\x2e\x2d\x5d\x2b\x2a\x29\x28\x27\x26\x25\x24\x23\x22\x21\x20\x1f\x1e\x1d\x1c\x1b\x1a\x19\x18\x17\x16\x15\x14\x0c\x12\x11\x10\x0f\x0e\x0d\x00\x0b\x0a\x09\x08\x07\x06\x05\x04\x03\x02\x01\x37',
+    }),
+    # 20529
+    Challenge('631d3938', Variant.main, JsChallengeType.N, {
+        'KBx1qz7jMhxELa8c': 'ttPvh7WIptsgSw',
+    }),
+    Challenge('631d3938', Variant.main, JsChallengeType.SIG, {
+        '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66':
+            '\x19\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x00\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63',
+    }),
+]
+
+requests: list[JsChallengeRequest] = []
+responses: list[JsChallengeProviderResponse] = []
+for test in CHALLENGES:
+    input_type, output_type = {
+        JsChallengeType.N: (NChallengeInput, NChallengeOutput),
+        JsChallengeType.SIG: (SigChallengeInput, SigChallengeOutput),
+    }[test.type]
+
+    request = JsChallengeRequest(test.type, input_type(test.url(), list(test.values.keys())), test.player)
+    requests.append(request)
+    responses.append(JsChallengeProviderResponse(request, JsChallengeResponse(test.type, output_type(test.values))))
+
+
+@pytest.fixture(params=[BunJCP, DenoJCP, NodeJCP, QuickJSJCP])
+def jcp(request, ie, logger):
+    obj = request.param(ie, logger, None)
+    if not obj.is_available():
+        pytest.skip(f'{obj.PROVIDER_NAME} is not available')
+    obj.is_dev = True
+    return obj
+
+
+@pytest.mark.download
+def test_bulk_requests(jcp):
+    assert list(jcp.bulk_solve(requests)) == responses
+
+
+@pytest.mark.download
+def test_using_cached_player(jcp):
+    first_player_requests = requests[:3]
+    player = jcp._get_player(first_player_requests[0].video_id, first_player_requests[0].input.player_url)
+    initial = json.loads(jcp._run_js_runtime(jcp._construct_stdin(player, False, first_player_requests)))
+    preprocessed = initial.pop('preprocessed_player')
+    result = json.loads(jcp._run_js_runtime(jcp._construct_stdin(preprocessed, True, first_player_requests)))
+
+    assert initial == result

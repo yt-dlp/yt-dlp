@@ -16,7 +16,7 @@ class LivestreamfailsIE(InfoExtractor):
             'thumbnail': r're:^https?://.+',
             'timestamp': 1656271785,
             'upload_date': '20220626',
-        }
+        },
     }, {
         'url': 'https://livestreamfails.com/post/139200',
         'only_matching': True,
@@ -33,5 +33,5 @@ class LivestreamfailsIE(InfoExtractor):
             'url': f'https://livestreamfails-video-prod.b-cdn.net/video/{api_response["videoId"]}',
             'title': api_response.get('label'),
             'creator': traverse_obj(api_response, ('streamer', 'label')),
-            'thumbnail': format_field(api_response, 'imageId', 'https://livestreamfails-image-prod.b-cdn.net/image/%s')
+            'thumbnail': format_field(api_response, 'imageId', 'https://livestreamfails-image-prod.b-cdn.net/image/%s'),
         }

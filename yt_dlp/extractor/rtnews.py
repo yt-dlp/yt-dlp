@@ -14,7 +14,7 @@ class RTNewsIE(InfoExtractor):
             'id': '546301',
             'title': 'Crowds gather to greet deported Djokovic as he returns to Serbia (VIDEO)',
             'description': 'md5:1d5bfe1a988d81fd74227cfdf93d314d',
-            'thumbnail': 'https://cdni.rt.com/files/2022.01/article/61e587a085f540102c3386c1.png'
+            'thumbnail': 'https://cdni.rt.com/files/2022.01/article/61e587a085f540102c3386c1.png',
         },
     }, {
         'url': 'https://www.rt.com/shows/in-question/535980-plot-to-assassinate-julian-assange/',
@@ -23,7 +23,7 @@ class RTNewsIE(InfoExtractor):
             'id': '535980',
             'title': 'The plot to assassinate Julian Assange',
             'description': 'md5:55279ce5e4441dc1d16e2e4a730152cd',
-            'thumbnail': 'https://cdni.rt.com/files/2021.09/article/615226f42030274e8879b53d.png'
+            'thumbnail': 'https://cdni.rt.com/files/2021.09/article/615226f42030274e8879b53d.png',
         },
         'playlist': [{
             'info_dict': {
@@ -31,7 +31,7 @@ class RTNewsIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': '6152271d85f5400464496162',
             },
-        }]
+        }],
     }]
 
     def _entries(self, webpage):
@@ -46,12 +46,12 @@ class RTNewsIE(InfoExtractor):
                 }
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
 
         return {
             '_type': 'playlist',
-            'id': id,
+            'id': playlist_id,
             'entries': self._entries(webpage),
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
@@ -71,9 +71,9 @@ class RTDocumentryIE(InfoExtractor):
             'description': 'md5:647c76984b7cb9a8b52a567e87448d88',
             'thumbnail': 'https://cdni.rt.com/rtd-files/films/escobars-hitman/escobars-hitman_11.jpg',
             'average_rating': 8.53,
-            'duration': 3134.0
+            'duration': 3134.0,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rtd.rt.com/shows/the-kalashnikova-show-military-secrets-anna-knishenko/iskander-tactical-system-natos-headache/',
         'info_dict': {
@@ -86,9 +86,9 @@ class RTDocumentryIE(InfoExtractor):
             'duration': 274.0,
             'timestamp': 1605726000,
             'view_count': int,
-            'upload_date': '20201118'
+            'upload_date': '20201118',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }, {
         'url': 'https://rtd.rt.com/series/i-am-hacked-trailer/introduction-to-safe-digital-life-ep2/',
         'info_dict': {
@@ -101,29 +101,29 @@ class RTDocumentryIE(InfoExtractor):
             'duration': 1524.0,
             'timestamp': 1636977600,
             'view_count': int,
-            'upload_date': '20211115'
+            'upload_date': '20211115',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         ld_json = self._search_json_ld(webpage, None, fatal=False)
         if not ld_json:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
         media_json = self._parse_json(
             self._search_regex(r'(?s)\'Med\'\s*:\s*\[\s*({.+})\s*\]\s*};', webpage, 'media info'),
-            id, transform_source=js_to_json)
+            video_id, transform_source=js_to_json)
         if 'title' not in ld_json and 'title' in media_json:
             ld_json['title'] = media_json['title']
         formats = [{'url': src['file']} for src in media_json.get('sources') or [] if src.get('file')]
 
         return {
-            'id': id,
+            'id': video_id,
             'thumbnail': media_json.get('image'),
             'formats': formats,
-            **ld_json
+            **ld_json,
         }
 
 
@@ -144,23 +144,23 @@ class RTDocumentryPlaylistIE(InfoExtractor):
         },
     }]
 
-    def _entries(self, webpage, id):
+    def _entries(self, webpage, playlist_id):
         video_urls = set(re.findall(r'list-2__link\s*"\s*href="([^"]+)"', webpage))
         for v_url in video_urls:
-            if id not in v_url:
+            if playlist_id not in v_url:
                 continue
             yield self.url_result(
-                'https://rtd.rt.com%s' % v_url,
+                f'https://rtd.rt.com{v_url}',
                 ie=RTDocumentryIE.ie_key())
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
 
         return {
             '_type': 'playlist',
-            'id': id,
-            'entries': self._entries(webpage, id),
+            'id': playlist_id,
+            'entries': self._entries(webpage, playlist_id),
         }
 
 
@@ -174,20 +174,20 @@ class RuptlyIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Japan: Double trouble! Tokyo zoo presents adorable panda twins | Video Ruptly',
             'description': 'md5:85a8da5fdb31486f0562daf4360ce75a',
-            'thumbnail': 'https://storage.ruptly.tv/thumbnails/20220112-020/i6JQKnTNpYuqaXsR/i6JQKnTNpYuqaXsR.jpg'
+            'thumbnail': 'https://storage.ruptly.tv/thumbnails/20220112-020/i6JQKnTNpYuqaXsR/i6JQKnTNpYuqaXsR.jpg',
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         m3u8_url = self._search_regex(r'preview_url"\s?:\s?"(https?://storage\.ruptly\.tv/video_projects/.+\.m3u8)"', webpage, 'm3u8 url', fatal=False)
         if not m3u8_url:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
-        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, id, ext='mp4')
+        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
         return {
-            'id': id,
+            'id': video_id,
             'formats': formats,
             'subtitles': subs,
             'title': self._og_search_title(webpage),

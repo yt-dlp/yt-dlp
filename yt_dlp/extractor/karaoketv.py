@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class KaraoketvIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?karaoketv\.co\.il/[^/]+/(?P<id>\d+)'
     _TEST = {
         'url': 'http://www.karaoketv.co.il/%D7%A9%D7%99%D7%A8%D7%99_%D7%A7%D7%A8%D7%99%D7%95%D7%A7%D7%99/58356/%D7%90%D7%99%D7%96%D7%95%D7%9F',
@@ -13,7 +14,7 @@ class KaraoketvIE(InfoExtractor):
         'params': {
             # rtmp download
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -45,7 +46,7 @@ class KaraoketvIE(InfoExtractor):
             servers = ('wowzail.video-cdn.com:80/vodcdn', )
 
         formats = [{
-            'url': 'rtmp://%s' % server if not server.startswith('rtmp') else server,
+            'url': f'rtmp://{server}' if not server.startswith('rtmp') else server,
             'play_path': play_path,
             'app': 'vodcdn',
             'page_url': video_cdn_url,

@@ -23,8 +23,8 @@ class RozhlasIE(InfoExtractor):
             'id': '3421320',
             'ext': 'mp3',
             'title': 'Echo Pavla Klusáka (30.06.2015 21:00)',
-            'description': 'Osmdesátiny Terryho Rileyho jsou skvělou příležitostí proletět se elektronickými i akustickými díly zakladatatele minimalismu, který je aktivní už přes padesát let'
-        }
+            'description': 'Osmdesátiny Terryho Rileyho jsou skvělou příležitostí proletět se elektronickými i akustickými díly zakladatatele minimalismu, který je aktivní už přes padesát let',
+        },
     }, {
         'url': 'http://prehravac.rozhlas.cz/audio/3421320/embed',
         'only_matching': True,
@@ -34,7 +34,7 @@ class RozhlasIE(InfoExtractor):
         audio_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://prehravac.rozhlas.cz/audio/%s' % audio_id, audio_id)
+            f'http://prehravac.rozhlas.cz/audio/{audio_id}', audio_id)
 
         title = self._html_search_regex(
             r'<h3>(.+?)</h3>\s*<p[^>]*>.*?</p>\s*<div[^>]+id=["\']player-track',
@@ -48,7 +48,7 @@ class RozhlasIE(InfoExtractor):
 
         return {
             'id': audio_id,
-            'url': 'http://media.rozhlas.cz/_audio/%s.mp3' % audio_id,
+            'url': f'http://media.rozhlas.cz/_audio/{audio_id}.mp3',
             'title': title,
             'description': description,
             'duration': duration,
@@ -110,7 +110,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
                 'artist': 'Aleš Stuchlý',
                 'channel_id': 'radio-wave',
             },
-        }]
+        }],
     }, {
         'url': 'https://wave.rozhlas.cz/poslechnete-si-neklid-podcastovy-thriller-o-vine-strachu-a-vztahu-ktery-zasel-8554744',
         'info_dict': {
@@ -183,7 +183,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
                 'chapter': 'Neklid #5',
                 'chapter_number': 5,
             },
-        }]
+        }],
     }, {
         'url': 'https://dvojka.rozhlas.cz/karel-siktanc-cerny-jezdec-bily-kun-napinava-pohadka-o-tajemnem-prizraku-8946969',
         'info_dict': {
@@ -220,7 +220,7 @@ class RozhlasVltavaIE(RozhlasBaseIE):
                 'duration': ('duration', {int_or_none}),
                 'artist': ('meta', 'ga', 'contentAuthor'),
                 'channel_id': ('meta', 'ga', 'contentCreator'),
-            })
+            }),
         }
 
     def _real_extract(self, url):
@@ -247,17 +247,17 @@ class MujRozhlasIE(RozhlasBaseIE):
         'url': 'https://www.mujrozhlas.cz/vykopavky/ach-jo-zase-teleci-rizek-je-mnohem-min-cesky-nez-jsme-si-mysleli',
         'md5': '6f8fd68663e64936623e67c152a669e0',
         'info_dict': {
-            'id': '10739193',
+            'id': '10787730',
             'ext': 'mp3',
             'title': 'Ach jo, zase to telecí! Řízek je mnohem míň český, než jsme si mysleli',
             'description': 'md5:db7141e9caaedc9041ec7cefb9a62908',
             'timestamp': 1684915200,
-            'modified_timestamp': 1684922446,
+            'modified_timestamp': 1687550432,
             'series': 'Vykopávky',
             'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/84377046610af6ddc54d910b1dd7a22b.jpg',
             'channel_id': 'radio-wave',
             'upload_date': '20230524',
-            'modified_date': '20230524',
+            'modified_date': '20230623',
         },
     }, {
         # serial extraction
@@ -277,6 +277,26 @@ class MujRozhlasIE(RozhlasBaseIE):
             'title': 'Nespavci',
             'description': 'md5:c430adcbf9e2b9eac88b745881e814dc',
         },
+    }, {
+        # serialPart
+        'url': 'https://www.mujrozhlas.cz/povidka/gustavo-adolfo-becquer-hora-duchu',
+        'info_dict': {
+            'id': '8889035',
+            'ext': 'm4a',
+            'title': 'Gustavo Adolfo Bécquer: Hora duchů',
+            'description': 'md5:343a15257b376c276e210b78e900ffea',
+            'chapter': 'Hora duchů a Polibek – dva tajemné příběhy Gustava Adolfa Bécquera',
+            'thumbnail': 'https://portal.rozhlas.cz/sites/default/files/images/2adfe1387fb140634be725c1ccf26214.jpg',
+            'timestamp': 1708173000,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'series': 'Povídka',
+            'modified_date': '20240217',
+            'upload_date': '20240217',
+            'modified_timestamp': 1708173198,
+            'channel_id': 'vltava',
+        },
+        'params': {'skip_download': 'dash'},
     }]
 
     def _call_api(self, path, item_id, msg='API JSON'):
@@ -301,7 +321,7 @@ class MujRozhlasIE(RozhlasBaseIE):
                 'timestamp': ('attributes', 'since', {unified_timestamp}),
                 'modified_timestamp': ('attributes', 'updated', {unified_timestamp}),
                 'thumbnail': ('attributes', 'asset', 'url', {url_or_none}),
-            })
+            }),
         }
 
     def _entries(self, api_url, playlist_id):
@@ -322,7 +342,7 @@ class MujRozhlasIE(RozhlasBaseIE):
 
         entity = info['siteEntityBundle']
 
-        if entity == 'episode':
+        if entity in ('episode', 'serialPart'):
             return self._extract_audio_entry(self._call_api(
                 'episodes', info['contentId'], 'episode info API JSON'))
 

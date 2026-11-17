@@ -11,12 +11,11 @@ class APAIE(InfoExtractor):
     _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//[^/]+\.apa\.at/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}.*?)\1']
     _TESTS = [{
         'url': 'http://uvp.apa.at/embed/293f6d17-692a-44e3-9fd5-7b178f3a1029',
-        'md5': '2b12292faeb0a7d930c778c7a5b4759b',
         'info_dict': {
             'id': '293f6d17-692a-44e3-9fd5-7b178f3a1029',
             'ext': 'mp4',
             'title': '293f6d17-692a-44e3-9fd5-7b178f3a1029',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:https?://kf-vn\.sf\.apa\.at/vn/.+\.jpg',
         },
     }, {
         'url': 'https://uvp-apapublisher.sf.apa.at/embed/2f94e9e6-d945-4db2-9548-f9a41ebf7b78',
@@ -28,13 +27,22 @@ class APAIE(InfoExtractor):
         'url': 'http://uvp-kleinezeitung.sf.apa.at/embed/f1c44979-dba2-4ebf-b021-e4cf2cac3c81',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.vol.at/blue-man-group/5593454',
+        'info_dict': {
+            'id': '293f6d17-692a-44e3-9fd5-7b178f3a1029',
+            'ext': 'mp4',
+            'title': '293f6d17-692a-44e3-9fd5-7b178f3a1029',
+            'thumbnail': r're:https?://kf-vn\.sf\.apa\.at/vn/.+\.jpg',
+        },
+    }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id, base_url = mobj.group('id', 'base_url')
 
         webpage = self._download_webpage(
-            '%s/player/%s' % (base_url, video_id), video_id)
+            f'{base_url}/player/{video_id}', video_id)
 
         jwplatform_id = self._search_regex(
             r'media[iI]d\s*:\s*["\'](?P<id>[a-zA-Z0-9]{8})', webpage,
@@ -47,7 +55,7 @@ class APAIE(InfoExtractor):
 
         def extract(field, name=None):
             return self._search_regex(
-                r'\b%s["\']\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1' % field,
+                rf'\b{field}["\']\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, name or field, default=None, group='value')
 
         title = extract('title') or video_id

@@ -1,88 +1,84 @@
-from .dplay import DPlayIE
-from ..compat import compat_urlparse
-from ..utils import (
-    ExtractorError,
-    extract_attributes,
-)
+import functools
+
+from .dplay import DiscoveryPlusBaseIE
+from ..utils import join_nonempty
+from ..utils.traversal import traverse_obj
 
 
-class Tele5IE(DPlayIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'https?://(?:www\.)?tele5\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)'
-    _GEO_COUNTRIES = ['DE']
+class Tele5IE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?tele5\.de/(?P<parent_slug>[\w-]+)/(?P<slug_a>[\w-]+)(?:/(?P<slug_b>[\w-]+))?'
     _TESTS = [{
-        'url': 'https://www.tele5.de/mediathek/filme-online/videos?vid=1549416',
+        # slug_a and slug_b
+        'url': 'https://tele5.de/mediathek/star-trek-enterprise/vox-sola',
         'info_dict': {
-            'id': '1549416',
+            'id': '4140114',
             'ext': 'mp4',
-            'upload_date': '20180814',
-            'timestamp': 1534290623,
-            'title': 'Pandorum',
+            'title': 'Vox Sola',
+            'description': 'md5:329d115f74324d4364efc1a11c4ea7c9',
+            'duration': 2542.76,
+            'thumbnail': r're:https://[^/.]+\.disco-api\.com/.+\.jpe?g',
+            'tags': [],
+            'creators': ['Tele5'],
+            'series': 'Star Trek - Enterprise',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'Episode 22',
+            'episode_number': 22,
+            'timestamp': 1770491100,
+            'upload_date': '20260207',
         },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'No longer available: "404 Seite nicht gefunden"',
     }, {
-        # jwplatform, nexx unavailable
-        'url': 'https://www.tele5.de/filme/ghoul-das-geheimnis-des-friedhofmonsters/',
+        # only slug_a
+        'url': 'https://tele5.de/mediathek/30-miles-from-nowhere-im-wald-hoert-dich-niemand-schreien',
         'info_dict': {
-            'id': 'WJuiOlUp',
+            'id': '4102641',
             'ext': 'mp4',
-            'upload_date': '20200603',
-            'timestamp': 1591214400,
-            'title': 'Ghoul - Das Geheimnis des Friedhofmonsters',
-            'description': 'md5:42002af1d887ff3d5b2b3ca1f8137d97',
+            'title': '30 Miles from Nowhere - Im Wald hört dich niemand schreien',
+            'description': 'md5:0b731539f39ee186ebcd9dd444a86fc2',
+            'duration': 4849.96,
+            'thumbnail': r're:https://[^/.]+\.disco-api\.com/.+\.jpe?g',
+            'tags': [],
+            'creators': ['Tele5'],
+            'series': '30 Miles from Nowhere - Im Wald hört dich niemand schreien',
+            'timestamp': 1770417300,
+            'upload_date': '20260206',
         },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'No longer available, redirects to Filme page',
     }, {
-        'url': 'https://tele5.de/mediathek/angel-of-mine/',
+        # playlist
+        'url': 'https://tele5.de/mediathek/schlefaz',
         'info_dict': {
-            'id': '1252360',
-            'ext': 'mp4',
-            'upload_date': '20220109',
-            'timestamp': 1641762000,
-            'title': 'Angel of Mine',
-            'description': 'md5:a72546a175e1286eb3251843a52d1ad7',
+            'id': 'mediathek-schlefaz',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
-    }, {
-        'url': 'https://www.tele5.de/kalkofes-mattscheibe/video-clips/politik-und-gesellschaft?ve_id=1551191',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.tele5.de/video-clip/?ve_id=1609440',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.tele5.de/filme/schlefaz-dragon-crusaders/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.tele5.de/filme/making-of/avengers-endgame/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.tele5.de/star-trek/raumschiff-voyager/ganze-folge/das-vinculum/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.tele5.de/anders-ist-sevda/',
-        'only_matching': True,
+        'playlist_mincount': 3,
+        'skip': 'Dead link',
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        player_element = self._search_regex(r'(<hyoga-player\b[^>]+?>)', webpage, 'video player')
-        player_info = extract_attributes(player_element)
-        asset_id, country, realm = (player_info[x] for x in ('assetid', 'locale', 'realm', ))
-        endpoint = compat_urlparse.urlparse(player_info['endpoint']).hostname
-        source_type = player_info.get('sourcetype')
-        if source_type:
-            endpoint = '%s-%s' % (source_type, endpoint)
-        try:
-            return self._get_disco_api_info(url, asset_id, endpoint, realm, country)
-        except ExtractorError as e:
-            if getattr(e, 'message', '') == 'Missing deviceId in context':
-                self.report_drm(video_id)
-            raise
+        parent_slug, slug_a, slug_b = self._match_valid_url(url).group('parent_slug', 'slug_a', 'slug_b')
+        playlist_id = join_nonempty(parent_slug, slug_a, slug_b, delim='-')
+
+        query = {
+            'include': 'default',
+            'filter[environment]': 'tele5',
+            'v': '2',
+        }
+
+        if not slug_b:
+            endpoint = f'page/{slug_a}'
+            query['parent_slug'] = parent_slug
+        else:
+            endpoint = f'shows/{slug_a}'
+            query['filter[video.slug]'] = slug_b
+
+        cms_data = self._download_json(f'https://public.aurora.enhanced.live/site/{endpoint}/', playlist_id, query=query)
+
+        return self.playlist_result(map(
+            functools.partial(self._get_disco_api_info, url, disco_host='eu1-prod.disco-api.com', realm='dmaxde', country='DE'),
+            traverse_obj(cms_data, ('blocks', ..., 'videoId', {str}))), playlist_id)
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm}',
+            'x-disco-client': 'Alps:HyogaPlayer:0.0.0',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })

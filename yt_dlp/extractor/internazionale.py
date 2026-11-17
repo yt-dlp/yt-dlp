@@ -52,8 +52,8 @@ class InternazionaleIE(InfoExtractor):
             'video available aboard', default='1', group='value')
         video_available_abroad = video_available_abroad == '1'
 
-        video_base = 'https://video%s.internazionale.it/%s/%s.' % \
-            ('' if video_available_abroad else '-ita', video_path, video_id)
+        video_base = 'https://video{}.internazionale.it/{}/{}.'.format(
+            '' if video_available_abroad else '-ita', video_path, video_id)
 
         formats = self._extract_m3u8_formats(
             video_base + 'm3u8', display_id, 'mp4',

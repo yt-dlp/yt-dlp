@@ -4,6 +4,7 @@ from .archiveorg import ArchiveOrgIE
 from .common import InfoExtractor
 from ..utils import (
     InAdvancePagedList,
+    clean_html,
     int_or_none,
     orderedSet,
     str_to_int,
@@ -22,7 +23,7 @@ class AltCensoredIE(InfoExtractor):
             'title': "QUELLES SONT LES CONSÉQUENCES DE L'HYPERSEXUALISATION DE LA SOCIÉTÉ ?",
             'display_id': 'k0srjLSkga8.webm',
             'release_date': '20180403',
-            'creator': 'Virginie Vota',
+            'creators': ['Virginie Vota'],
             'release_year': 2018,
             'upload_date': '20230318',
             'uploader': 'admin@altcensored.com',
@@ -33,12 +34,14 @@ class AltCensoredIE(InfoExtractor):
             'thumbnail': 'https://archive.org/download/youtube-k0srjLSkga8/youtube-k0srjLSkga8.thumbs/k0srjLSkga8_000925.jpg',
             'view_count': int,
             'categories': ['News & Politics'],
-        }
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        category = clean_html(self._html_search_regex(
+            r'<a href="/category/\d+">([^<]+)</a>', webpage, 'category', default=None))
 
         return {
             '_type': 'url_transparent',
@@ -46,9 +49,7 @@ class AltCensoredIE(InfoExtractor):
             'ie_key': ArchiveOrgIE.ie_key(),
             'view_count': str_to_int(self._html_search_regex(
                 r'YouTube Views:(?:\s|&nbsp;)*([\d,]+)', webpage, 'view count', default=None)),
-            'categories': self._html_search_regex(
-                r'<a href="/category/\d+">\s*\n?\s*([^<]+)</a>',
-                webpage, 'category', default='').split() or None,
+            'categories': [category] if category else None,
         }
 
 
@@ -62,14 +63,21 @@ class AltCensoredChannelIE(InfoExtractor):
             'title': 'Virginie Vota',
             'id': 'UCFPTO55xxHqFqkzRZHu4kcw',
         },
-        'playlist_count': 91
+        'playlist_count': 85,
     }, {
         'url': 'https://altcensored.com/channel/UC9CcJ96HKMWn0LZlcxlpFTw',
         'info_dict': {
             'title': 'yukikaze775',
             'id': 'UC9CcJ96HKMWn0LZlcxlpFTw',
         },
-        'playlist_count': 4
+        'playlist_count': 4,
+    }, {
+        'url': 'https://altcensored.com/channel/UCfYbb7nga6-icsFWWgS-kWw',
+        'info_dict': {
+            'title': 'Mister Metokur',
+            'id': 'UCfYbb7nga6-icsFWWgS-kWw',
+        },
+        'playlist_count': 121,
     }]
 
     def _real_extract(self, url):
@@ -78,7 +86,7 @@ class AltCensoredChannelIE(InfoExtractor):
             url, channel_id, 'Download channel webpage', 'Unable to get channel webpage')
         title = self._html_search_meta('altcen_title', webpage, 'title', fatal=False)
         page_count = int_or_none(self._html_search_regex(
-            r'<a[^>]+href="/channel/\w+/page/(\d+)">(?:\1)</a>',
+            r'<a[^>]+href="/channel/[\w-]+/page/(\d+)">(?:\1)</a>',
             webpage, 'page count', default='1'))
 
         def page_func(page_num):

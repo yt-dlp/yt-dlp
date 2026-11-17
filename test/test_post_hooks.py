@@ -59,7 +59,7 @@ class TestPostHooks(unittest.TestCase):
 
     def hook_three(self, filename):
         self.files.append(filename)
-        raise Exception('Test exception for \'%s\'' % filename)
+        raise Exception(f'Test exception for \'{filename}\'')
 
     def tearDown(self):
         for f in self.files:

@@ -7,6 +7,7 @@ from ..utils import (
 
 
 class Varzesh3IE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?video\.varzesh3\.com/(?:[^/]+/)+(?P<id>[^/]+)/?'
     _TESTS = [{
         'url': 'http://video.varzesh3.com/germany/bundesliga/5-%D9%88%D8%A7%DA%A9%D9%86%D8%B4-%D8%A8%D8%B1%D8%AA%D8%B1-%D8%AF%D8%B1%D9%88%D8%A7%D8%B2%D9%87%E2%80%8C%D8%A8%D8%A7%D9%86%D8%A7%D9%86%D8%9B%D9%87%D9%81%D8%AA%D9%87-26-%D8%A8%D9%88%D9%86%D8%AF%D8%B3/',

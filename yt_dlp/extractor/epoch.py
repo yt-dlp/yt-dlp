@@ -11,7 +11,7 @@ class EpochIE(InfoExtractor):
                 'id': 'a3dd732c-4750-4bc8-8156-69180668bda1',
                 'ext': 'mp4',
                 'title': '‘They Can Do Audio, Video, Physical Surveillance on You 24H/365D a Year’: Rex Lee on Intrusive Apps',
-            }
+            },
         },
         {
             'url': 'https://www.theepochtimes.com/the-communist-partys-cyberattacks-on-america-explained-rex-lee-talks-tech-hybrid-warfare_4342413.html',
@@ -19,7 +19,7 @@ class EpochIE(InfoExtractor):
                 'id': '276c7f46-3bbf-475d-9934-b9bbe827cf0a',
                 'ext': 'mp4',
                 'title': 'The Communist Party’s Cyberattacks on America Explained; Rex Lee Talks Tech Hybrid Warfare',
-            }
+            },
         },
         {
             'url': 'https://www.theepochtimes.com/kash-patel-a-6-year-saga-of-government-corruption-from-russiagate-to-mar-a-lago_4690250.html',
@@ -27,7 +27,7 @@ class EpochIE(InfoExtractor):
                 'id': 'aa9ceecd-a127-453d-a2de-7153d6fd69b6',
                 'ext': 'mp4',
                 'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
-            }
+            },
         },
         {
             'url': 'https://www.theepochtimes.com/dick-morris-discusses-his-book-the-return-trumps-big-2024-comeback_4819205.html',
@@ -35,7 +35,7 @@ class EpochIE(InfoExtractor):
                 'id': '9489f994-2a20-4812-b233-ac0e5c345632',
                 'ext': 'mp4',
                 'title': 'Dick Morris Discusses His Book ‘The Return: Trump’s Big 2024 Comeback’',
-            }
+            },
         },
     ]
 
@@ -51,5 +51,5 @@ class EpochIE(InfoExtractor):
             'id': youmaker_video_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': self._html_extract_title(webpage)
+            'title': self._html_extract_title(webpage),
         }

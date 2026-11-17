@@ -2,8 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_iso8601,
     traverse_obj,
@@ -33,7 +33,8 @@ class OpencastBaseIE(InfoExtractor):
                             vid\.igb\.illinois\.edu|
                             cursosabertos\.c3sl\.ufpr\.br|
                             mcmedia\.missioncollege\.org|
-                            clases\.odon\.edu\.uy
+                            clases\.odon\.edu\.uy|
+                            oc-p\.uni-jena\.de
                         )'''
     _UUID_RE = r'[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
 
@@ -106,7 +107,7 @@ class OpencastBaseIE(InfoExtractor):
 
 class OpencastIE(OpencastBaseIE):
     _VALID_URL = rf'''(?x)
-        https?://(?P<host>{OpencastBaseIE._INSTANCES_RE})/paella/ui/watch\.html\?
+        https?://(?P<host>{OpencastBaseIE._INSTANCES_RE})/paella[0-9]*/ui/watch\.html\?
         (?:[^#]+&)?id=(?P<id>{OpencastBaseIE._UUID_RE})'''
 
     _API_BASE = 'https://%s/search/episode.json?id=%s'
@@ -126,13 +127,17 @@ class OpencastIE(OpencastBaseIE):
                 'series': 'Kryptographie - WiSe 15/16',
                 'creator': 'Alexander May',
             },
-        }
+        },
     ]
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).group('host', 'id')
-        return self._parse_mediapackage(
-            self._call_api(host, video_id)['search-results']['result']['mediapackage'])
+        response = self._call_api(host, video_id)
+        package = traverse_obj(response, (
+            ('search-results', 'result'),
+            ('result', ...),  # Path needed for oc-p.uni-jena.de
+            'mediapackage', {dict}, any)) or {}
+        return self._parse_mediapackage(package)
 
 
 class OpencastPlaylistIE(OpencastBaseIE):

@@ -43,7 +43,7 @@ class TF1IE(InfoExtractor):
             'season': 'Season 3',
             'tags': 'count:13',
             'episode': 'Episode 21',
-            'duration': 2312
+            'duration': 2312,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -62,7 +62,7 @@ class TF1IE(InfoExtractor):
                 'variables': json.dumps({
                     'programSlug': program_slug,
                     'slug': slug,
-                })
+                }),
             })['data']['videoBySlug']
         wat_id = video['streamId']
 

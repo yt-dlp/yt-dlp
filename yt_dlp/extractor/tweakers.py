@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
-    int_or_none,
     determine_ext,
+    int_or_none,
     mimetype2ext,
 )
 
@@ -19,13 +19,13 @@ class TweakersIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'duration': 386,
             'uploader_id': 's7JeEm',
-        }
+        },
     }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_data = self._download_json(
-            'https://tweakers.net/video/s1playlist/%s/1920/1080/playlist.json' % video_id,
+            f'https://tweakers.net/video/s1playlist/{video_id}/1920/1080/playlist.json',
             video_id)['items'][0]
 
         title = video_data['title']

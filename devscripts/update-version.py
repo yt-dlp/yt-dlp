@@ -10,23 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 import contextlib
 import sys
-from datetime import datetime, timezone
 
-from devscripts.utils import read_version, run_process, write_file
-
-
-def get_new_version(version, revision):
-    if not version:
-        version = datetime.now(timezone.utc).strftime('%Y.%m.%d')
-
-    if revision:
-        assert revision.isdecimal(), 'Revision must be a number'
-    else:
-        old_version = read_version().split('.')
-        if version.split('.') == old_version[:3]:
-            revision = str(int((old_version + [0])[3]) + 1)
-
-    return f'{version}.{revision}' if revision else version
+from devscripts.utils import calculate_version, run_process, write_file
 
 
 def get_git_head():
@@ -72,9 +57,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     git_head = get_git_head()
-    version = (
-        args.version if args.version and '.' in args.version
-        else get_new_version(None, args.version))
+    version = calculate_version(args.version)
     write_file(args.output, VERSION_TEMPLATE.format(
         version=version, git_head=git_head, channel=args.channel, origin=args.origin,
         package_version=f'{version}{args.suffix}'))

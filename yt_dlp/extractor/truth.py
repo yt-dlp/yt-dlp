@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class TruthIE(InfoExtractor):
-    _VALID_URL = r'https?://truthsocial\.com/@[^/]+/posts/(?P<id>\d+)'
+    _VALID_URL = r'https?://truthsocial\.com/@[^/?#]+(?:/posts)?/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://truthsocial.com/@realDonaldTrump/posts/108779000807761862',
@@ -19,7 +19,6 @@ class TruthIE(InfoExtractor):
                 'id': '108779000807761862',
                 'ext': 'qt',
                 'title': 'Truth video #108779000807761862',
-                'description': None,
                 'timestamp': 1659835827,
                 'upload_date': '20220807',
                 'uploader': 'Donald J. Trump',
@@ -48,11 +47,17 @@ class TruthIE(InfoExtractor):
                 'like_count': int,
             },
         },
+        {
+            # Share URL
+            'url': 'https://truthsocial.com/@realDonaldTrump/108779000807761862',
+            'only_matching': True,
+        },
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        status = self._download_json(f'https://truthsocial.com/api/v1/statuses/{video_id}', video_id)
+        status = self._download_json(
+            f'https://truthsocial.com/api/v1/statuses/{video_id}', video_id, impersonate=True)
         uploader_id = strip_or_none(traverse_obj(status, ('account', 'username')))
         return {
             'id': video_id,

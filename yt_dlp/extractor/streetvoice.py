@@ -33,7 +33,7 @@ class StreetVoiceIE(InfoExtractor):
             'track': '流浪',
             'track_id': '123688',
             'album': '2010',
-        }
+        },
     }, {
         'url': 'http://tw.streetvoice.com/skippylu/songs/94440/',
         'only_matching': True,
@@ -41,7 +41,7 @@ class StreetVoiceIE(InfoExtractor):
 
     def _real_extract(self, url):
         song_id = self._match_id(url)
-        base_url = 'https://streetvoice.com/api/v4/song/%s/' % song_id
+        base_url = f'https://streetvoice.com/api/v4/song/{song_id}/'
         song = self._download_json(base_url, song_id, query={
             'fields': 'album,comments_count,created_at,id,image,length,likes_count,name,nickname,plays_count,profile,share_count,synopsis,user,username',
         })
@@ -51,7 +51,7 @@ class StreetVoiceIE(InfoExtractor):
         for suffix, format_id in [('hls/file', 'hls'), ('file', 'http'), ('file/original', 'original')]:
             f_url = (self._download_json(
                 base_url + suffix + '/', song_id,
-                'Downloading %s format URL' % format_id,
+                f'Downloading {format_id} format URL',
                 data=b'', fatal=False) or {}).get('file')
             if not f_url:
                 continue
@@ -86,7 +86,7 @@ class StreetVoiceIE(InfoExtractor):
             'timestamp': parse_iso8601(song.get('created_at')),
             'uploader': try_get(user, lambda x: x['profile']['nickname']),
             'uploader_id': str_or_none(user.get('id')),
-            'uploader_url': urljoin(url, '/%s/' % username) if username else None,
+            'uploader_url': urljoin(url, f'/{username}/') if username else None,
             'view_count': get_count('plays'),
             'like_count': get_count('likes'),
             'comment_count': get_count('comments'),

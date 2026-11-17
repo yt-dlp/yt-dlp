@@ -21,7 +21,7 @@ class XboxClipsIE(InfoExtractor):
             'filesize_approx': 26800000,
             'upload_date': '20140807',
             'duration': 56,
-        }
+        },
     }, {
         'url': 'https://gameclips.io/iAbdulElah/074a69a9-5faf-46aa-b93b-9909c1720325',
         'only_matching': True,
@@ -32,7 +32,7 @@ class XboxClipsIE(InfoExtractor):
 
         if '/video.php' in url:
             qs = parse_qs(url)
-            url = 'https://gameclips.io/%s/%s' % (qs['gamertag'][0], qs['vid'][0])
+            url = 'https://gameclips.io/{}/{}'.format(qs['gamertag'][0], qs['vid'][0])
 
         webpage = self._download_webpage(url, video_id)
         info = self._parse_html5_media_entries(url, webpage, video_id)[0]

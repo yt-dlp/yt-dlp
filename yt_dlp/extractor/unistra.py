@@ -27,7 +27,7 @@ class UnistraIE(InfoExtractor):
                 'title': 'Prix Louise Weiss 2014',
                 'description': 'md5:cc3a8735f079f4fb6b0b570fc10c135a',
             },
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -43,9 +43,9 @@ class UnistraIE(InfoExtractor):
         for file_path in files:
             format_id = 'HD' if file_path.endswith('-HD.mp4') else 'SD'
             formats.append({
-                'url': 'http://vod-flash.u-strasbg.fr:8080%s' % file_path,
+                'url': f'http://vod-flash.u-strasbg.fr:8080{file_path}',
                 'format_id': format_id,
-                'quality': quality(format_id)
+                'quality': quality(format_id),
             })
 
         title = self._html_search_regex(
@@ -60,5 +60,5 @@ class UnistraIE(InfoExtractor):
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
-            'formats': formats
+            'formats': formats,
         }

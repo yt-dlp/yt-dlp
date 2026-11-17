@@ -48,5 +48,5 @@ class PeerTVIE(InfoExtractor):
             'title': self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title').replace('\xa0', ' '),
             'formats': formats,
             'description': self._html_search_meta(('og:description', 'description'), webpage),
-            'thumbnail': self._html_search_meta(('og:image', 'image'), webpage)
+            'thumbnail': self._html_search_meta(('og:image', 'image'), webpage),
         }

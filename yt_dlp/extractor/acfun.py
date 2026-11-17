@@ -3,9 +3,10 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
-    traverse_obj,
     parse_codecs,
     parse_qs,
+    str_or_none,
+    traverse_obj,
 )
 
 
@@ -24,7 +25,7 @@ class AcFunVideoBaseIE(InfoExtractor):
                     'width': int_or_none(video.get('width')),
                     'height': int_or_none(video.get('height')),
                     'tbr': float_or_none(video.get('avgBitrate')),
-                    **parse_codecs(video.get('codecs', ''))
+                    **parse_codecs(video.get('codecs', '')),
                 })
 
         return {
@@ -76,7 +77,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'comment_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
             'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
-        }
+        },
     }]
 
     def _real_extract(self, url):
@@ -129,7 +130,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'title': '红孩儿之趴趴蛙寻石记 第5话 ',
             'duration': 760.0,
             'season': '红孩儿之趴趴蛙寻石记',
-            'season_id': 5023171,
+            'season_id': '5023171',
             'season_number': 1,  # series has only 1 season
             'episode': 'Episode 5',
             'episode_number': 5,
@@ -146,7 +147,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'title': '叽歪老表（第二季） 第5话 坚不可摧',
             'season': '叽歪老表（第二季）',
             'season_number': 2,
-            'season_id': 6065485,
+            'season_id': '6065485',
             'episode': '坚不可摧',
             'episode_number': 5,
             'upload_date': '20220324',
@@ -191,7 +192,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'title': json_bangumi_data.get('showTitle'),
             'thumbnail': json_bangumi_data.get('image'),
             'season': json_bangumi_data.get('bangumiTitle'),
-            'season_id': season_id,
+            'season_id': str_or_none(season_id),
             'season_number': season_number,
             'episode': json_bangumi_data.get('title'),
             'episode_number': episode_number,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Execute with
-# $ python -m yt_dlp
+# $ python3 -m yt_dlp
 
 import sys
 

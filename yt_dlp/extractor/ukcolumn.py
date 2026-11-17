@@ -1,14 +1,15 @@
-from ..utils import (
-    unescapeHTML,
-    urljoin,
-    ExtractorError,
-)
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
+from ..utils import (
+    ExtractorError,
+    unescapeHTML,
+    urljoin,
+)
 
 
 class UkColumnIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'ukcolumn'
     _VALID_URL = r'(?i)https?://(?:www\.)?ukcolumn\.org(/index\.php)?/(?:video|ukcolumn-news)/(?P<id>[-a-z0-9]+)'
 

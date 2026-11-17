@@ -13,7 +13,7 @@ from ..utils import (
 
 class HRFernsehenIE(InfoExtractor):
     IE_NAME = 'hrfernsehen'
-    _VALID_URL = r'^https?://www\.(?:hr-fernsehen|hessenschau)\.de/.*,video-(?P<id>[0-9]{6})\.html'
+    _VALID_URL = r'https?://www\.(?:hr-fernsehen|hessenschau)\.de/.*,video-(?P<id>[0-9]{6})\.html'
     _TESTS = [{
         'url': 'https://www.hessenschau.de/tv-sendung/hessenschau-vom-26082020,video-130546.html',
         'md5': '5c4e0ba94677c516a2f65a84110fc536',
@@ -24,17 +24,17 @@ class HRFernsehenIE(InfoExtractor):
                            'Sterbehilfe: Die Lage in Hessen / Miss Hessen leitet zwei eigene Unternehmen / '
                            'Pop-Up Museum zeigt Schwarze Unterhaltung und Black Music',
             'subtitles': {'de': [{
-                'url': 'https://hr-a.akamaihd.net/video/as/hessenschau/2020_08/hrLogo_200826200407_L385592_512x288-25p-500kbit.vtt'
+                'url': 'https://hr-a.akamaihd.net/video/as/hessenschau/2020_08/hrLogo_200826200407_L385592_512x288-25p-500kbit.vtt',
             }]},
             'timestamp': 1598400000,
             'upload_date': '20200826',
             'thumbnail': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9.jpg',
             'title': 'hessenschau vom 26.08.2020',
-            'duration': 1654
-        }
+            'duration': 1654,
+        },
     }, {
         'url': 'https://www.hr-fernsehen.de/sendungen-a-z/mex/sendungen/fair-und-gut---was-hinter-aldis-eigenem-guetesiegel-steckt,video-130544.html',
-        'only_matching': True
+        'only_matching': True,
     }]
 
     _GEO_COUNTRIES = ['DE']
@@ -74,7 +74,7 @@ class HRFernsehenIE(InfoExtractor):
 
         subtitle = traverse_obj(loader_data, ('mediaCollection', 'subTitles', 0, 'sources', 0, 'url'))
 
-        info = {
+        return {
             'id': video_id,
             'title': title,
             'description': description,
@@ -86,5 +86,3 @@ class HRFernsehenIE(InfoExtractor):
                 loader_data, ('playerConfig', 'pluginData', 'trackingAti@all', 'richMedia', 'duration'))),
             'thumbnail': self._search_regex(r'thumbnailUrl\W*([^"]+)', webpage, 'thumbnail', default=None),
         }
-
-        return info

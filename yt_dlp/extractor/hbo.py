@@ -2,11 +2,12 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    xpath_text,
-    xpath_element,
     int_or_none,
+    join_nonempty,
     parse_duration,
     urljoin,
+    xpath_element,
+    xpath_text,
 )
 
 
@@ -56,7 +57,7 @@ class HBOBaseIE(InfoExtractor):
         episode_title = title = xpath_text(video_data, 'title', fatal=True)
         series = xpath_text(video_data, 'program')
         if series:
-            title = '%s - %s' % (series, title)
+            title = f'{series} - {title}'
 
         formats = []
         for source in xpath_element(video_data, 'videos', 'sources', True):
@@ -69,7 +70,7 @@ class HBOBaseIE(InfoExtractor):
                 height = format_info.get('height')
                 fmt = {
                     'url': path,
-                    'format_id': 'http%s' % ('-%dp' % height if height else ''),
+                    'format_id': join_nonempty('http'. height and f'{height}p'),
                     'width': format_info.get('width'),
                     'height': height,
                 }
@@ -107,7 +108,7 @@ class HBOBaseIE(InfoExtractor):
                 else:
                     format_info = self._FORMATS_INFO.get(source.tag, {})
                     formats.append({
-                        'format_id': 'http-%s' % source.tag,
+                        'format_id': f'http-{source.tag}',
                         'url': video_url,
                         'width': format_info.get('width'),
                         'height': format_info.get('height'),
@@ -133,7 +134,7 @@ class HBOBaseIE(InfoExtractor):
             subtitles = {
                 'en': [{
                     'url': caption_url,
-                    'ext': 'ttml'
+                    'ext': 'ttml',
                 }],
             }
 

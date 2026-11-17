@@ -12,7 +12,7 @@ class GlideIE(InfoExtractor):
             'ext': 'mp4',
             'title': "Damon's Glide message",
             'thumbnail': r're:^https?://.*?\.cloudfront\.net/.*\.jpg$',
-        }
+        },
     }
 
     def _real_extract(self, url):

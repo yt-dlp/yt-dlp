@@ -15,7 +15,7 @@ class NOSNLArticleIE(InfoExtractor):
                 'title': '\'We hebben een huis vol met scheuren\'',
                 'duration': 95.0,
                 'thumbnail': 'https://cdn.nos.nl/image/2022/08/12/887149/3840x2160a.jpg',
-            }
+            },
         }, {
             # more than 1 video
             'url': 'https://nos.nl/artikel/2440409-vannacht-sliepen-weer-enkele-honderden-asielzoekers-in-ter-apel-buiten',
@@ -64,7 +64,7 @@ class NOSNLArticleIE(InfoExtractor):
                 'categories': ['Buitenland'],
             },
             'playlist_mincount': 1,
-        }
+        },
     ]
 
     def _entries(self, nextjs_json, display_id):
@@ -82,7 +82,7 @@ class NOSNLArticleIE(InfoExtractor):
                     'thumbnails': [{
                         'url': traverse_obj(image, ('url', ...), get_all=False),
                         'width': image.get('width'),
-                        'height': image.get('height')
+                        'height': image.get('height'),
                     } for image in traverse_obj(item, ('imagesByRatio', ...))[0]],
                 }
 

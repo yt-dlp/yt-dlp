@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 
 class OktoberfestTVIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?oktoberfest-tv\.de/[^/]+/[^/]+/video/(?P<id>[^/?#]+)'
 
     _TEST = {
@@ -15,7 +16,7 @@ class OktoberfestTVIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }
 
     def _real_extract(self, url):

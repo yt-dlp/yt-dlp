@@ -23,7 +23,7 @@ class FreesoundIE(InfoExtractor):
             'uploader': 'miklovan',
             'upload_date': '20130715',
             'tags': list,
-        }
+        },
     }
 
     def _real_extract(self, url):

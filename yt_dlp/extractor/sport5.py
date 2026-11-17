@@ -27,7 +27,7 @@ class Sport5IE(InfoExtractor):
                 'categories': list,
             },
             'skip': 'Blocked outside of Israel',
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -39,13 +39,13 @@ class Sport5IE(InfoExtractor):
         video_id = self._html_search_regex(r'clipId=([\w-]+)', webpage, 'video id')
 
         metadata = self._download_xml(
-            'http://sport5-metadata-rr-d.nsacdn.com/vod/vod/%s/HDS/metadata.xml' % video_id,
+            f'http://sport5-metadata-rr-d.nsacdn.com/vod/vod/{video_id}/HDS/metadata.xml',
             video_id)
 
         error = metadata.find('./Error')
         if error is not None:
             raise ExtractorError(
-                '%s returned error: %s - %s' % (
+                '{} returned error: {} - {}'.format(
                     self.IE_NAME,
                     error.find('./Name').text,
                     error.find('./Description').text),

@@ -8,6 +8,7 @@ from ..utils import (
 
 
 class KrasViewIE(InfoExtractor):
+    _WORKING = False
     IE_DESC = 'Красвью'
     _VALID_URL = r'https?://krasview\.ru/(?:video|embed)/(?P<id>\d+)'
 

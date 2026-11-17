@@ -16,13 +16,12 @@ class KTHIE(InfoExtractor):
             'timestamp': 1647345358,
             'upload_date': '20220315',
             'uploader_id': 'md5:0ec23e33a89e795a4512930c8102509f',
-        }
+        },
     }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        result = self.url_result(
-            smuggle_url('kaltura:308:%s' % video_id, {
+        return self.url_result(
+            smuggle_url(f'kaltura:308:{video_id}', {
                 'service_url': 'https://api.kaltura.nordu.net'}),
             'Kaltura')
-        return result

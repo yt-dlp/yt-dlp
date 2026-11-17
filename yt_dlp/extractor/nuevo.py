@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-
-from ..utils import (
-    float_or_none,
-    xpath_text
-)
+from ..utils import float_or_none, xpath_text
 
 
 class NuevoBaseIE(InfoExtractor):
@@ -32,5 +28,5 @@ class NuevoBaseIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'duration': duration,
-            'formats': formats
+            'formats': formats,
         }

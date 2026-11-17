@@ -62,7 +62,7 @@ class TelegramEmbedIE(InfoExtractor):
         },
         'params': {
             'noplaylist': True,
-        }
+        },
     }, {
         # 2-video post with 'single' query param
         'url': 'https://t.me/vorposte/29342?single',

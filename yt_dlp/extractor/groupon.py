@@ -50,8 +50,7 @@ class GrouponIE(InfoExtractor):
             url_pattern, ie_key = self._PROVIDERS.get(provider.lower())
             if not url_pattern:
                 self.report_warning(
-                    '%s: Unsupported video provider %s, skipping video' %
-                    (playlist_id, provider))
+                    f'{playlist_id}: Unsupported video provider {provider}, skipping video')
                 continue
             entries.append(self.url_result(url_pattern % video_id, ie_key))
 

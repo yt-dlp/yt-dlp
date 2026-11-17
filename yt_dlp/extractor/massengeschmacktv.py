@@ -22,7 +22,7 @@ class MassengeschmackTVIE(InfoExtractor):
             'id': 'fktv202',
             'ext': 'mp4',
             'title': 'Fernsehkritik-TV #202',
-            'thumbnail': 'https://cache.massengeschmack.tv/img/mag/fktv202.jpg'
+            'thumbnail': 'https://cache.massengeschmack.tv/img/mag/fktv202.jpg',
         },
     }
 

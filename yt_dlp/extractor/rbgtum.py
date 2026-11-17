@@ -1,11 +1,11 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import parse_qs, remove_start, traverse_obj, ExtractorError
+from ..utils import ExtractorError, parse_qs, remove_start, traverse_obj
 
 
 class RbgTumIE(InfoExtractor):
-    _VALID_URL = r'https://(?:live\.rbg\.tum\.de|tum\.live)/w/(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://(?:live\.rbg\.tum\.de|tum\.live)/w/(?P<id>[^?#]+)'
     _TESTS = [{
         # Combined view
         'url': 'https://live.rbg.tum.de/w/cpp/22128',
@@ -15,7 +15,7 @@ class RbgTumIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lecture: October 18. 2022',
             'series': 'Concepts of C++ programming (IN2377)',
-        }
+        },
     }, {
         # Presentation only
         'url': 'https://live.rbg.tum.de/w/I2DL/12349/PRES',
@@ -25,7 +25,7 @@ class RbgTumIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Lecture 3: Introduction to Neural Networks',
             'series': 'Introduction to Deep Learning (IN2346)',
-        }
+        },
     }, {
         # Camera only
         'url': 'https://live.rbg.tum.de/w/fvv-info/16130/CAM',
@@ -35,11 +35,11 @@ class RbgTumIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Fachschaftsvollversammlung',
             'series': 'Fachschaftsvollversammlung Informatik',
-        }
+        },
     }, {
         'url': 'https://tum.live/w/linalginfo/27102',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -60,7 +60,7 @@ class RbgTumIE(InfoExtractor):
 
 
 class RbgTumCourseIE(InfoExtractor):
-    _VALID_URL = r'https://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>\d+)/(?P<term>\w+)/(?P<slug>[^/?#]+))'
+    _VALID_URL = r'https?://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/old/course/(?P<id>(?P<year>\d+)/(?P<term>\w+)/(?P<slug>[^/?#]+))'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/old/course/2022/S/fpv',
         'info_dict': {
@@ -84,7 +84,7 @@ class RbgTumCourseIE(InfoExtractor):
     }, {
         'url': 'https://tum.live/old/course/2023/S/linalginfo',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         course_id, hostname, year, term, slug = self._match_valid_url(url).group('id', 'hostname', 'year', 'term', 'slug')
@@ -105,7 +105,7 @@ class RbgTumCourseIE(InfoExtractor):
 
 
 class RbgTumNewCourseIE(InfoExtractor):
-    _VALID_URL = r'https://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/\?'
+    _VALID_URL = r'https?://(?P<hostname>(?:live\.rbg\.tum\.de|tum\.live))/\?'
     _TESTS = [{
         'url': 'https://live.rbg.tum.de/?year=2022&term=S&slug=fpv&view=3',
         'info_dict': {

@@ -51,7 +51,7 @@ PATCHES = (
     ),
     (   # Headings
         r'(?m)^  (\w.+\n)(    (?=\w))?',
-        r'## \1'
+        r'## \1',
     ),
     (   # Fixup `--date` formatting
         rf'(?m)(    --date DATE.+({delim}[^\[]+)*)\[.+({delim}.+)*$',
@@ -61,26 +61,26 @@ PATCHES = (
     ),
     (   # Do not split URLs
         rf'({delim[:-1]})? (?P<label>\[\S+\] )?(?P<url>https?({delim})?:({delim})?/({delim})?/(({delim})?\S+)+)\s',
-        lambda mobj: ''.join((delim, mobj.group('label') or '', re.sub(r'\s+', '', mobj.group('url')), '\n'))
+        lambda mobj: ''.join((delim, mobj.group('label') or '', re.sub(r'\s+', '', mobj.group('url')), '\n')),
     ),
     (   # Do not split "words"
         rf'(?m)({delim}\S+)+$',
-        lambda mobj: ''.join((delim, mobj.group(0).replace(delim, '')))
+        lambda mobj: ''.join((delim, mobj.group(0).replace(delim, ''))),
     ),
     (   # Allow overshooting last line
         rf'(?m)^(?P<prev>.+)${delim}(?P<current>.+)$(?!{delim})',
         lambda mobj: (mobj.group().replace(delim, ' ')
                       if len(mobj.group()) - len(delim) + 1 <= max_width + ALLOWED_OVERSHOOT
-                      else mobj.group())
+                      else mobj.group()),
     ),
     (   # Avoid newline when a space is available b/w switch and description
         DISABLE_PATCH,  # This creates issues with prepare_manpage
         r'(?m)^(\s{4}-.{%d})(%s)' % (switch_col_width - 6, delim),
-        r'\1 '
+        r'\1 ',
     ),
     (   # Replace brackets with a Markdown link
         r'SponsorBlock API \((http.+)\)',
-        r'[SponsorBlock API](\1)'
+        r'[SponsorBlock API](\1)',
     ),
 )
 

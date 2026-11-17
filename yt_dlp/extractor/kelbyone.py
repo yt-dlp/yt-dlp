@@ -3,6 +3,7 @@ from ..utils import int_or_none
 
 
 class KelbyOneIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://members\.kelbyone\.com/course/(?P<id>[^$&?#/]+)'
 
     _TESTS = [{
@@ -23,7 +24,7 @@ class KelbyOneIE(InfoExtractor):
                 'duration': 90,
                 'upload_date': '20201001',
             },
-        }]
+        }],
     }]
 
     def _entries(self, playlist):

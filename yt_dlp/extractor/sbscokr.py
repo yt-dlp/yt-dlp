@@ -94,7 +94,7 @@ class SBSCoKrIE(InfoExtractor):
 
         formats = []
         for stream in traverse_obj(details, (
-            'vod', 'source', 'mediasourcelist', lambda _, v: v['mediaurl'] or v['mediarscuse']
+            'vod', 'source', 'mediasourcelist', lambda _, v: v['mediaurl'] or v['mediarscuse'],
         ), default=[source]):
             if not stream.get('mediaurl'):
                 new_source = traverse_obj(
@@ -108,7 +108,7 @@ class SBSCoKrIE(InfoExtractor):
                 'format_id': stream.get('mediarscuse'),
                 'format_note': stream.get('medianame'),
                 **parse_resolution(stream.get('quality')),
-                'preference': int_or_none(stream.get('mediarscuse'))
+                'preference': int_or_none(stream.get('mediarscuse')),
             })
 
         caption_url = traverse_obj(details, ('vod', 'source', 'subtitle', {url_or_none}))

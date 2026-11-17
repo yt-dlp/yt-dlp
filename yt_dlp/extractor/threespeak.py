@@ -24,32 +24,32 @@ class ThreeSpeakIE(InfoExtractor):
             'duration': 2703.867833,
             'filesize': 1620054781,
         },
-        'params': {'skip_download': True}
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         json_str = self._html_search_regex(r'JSON\.parse\(\'([^\']+)\'\)', webpage, 'json')
         # The json string itself is escaped. Hence the double parsing
-        data_json = self._parse_json(self._parse_json(f'"{json_str}"', id), id)
-        video_json = self._parse_json(data_json['json_metadata'], id)
+        data_json = self._parse_json(self._parse_json(f'"{json_str}"', video_id), video_id)
+        video_json = self._parse_json(data_json['json_metadata'], video_id)
         formats, subtitles = [], {}
         og_m3u8 = self._html_search_regex(r'<meta\s?property=\"ogvideo\"\s?content=\"([^\"]+)\">', webpage, 'og m3u8', fatal=False)
         if og_m3u8:
-            https_frmts, https_subs = self._extract_m3u8_formats_and_subtitles(og_m3u8, id, fatal=False, m3u8_id='https')
+            https_frmts, https_subs = self._extract_m3u8_formats_and_subtitles(og_m3u8, video_id, fatal=False, m3u8_id='https')
             formats.extend(https_frmts)
             subtitles = self._merge_subtitles(subtitles, https_subs)
         ipfs_m3u8 = try_get(video_json, lambda x: x['video']['info']['ipfs'])
         if ipfs_m3u8:
-            ipfs_frmts, ipfs_subs = self._extract_m3u8_formats_and_subtitles(f'https://ipfs.3speak.tv/ipfs/{ipfs_m3u8}',
-                                                                             id, fatal=False, m3u8_id='ipfs')
+            ipfs_frmts, ipfs_subs = self._extract_m3u8_formats_and_subtitles(
+                f'https://ipfs.3speak.tv/ipfs/{ipfs_m3u8}', video_id, fatal=False, m3u8_id='ipfs')
             formats.extend(ipfs_frmts)
             subtitles = self._merge_subtitles(subtitles, ipfs_subs)
         mp4_file = try_get(video_json, lambda x: x['video']['info']['file'])
         if mp4_file:
             formats.append({
-                'url': f'https://threespeakvideo.b-cdn.net/{id}/{mp4_file}',
+                'url': f'https://threespeakvideo.b-cdn.net/{video_id}/{mp4_file}',
                 'ext': 'mp4',
                 'format_id': 'https-mp4',
                 'duration': try_get(video_json, lambda x: x['video']['info']['duration']),
@@ -58,7 +58,7 @@ class ThreeSpeakIE(InfoExtractor):
                 'format_note': 'Original file',
             })
         return {
-            'id': id,
+            'id': video_id,
             'title': data_json.get('title') or data_json.get('root_title'),
             'uploader': data_json.get('author'),
             'description': try_get(video_json, lambda x: x['video']['content']['description']),
@@ -82,12 +82,12 @@ class ThreeSpeakUserIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        playlist_id = self._match_id(url)
+        webpage = self._download_webpage(url, playlist_id)
         entries = [
             self.url_result(
-                'https://3speak.tv/watch?v=%s' % video,
+                f'https://3speak.tv/watch?v={video}',
                 ie=ThreeSpeakIE.ie_key())
             for video in re.findall(r'data-payout\s?\=\s?\"([^\"]+)\"', webpage) if video
         ]
-        return self.playlist_result(entries, id)
+        return self.playlist_result(entries, playlist_id)

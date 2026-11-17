@@ -28,7 +28,7 @@ class SinaIE(InfoExtractor):
                 'id': '250576622',
                 'ext': 'mp4',
                 'title': '现场:克鲁兹宣布退选 特朗普将稳获提名',
-            }
+            },
         },
         {
             'url': 'http://video.sina.com.cn/v/b/101314253-1290078633.html',
@@ -66,8 +66,7 @@ class SinaIE(InfoExtractor):
                 webpage = self._download_webpage(url, pseudo_id)
                 error = get_element_by_attribute('class', 'errtitle', webpage)
                 if error:
-                    raise ExtractorError('%s said: %s' % (
-                        self.IE_NAME, clean_html(error)), expected=True)
+                    raise ExtractorError(f'{self.IE_NAME} said: {clean_html(error)}', expected=True)
                 video_id = self._search_regex(
                     r"video_id\s*:\s*'(\d+)'", webpage, 'video id')
 
@@ -75,7 +74,7 @@ class SinaIE(InfoExtractor):
             'http://s.video.sina.com.cn/video/h5play',
             video_id, query={'video_id': video_id})
         if video_data['code'] != 1:
-            raise ExtractorError('%s said: %s' % (
+            raise ExtractorError('{} said: {}'.format(
                 self.IE_NAME, video_data['message']), expected=True)
         else:
             video_data = video_data['data']

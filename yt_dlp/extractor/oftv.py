@@ -20,8 +20,8 @@ class OfTVIE(InfoExtractor):
             'timestamp': 1652391300,
             'upload_date': '20220512',
             'view_count': 0,
-            'creator': 'This is Fire'
-        }
+            'creator': 'This is Fire',
+        },
     }]
 
     def _real_extract(self, url):
@@ -39,8 +39,8 @@ class OfTVPlaylistIE(InfoExtractor):
         'url': 'https://of.tv/creators/this-is-fire/',
         'playlist_count': 8,
         'info_dict': {
-            'id': 'this-is-fire'
-        }
+            'id': 'this-is-fire',
+        },
     }]
 
     def _real_extract(self, url):

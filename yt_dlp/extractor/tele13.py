@@ -1,14 +1,14 @@
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
+    determine_ext,
     js_to_json,
     qualities,
-    determine_ext,
 )
 
 
 class Tele13IE(InfoExtractor):
-    _VALID_URL = r'^https?://(?:www\.)?t13\.cl/videos(?:/[^/]+)+/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?t13\.cl/videos(?:/[^/]+)+/(?P<id>[\w-]+)'
     _TESTS = [
         {
             'url': 'http://www.t13.cl/videos/actualidad/el-circulo-de-hierro-de-michelle-bachelet-en-su-regreso-a-la-moneda',
@@ -36,7 +36,7 @@ class Tele13IE(InfoExtractor):
                 'uploader_id': 'UCnLY_3ezwNcDSC_Wc6suZxw',
             },
             'add_ie': ['Youtube'],
-        }
+        },
     ]
 
     def _real_extract(self, url):

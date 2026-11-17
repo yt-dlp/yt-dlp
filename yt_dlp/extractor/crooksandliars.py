@@ -8,7 +8,6 @@ from ..utils import (
 class CrooksAndLiarsIE(InfoExtractor):
     _VALID_URL = r'https?://embed\.crooksandliars\.com/(?:embed|v)/(?P<id>[A-Za-z0-9]+)'
     _EMBED_REGEX = [r'<(?:iframe[^>]+src|param[^>]+value)=(["\'])(?P<url>(?:https?:)?//embed\.crooksandliars\.com/(?:embed|v)/.+?)\1']
-
     _TESTS = [{
         'url': 'https://embed.crooksandliars.com/embed/8RUoRhRi',
         'info_dict': {
@@ -16,22 +15,36 @@ class CrooksAndLiarsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!',
             'description': 'md5:e1a46ad1650e3a5ec7196d432799127f',
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:https?://crooksandliars\.com/files/.+',
             'timestamp': 1428207000,
             'upload_date': '20150405',
             'uploader': 'Heather',
             'duration': 236,
-        }
+        },
     }, {
         'url': 'http://embed.crooksandliars.com/v/MTE3MjUtMzQ2MzA',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://crooksandliars.com/2015/04/fox-friends-says-protecting-atheists',
+        'info_dict': {
+            'id': '8RUoRhRi',
+            'ext': 'mp4',
+            'title': 'Fox & Friends Says Protecting Atheists From Discrimination Is Anti-Christian!',
+            'description': 'md5:e1a46ad1650e3a5ec7196d432799127f',
+            'duration': 236,
+            'thumbnail': r're:https?://crooksandliars\.com/files/.+',
+            'timestamp': 1428207000,
+            'upload_date': '20150405',
+            'uploader': 'Heather',
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://embed.crooksandliars.com/embed/%s' % video_id, video_id)
+            f'http://embed.crooksandliars.com/embed/{video_id}', video_id)
 
         manifest = self._search_json(r'var\s+manifest\s*=', webpage, 'manifest JSON', video_id)
 

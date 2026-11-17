@@ -12,6 +12,7 @@ from ..utils import (
 
 
 class TagesschauIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://(?:www\.)?tagesschau\.de/(?P<path>[^/]+/(?:[^/]+/)*?(?P<id>[^/#?]+?(?:-?[0-9]+)?))(?:~_?[^/#?]+?)?\.html'
 
     _TESTS = [{
@@ -140,10 +141,10 @@ class TagesschauIE(InfoExtractor):
                 if not formats:
                     continue
                 entries.append({
-                    'id': '%s-%d' % (display_id, num),
+                    'id': f'{display_id}-{num}',
                     'title': try_get(video, lambda x: x['mc']['_title']),
                     'duration': int_or_none(try_get(video, lambda x: x['mc']['_duration'])),
-                    'formats': formats
+                    'formats': formats,
                 })
 
         if not entries:

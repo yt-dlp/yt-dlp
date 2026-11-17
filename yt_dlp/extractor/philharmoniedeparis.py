@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import try_get
 
 
@@ -48,7 +47,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
         video_id = self._match_id(url)
 
         config = self._download_json(
-            'https://otoplayer.philharmoniedeparis.fr/fr/config/%s.json' % video_id, video_id, query={
+            f'https://otoplayer.philharmoniedeparis.fr/fr/config/{video_id}.json', video_id, query={
                 'id': video_id,
                 'lang': 'fr-FR',
             })
@@ -66,7 +65,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
             formats = []
             for format_id in ('mobile', 'desktop'):
                 format_url = try_get(
-                    files, lambda x: x[format_id]['file'], compat_str)
+                    files, lambda x: x[format_id]['file'], str)
                 if not format_url or format_url in format_urls:
                     continue
                 format_urls.add(format_url)
@@ -91,7 +90,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
             entry = extract_entry(chapter)
             if entry is None:
                 continue
-            entry['id'] = '%s-%d' % (video_id, num)
+            entry['id'] = f'{video_id}-{num}'
             entries.append(entry)
 
         return self.playlist_result(entries, video_id, config.get('title'))

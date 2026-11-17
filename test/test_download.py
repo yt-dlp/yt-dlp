@@ -13,14 +13,12 @@ import hashlib
 import json
 
 from test.helper import (
-    assertGreaterEqual,
     expect_info_dict,
     expect_warnings,
     get_params,
     gettestcases,
     getwebpagetestcases,
     is_download_test,
-    report_warning,
     try_rm,
 )
 
@@ -32,6 +30,7 @@ from yt_dlp.utils import (
     ExtractorError,
     UnavailableVideoError,
     YoutubeDLError,
+    filter_dict,
     format_bytes,
     join_nonempty,
 )
@@ -56,7 +55,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
 
 def _file_md5(fn):
     with open(fn, 'rb') as f:
-        return hashlib.md5(f.read()).hexdigest()
+        return hashlib.file_digest(f, hashlib.md5).hexdigest()
 
 
 normal_test_cases = gettestcases()
@@ -66,10 +65,6 @@ tests_counter = collections.defaultdict(collections.Counter)
 
 @is_download_test
 class TestDownload(unittest.TestCase):
-    # Parallel testing in nosetests. See
-    # http://nose.readthedocs.org/en/latest/doc_tests/test_multiprocess/multiprocess.html
-    _multiprocess_shared_ = True
-
     maxDiff = None
 
     COMPLETED_TESTS = {}
@@ -94,7 +89,7 @@ def generator(test_case, tname):
             'playlist', [] if is_playlist else [test_case])
 
         def print_skipping(reason):
-            print('Skipping %s: %s' % (test_case['name'], reason))
+            print('Skipping {}: {}'.format(test_case['name'], reason))
             self.skipTest(reason)
 
         if not ie.working():
@@ -117,15 +112,18 @@ def generator(test_case, tname):
 
         for other_ie in other_ies:
             if not other_ie.working():
-                print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
+                print_skipping(f'test depends on {other_ie.ie_key()}IE, marked as not WORKING')
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
         if is_playlist and 'playlist' not in test_case:
-            params.setdefault('extract_flat', 'in_playlist')
-            params.setdefault('playlistend', test_case.get(
-                'playlist_mincount', test_case.get('playlist_count', -2) + 1))
+            params.setdefault('playlistend', max(
+                test_case.get('playlist_mincount', -1),
+                test_case.get('playlist_count', -2) + 1,
+                test_case.get('playlist_maxcount', -2) + 1))
             params.setdefault('skip_download', True)
+            if 'playlist_duration_sum' not in test_case:
+                params.setdefault('extract_flat', 'in_playlist')
 
         ydl = YoutubeDL(params, auto_init=False)
         ydl.add_default_info_extractors()
@@ -138,7 +136,9 @@ def generator(test_case, tname):
         expect_warnings(ydl, test_case.get('expected_warnings', []))
 
         def get_tc_filename(tc):
-            return ydl.prepare_filename(dict(tc.get('info_dict', {})))
+            # Filename is generated from expected info dict, so filter out type wildcard values
+            return ydl.prepare_filename(
+                filter_dict(tc.get('info_dict', {}), cndn=lambda _, v: type(v) is not type))
 
         res_dict = None
 
@@ -148,10 +148,7 @@ def generator(test_case, tname):
                 return False
             if err.__class__.__name__ == expected_exception:
                 return True
-            for exc in err.exc_info:
-                if exc.__class__.__name__ == expected_exception:
-                    return True
-            return False
+            return any(exc.__class__.__name__ == expected_exception for exc in err.exc_info)
 
         def try_rm_tcs_files(tcs=None):
             if tcs is None:
@@ -163,6 +160,7 @@ def generator(test_case, tname):
                 try_rm(os.path.splitext(tc_filename)[0] + '.info.json')
         try_rm_tcs_files()
         try:
+            test_url = test_case['url']
             try_num = 1
             while True:
                 try:
@@ -170,7 +168,7 @@ def generator(test_case, tname):
                     # for outside error handling, and returns the exit code
                     # instead of the result dict.
                     res_dict = ydl.extract_info(
-                        test_case['url'],
+                        test_url,
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
@@ -181,8 +179,7 @@ def generator(test_case, tname):
                         raise
 
                     if try_num == RETRIES:
-                        report_warning('%s failed due to network errors, skipping...' % tname)
-                        return
+                        raise
 
                     print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 
@@ -199,23 +196,23 @@ def generator(test_case, tname):
                 self.assertTrue('entries' in res_dict)
                 expect_info_dict(self, res_dict, test_case.get('info_dict', {}))
 
+            num_entries = len(res_dict.get('entries', []))
             if 'playlist_mincount' in test_case:
-                assertGreaterEqual(
-                    self,
-                    len(res_dict['entries']),
-                    test_case['playlist_mincount'],
-                    'Expected at least %d in playlist %s, but got only %d' % (
-                        test_case['playlist_mincount'], test_case['url'],
-                        len(res_dict['entries'])))
+                mincount = test_case['playlist_mincount']
+                self.assertGreaterEqual(
+                    num_entries, mincount,
+                    f'Expected at least {mincount} entries in playlist {test_url}, but got only {num_entries}')
             if 'playlist_count' in test_case:
+                count = test_case['playlist_count']
+                got = num_entries if num_entries <= count else 'more'
                 self.assertEqual(
-                    len(res_dict['entries']),
-                    test_case['playlist_count'],
-                    'Expected %d entries in playlist %s, but got %d.' % (
-                        test_case['playlist_count'],
-                        test_case['url'],
-                        len(res_dict['entries']),
-                    ))
+                    num_entries, count,
+                    f'Expected exactly {count} entries in playlist {test_url}, but got {got}')
+            if 'playlist_maxcount' in test_case:
+                maxcount = test_case['playlist_maxcount']
+                self.assertLessEqual(
+                    num_entries, maxcount,
+                    f'Expected at most {maxcount} entries in playlist {test_url}, but got more')
             if 'playlist_duration_sum' in test_case:
                 got_duration = sum(e['duration'] for e in res_dict['entries'])
                 self.assertEqual(
@@ -242,11 +239,10 @@ def generator(test_case, tname):
                         if params.get('test'):
                             expected_minsize = max(expected_minsize, 10000)
                         got_fsize = os.path.getsize(tc_filename)
-                        assertGreaterEqual(
-                            self, got_fsize, expected_minsize,
-                            'Expected %s to be at least %s, but it\'s only %s ' %
-                            (tc_filename, format_bytes(expected_minsize),
-                                format_bytes(got_fsize)))
+                        self.assertGreaterEqual(
+                            got_fsize, expected_minsize,
+                            f'Expected {tc_filename} to be at least {format_bytes(expected_minsize)}, '
+                            f'but it\'s only {format_bytes(got_fsize)} ')
                     if 'md5' in tc:
                         md5_for_file = _file_md5(tc_filename)
                         self.assertEqual(tc['md5'], md5_for_file)
@@ -255,7 +251,7 @@ def generator(test_case, tname):
                 info_json_fn = os.path.splitext(tc_filename)[0] + '.info.json'
                 self.assertTrue(
                     os.path.exists(info_json_fn),
-                    'Missing info file %s' % info_json_fn)
+                    f'Missing info file {info_json_fn}')
                 with open(info_json_fn, encoding='utf-8') as infof:
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))

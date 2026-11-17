@@ -1,10 +1,10 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
-    parse_iso8601,
+    join_nonempty,
     parse_duration,
+    parse_iso8601,
 )
 
 
@@ -12,8 +12,8 @@ class NHLBaseIE(InfoExtractor):
     def _real_extract(self, url):
         site, tmp_id = self._match_valid_url(url).groups()
         video_data = self._download_json(
-            'https://%s/%s/%sid/v1/%s/details/web-v1.json'
-            % (self._CONTENT_DOMAIN, site[:3], 'item/' if site == 'mlb' else '', tmp_id), tmp_id)
+            'https://{}/{}/{}id/v1/{}/details/web-v1.json'.format(
+                self._CONTENT_DOMAIN, site[:3], 'item/' if site == 'mlb' else '', tmp_id), tmp_id)
         if video_data.get('type') != 'video':
             video_data = video_data['media']
             video = video_data.get('video')
@@ -24,7 +24,7 @@ class NHLBaseIE(InfoExtractor):
                 if videos:
                     video_data = videos[0]
 
-        video_id = compat_str(video_data['id'])
+        video_id = str(video_data['id'])
         title = video_data['title']
 
         formats = []
@@ -42,7 +42,7 @@ class NHLBaseIE(InfoExtractor):
             else:
                 height = int_or_none(playback.get('height'))
                 formats.append({
-                    'format_id': playback.get('name', 'http' + ('-%dp' % height if height else '')),
+                    'format_id': playback.get('name') or join_nonempty('http', height and f'{height}p'),
                     'url': playback_url,
                     'width': int_or_none(playback.get('width')),
                     'height': height,

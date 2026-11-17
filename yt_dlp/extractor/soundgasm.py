@@ -15,7 +15,7 @@ class SoundgasmIE(InfoExtractor):
             'title': 'Piano sample',
             'description': 'Royalty Free Sample Music',
             'uploader': 'ytdl',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -69,6 +69,6 @@ class SoundgasmProfileIE(InfoExtractor):
 
         entries = [
             self.url_result(audio_url, 'Soundgasm')
-            for audio_url in re.findall(r'href="([^"]+/u/%s/[^"]+)' % profile_id, webpage)]
+            for audio_url in re.findall(rf'href="([^"]+/u/{profile_id}/[^"]+)', webpage)]
 
         return self.playlist_result(entries, profile_id)

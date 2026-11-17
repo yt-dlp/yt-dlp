@@ -19,7 +19,7 @@ class RottenTomatoesIE(InfoExtractor):
             'id': '11028566',
             'ext': 'mp4',
             'title': 'Toy Story 3',
-            'description': 'From the creators of the beloved TOY STORY films, comes a story that will reunite the gang in a whole new way.'
+            'description': 'From the creators of the beloved TOY STORY films, comes a story that will reunite the gang in a whole new way.',
         },
         'skip': 'No longer available',
     }, {
@@ -30,7 +30,7 @@ class RottenTomatoesIE(InfoExtractor):
             'title': 'Toy Story 3: Trailer 2',
             'description': '',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 149.941
+            'duration': 149.941,
         },
     }, {
         'url': 'http://www.rottentomatoes.com/m/toy_story_3',

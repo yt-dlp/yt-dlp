@@ -2,9 +2,9 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
-    ExtractorError,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
@@ -105,7 +105,7 @@ class TeamTreeHouseIE(InfoExtractor):
                         '_type': 'url_transparent',
                         'id': self._match_id(page_url),
                         'url': page_url,
-                        'id_key': self.ie_key(),
+                        'ie_key': self.ie_key(),
                     }
                     if extract_info:
                         entry.update(extract_info)

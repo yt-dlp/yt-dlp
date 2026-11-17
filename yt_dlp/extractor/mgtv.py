@@ -9,6 +9,7 @@ from ..utils import (
     int_or_none,
     parse_resolution,
     traverse_obj,
+    try_call,
     try_get,
     url_or_none,
     urljoin,
@@ -16,7 +17,7 @@ from ..utils import (
 
 
 class MGTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:w(?:ww)?\.)?mgtv\.com/(v|b)/(?:[^/]+/)*(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:w(?:ww)?\.)?mgtv\.com/[bv]/(?:[^/]+/)*(?P<id>\d+)\.html'
     IE_DESC = '芒果TV'
     IE_NAME = 'MangoTV'
 
@@ -77,13 +78,13 @@ class MGTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
-            f'did={str(uuid.uuid4())}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
+            f'did={uuid.uuid4()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
                     'tk2': tk2,
                     'video_id': video_id,
-                    'type': 'pch5'
+                    'type': 'pch5',
                 }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status == 401:
@@ -94,12 +95,18 @@ class MGTVIE(InfoExtractor):
             raise
 
         stream_data = self._download_json(
-            'https://pcweb.api.mgtv.com/player/getSource', video_id, query={
+            'https://tinker.glb.mgtv.com/player/getSource', video_id, query={
+                '_support': '10000000',
                 'tk2': tk2,
                 'pm2': api_data['atc']['pm2'],
                 'video_id': video_id,
                 'type': 'pch5',
+                'auth_mode': '1',
+                'cxid': '',
+                'supportMse': '1',
                 'src': 'intelmgtv',
+                'abroad': try_call(lambda: self._get_cookies('https://www.mgtv.com')['abroad'].value) or '10',
+                'allowedRC': '1',
             }, headers=self.geo_verification_headers())['data']
         stream_domain = traverse_obj(stream_data, ('stream_domain', ..., {url_or_none}), get_all=False)
 
@@ -110,7 +117,8 @@ class MGTVIE(InfoExtractor):
                 self._RESOLUTIONS, (stream_name, 1 if stream.get('scale') == '16:9' else 0))
             format_url = traverse_obj(self._download_json(
                 urljoin(stream_domain, stream['url']), video_id, fatal=False,
-                note=f'Downloading video info for format {resolution or stream_name}'),
+                note=f'Downloading video info for format {resolution or stream_name}',
+                headers=self.geo_verification_headers()),
                 ('info', {url_or_none}))
             if not format_url:
                 continue
@@ -160,6 +168,6 @@ class MGTVIE(InfoExtractor):
             subtitles.setdefault(locale.lower(), []).append({
                 'url': sub_url,
                 'name': sub.get('name'),
-                'ext': 'srt'
+                'ext': 'srt',
             })
         return subtitles

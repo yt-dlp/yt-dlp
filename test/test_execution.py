@@ -20,7 +20,12 @@ LAZY_EXTRACTORS = 'yt_dlp/extractor/lazy_extractors.py'
 class TestExecution(unittest.TestCase):
     def run_yt_dlp(self, exe=(sys.executable, 'yt_dlp/__main__.py'), opts=('--version', )):
         stdout, stderr, returncode = Popen.run(
-            [*exe, '--ignore-config', *opts], cwd=rootDir, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            [*exe, '--no-update', '--ignore-config', *opts],
+            cwd=rootDir,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         print(stderr, file=sys.stderr)
         self.assertEqual(returncode, 0)
         return stdout.strip(), stderr.strip()
@@ -45,7 +50,7 @@ class TestExecution(unittest.TestCase):
             self.assertTrue(os.path.exists(LAZY_EXTRACTORS))
 
             _, stderr = self.run_yt_dlp(opts=('-s', 'test:'))
-            # `MIN_RECOMMENDED` emits a deprecated feature warning for deprecated python versions
+            # `MIN_RECOMMENDED` emits a deprecated feature warning for deprecated Python versions
             if stderr and stderr.startswith('Deprecated Feature: Support for Python'):
                 stderr = ''
             self.assertFalse(stderr)

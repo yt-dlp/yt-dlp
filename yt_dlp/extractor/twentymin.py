@@ -6,6 +6,7 @@ from ..utils import (
 
 
 class TwentyMinutenIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = '20min'
     _VALID_URL = r'''(?x)
                     https?://
@@ -24,7 +25,7 @@ class TwentyMinutenIE(InfoExtractor):
             'id': '469148',
             'ext': 'mp4',
             'title': '85 000 Franken für 15 perfekte Minuten',
-            'thumbnail': r're:https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
         },
     }, {
         'url': 'http://www.20min.ch/videoplayer/videoplayer.html?params=client@twentyDE|videoId@523629',
@@ -33,7 +34,7 @@ class TwentyMinutenIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'So kommen Sie bei Eis und Schnee sicher an',
             'description': 'md5:117c212f64b25e3d95747e5276863f7d',
-            'thumbnail': r're:https?://.*\.jpg$',
+            'thumbnail': r're:https?://.+\.jpg',
         },
         'params': {
             'skip_download': True,
@@ -42,19 +43,29 @@ class TwentyMinutenIE(InfoExtractor):
         'url': 'http://www.20min.ch/videotv/?cid=44&vid=468738',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [{
+        # FIXME: Update _VALID_URL
+        'url': 'https://www.20min.ch/story/so-kommen-sie-bei-eis-und-schnee-sicher-an-557858045456',
+        'info_dict': {
+            'id': '523629',
+            'ext': 'mp4',
+            'title': 'So kommen Sie bei Eis und Schnee sicher an',
+            'description': 'md5:117c212f64b25e3d95747e5276863f7d',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         video = self._download_json(
-            'http://api.20min.ch/video/%s/show' % video_id,
+            f'http://api.20min.ch/video/{video_id}/show',
             video_id)['content']
 
         title = video['title']
 
         formats = [{
             'format_id': format_id,
-            'url': 'http://podcast.20min-tv.ch/podcast/20min/%s%s.mp4' % (video_id, p),
+            'url': f'http://podcast.20min-tv.ch/podcast/20min/{video_id}{p}.mp4',
             'quality': quality,
         } for quality, (format_id, p) in enumerate([('sd', ''), ('hd', 'h')])]
 
@@ -64,7 +75,7 @@ class TwentyMinutenIE(InfoExtractor):
         def extract_count(kind):
             return try_get(
                 video,
-                lambda x: int_or_none(x['communityobject']['thumbs_%s' % kind]))
+                lambda x: int_or_none(x['communityobject'][f'thumbs_{kind}']))
 
         like_count = extract_count('up')
         dislike_count = extract_count('down')

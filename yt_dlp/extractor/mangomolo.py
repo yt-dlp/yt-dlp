@@ -1,8 +1,7 @@
+import base64
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-)
 from ..utils import classproperty, int_or_none
 
 
@@ -33,15 +32,12 @@ class MangomoloBaseIE(InfoExtractor):
     def _real_extract(self, url):
         page_id = self._get_real_id(self._match_id(url))
         webpage = self._download_webpage(
-            'https://player.mangomolo.com/v1/%s?%s' % (self._TYPE, url.split('?')[1]), page_id)
+            'https://player.mangomolo.com/v1/{}?{}'.format(self._TYPE, url.split('?')[1]), page_id)
         hidden_inputs = self._hidden_inputs(webpage)
         m3u8_entry_protocol = 'm3u8' if self._IS_LIVE else 'm3u8_native'
 
         format_url = self._html_search_regex(
-            [
-                r'(?:file|src)\s*:\s*"(https?://[^"]+?/playlist\.m3u8)',
-                r'<a[^>]+href="(rtsp://[^"]+)"'
-            ], webpage, 'format url')
+            r'(?:file|src)\s*:\s*"(https?://[^"]+?/playlist\.m3u8)', webpage, 'format url')
         formats = self._extract_wowza_formats(
             format_url, page_id, m3u8_entry_protocol, ['smil'])
 
@@ -59,6 +55,18 @@ class MangomoloVideoIE(MangomoloBaseIE):
     _TYPE = 'video'
     IE_NAME = 'mangomolo:' + _TYPE
     _SLUG = r'video\?.*?\bid=(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://player.mangomolo.com/v1/video?id=29431242&user_id=168&signature=b40e58d964532fe09bf81fc08d850752&autoplay=true&fullscreen=yes&base_url=aHR0cHM6Ly9heW4ub20vdmlkZW8vMjk0MzEyNDIvJUQ4JUE3JUQ5JTg0JUQ4JUEzJUQ5JTg1JUQ5JTg2JUQ5JThBJUQ4JUE3JUQ4JUFBLSVEOCVBNyVEOSU4NCVEOCVCMyVEOCVBOCVEOCVCOS0lRDglQTclRDklODQlRDglQUQlRDklODQlRDklODIlRDglQTktOQ%3D%3D&vast=true&app_id=&zone=&filter=DENY&countries=Q0M%3D&language=ar&player_profile=',
+        'info_dict': {
+            'id': '29431242',
+            'ext': 'flv',
+            'title': '29431242',
+        },
+        'expected_warnings': [
+            'Failed to download m3u8 information',
+            'Failed to download MPD manifest',
+        ],
+    }]
 
     _IS_LIVE = False
 
@@ -70,4 +78,4 @@ class MangomoloLiveIE(MangomoloBaseIE):
     _IS_LIVE = True
 
     def _get_real_id(self, page_id):
-        return compat_b64decode(compat_urllib_parse_unquote(page_id)).decode()
+        return base64.b64decode(urllib.parse.unquote(page_id)).decode()

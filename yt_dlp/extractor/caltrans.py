@@ -11,7 +11,7 @@ class CaltransIE(InfoExtractor):
             'title': 'US-50 : Sacramento : Hwy 50 at 24th',
             'live_status': 'is_live',
             'thumbnail': 'https://cwwp2.dot.ca.gov/data/d3/cctv/image/hwy50at24th/hwy50at24th.jpg',
-        }
+        },
     }
 
     def _real_extract(self, url):

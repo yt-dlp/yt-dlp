@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     dict_get,
     int_or_none,
@@ -57,11 +56,11 @@ class ABCOTVSIE(InfoExtractor):
         data = self._download_json(
             'https://api.abcotvs.com/v2/content', display_id, query={
                 'id': video_id,
-                'key': 'otv.web.%s.story' % station,
+                'key': f'otv.web.{station}.story',
                 'station': station,
             })['data']
         video = try_get(data, lambda x: x['featuredMedia']['video'], dict) or data
-        video_id = compat_str(dict_get(video, ('id', 'publishedKey'), video_id))
+        video_id = str(dict_get(video, ('id', 'publishedKey'), video_id))
         title = video.get('title') or video['linkText']
 
         formats = []

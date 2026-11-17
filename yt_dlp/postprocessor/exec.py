@@ -1,13 +1,21 @@
 from .common import PostProcessor
-from ..compat import compat_shlex_quote
-from ..utils import Popen, PostProcessingError, variadic
+from ..utils import Popen, PostProcessingError, shell_quote, variadic
 
 
 class ExecPP(PostProcessor):
 
     def __init__(self, downloader, exec_cmd):
-        PostProcessor.__init__(self, downloader)
+        # Need to set exec_cmd attribute before set_downloader is called by PostProcessor.__init__
         self.exec_cmd = variadic(exec_cmd)
+        PostProcessor.__init__(self, downloader)
+
+    def set_downloader(self, downloader):
+        super().set_downloader(downloader)
+        # Validate safety of exec commands
+        params = getattr(self._downloader, 'params', None)
+        if params and 'allow-unsafe-exec-expansion' not in params['compat_opts']:
+            for cmd in self.exec_cmd:
+                _ = self._downloader.prepare_outtmpl(cmd, {}, _exec=True)
 
     def parse_cmd(self, cmd, info):
         tmpl, tmpl_dict = self._downloader.prepare_outtmpl(cmd, info)
@@ -19,7 +27,7 @@ class ExecPP(PostProcessor):
         if filepath:
             if '{}' not in cmd:
                 cmd += ' {}'
-            cmd = cmd.replace('{}', compat_shlex_quote(filepath))
+            cmd = cmd.replace('{}', shell_quote(filepath, shell=True))
         return cmd
 
     def run(self, info):

@@ -18,7 +18,7 @@ class ClubicIE(InfoExtractor):
             'title': 'Clubic Week 2.0 : le FBI se lance dans la photo d\u0092identité',
             'description': 're:Gueule de bois chez Nokia. Le constructeur a indiqué cette.*',
             'thumbnail': r're:^http://img\.clubic\.com/.*\.jpg$',
-        }
+        },
     }, {
         'url': 'http://www.clubic.com/video/video-clubic-week-2-0-apple-iphone-6s-et-plus-mais-surtout-le-pencil-469792.html',
         'only_matching': True,
@@ -27,7 +27,7 @@ class ClubicIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        player_url = 'http://player.m6web.fr/v1/player/clubic/%s.html' % video_id
+        player_url = f'http://player.m6web.fr/v1/player/clubic/{video_id}.html'
         player_page = self._download_webpage(player_url, video_id)
 
         config = self._parse_json(self._search_regex(

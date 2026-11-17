@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..networking.exceptions import HTTPError
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     unified_strdate,
 )
@@ -24,7 +24,7 @@ class RadioCanadaIE(InfoExtractor):
             'params': {
                 # m3u8 download
                 'skip_download': True,
-            }
+            },
         },
         {
             # empty Title
@@ -50,7 +50,7 @@ class RadioCanadaIE(InfoExtractor):
                 'series': 'District 31',
             },
             'only_matching': True,
-        }
+        },
     ]
     _GEO_COUNTRIES = ['CA']
     _access_token = None
@@ -111,7 +111,7 @@ class RadioCanadaIE(InfoExtractor):
             if error == 'Le contenu sélectionné est disponible seulement en premium':
                 self.raise_login_required(error)
             raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, error), expected=True)
+                f'{self.IE_NAME} said: {error}', expected=True)
         formats = self._extract_m3u8_formats(v_url, video_id, 'mp4')
 
         subtitles = {}
@@ -129,8 +129,8 @@ class RadioCanadaIE(InfoExtractor):
             'thumbnail': get_meta('imageHR') or get_meta('imageMR') or get_meta('imageBR'),
             'duration': int_or_none(get_meta('length')),
             'series': get_meta('Emission'),
-            'season_number': int_or_none('SrcSaison'),
-            'episode_number': int_or_none('SrcEpisode'),
+            'season_number': int_or_none(get_meta('SrcSaison')),
+            'episode_number': int_or_none(get_meta('SrcEpisode')),
             'upload_date': unified_strdate(get_meta('Date')),
             'subtitles': subtitles,
             'formats': formats,
@@ -162,4 +162,4 @@ class RadioCanadaAudioVideoIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result('radiocanada:medianet:%s' % self._match_id(url))
+        return self.url_result(f'radiocanada:medianet:{self._match_id(url)}')

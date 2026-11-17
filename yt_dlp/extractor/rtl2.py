@@ -5,6 +5,7 @@ from ..utils import int_or_none
 
 
 class RTL2IE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'rtl2'
     _VALID_URL = r'https?://(?:www\.)?rtl2\.de/sendung/[^/]+/(?:video/(?P<vico_id>\d+)[^/]+/(?P<vivi_id>\d+)-|folge/)(?P<id>[^/?#]+)'
     _TESTS = [{
@@ -13,7 +14,7 @@ class RTL2IE(InfoExtractor):
             'id': 'folge-203-0',
             'ext': 'f4v',
             'title': 'GRIP sucht den Sommerkönig',
-            'description': 'md5:e3adbb940fd3c6e76fa341b8748b562f'
+            'description': 'md5:e3adbb940fd3c6e76fa341b8748b562f',
         },
         'params': {
             # rtmp download
@@ -26,7 +27,7 @@ class RTL2IE(InfoExtractor):
             'id': 'anna-erwischt-alex',
             'ext': 'mp4',
             'title': 'Anna erwischt Alex!',
-            'description': 'Anna nimmt ihrem Vater nicht ab, dass er nicht spielt. Und tatsächlich erwischt sie ihn auf frischer Tat.'
+            'description': 'Anna nimmt ihrem Vater nicht ab, dass er nicht spielt. Und tatsächlich erwischt sie ihn auf frischer Tat.',
         },
         'params': {
             # rtmp download

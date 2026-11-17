@@ -58,7 +58,7 @@ class LaXarxaMesIE(InfoExtractor):
             'https://api.laxarxames.cat/Media/GetMediaPlayInfo', video_id,
             data=json.dumps({
                 'MediaId': int(video_id),
-                'StreamType': 'MAIN'
+                'StreamType': 'MAIN',
             }).encode(), headers={
                 'Authorization': f'Bearer {self._TOKEN}',
                 'X-Tenantorigin': 'https://laxarxames.cat',

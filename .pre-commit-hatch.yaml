@@ -1,0 +1,9 @@
+repos:
+- repo: local
+  hooks:
+  - id: fix
+    name: Apply code fixes
+    entry: hatch fmt
+    language: system
+    types: [python]
+    require_serial: true

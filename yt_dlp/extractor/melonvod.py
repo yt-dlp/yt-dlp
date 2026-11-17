@@ -20,7 +20,7 @@ class MelonVODIE(InfoExtractor):
         },
         'params': {
             'skip_download': 'm3u8 download',
-        }
+        },
     }
 
     def _real_extract(self, url):
@@ -64,5 +64,5 @@ class MelonVODIE(InfoExtractor):
             'thumbnail': thumbnail,
             'upload_date': upload_date,
             'duration': duration,
-            'formats': formats
+            'formats': formats,
         }

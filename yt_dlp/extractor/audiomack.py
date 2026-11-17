@@ -3,7 +3,6 @@ import time
 
 from .common import InfoExtractor
 from .soundcloud import SoundcloudIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     url_basename,
@@ -22,8 +21,8 @@ class AudiomackIE(InfoExtractor):
                 'id': '310086',
                 'ext': 'mp3',
                 'uploader': 'Roosh Williams',
-                'title': 'Extraordinary'
-            }
+                'title': 'Extraordinary',
+            },
         },
         # audiomack wrapper around soundcloud song
         # Needs new test URL.
@@ -56,7 +55,7 @@ class AudiomackIE(InfoExtractor):
 
         # API is inconsistent with errors
         if 'url' not in api_response or not api_response['url'] or 'error' in api_response:
-            raise ExtractorError('Invalid url %s' % url)
+            raise ExtractorError(f'Invalid url {url}')
 
         # Audiomack wraps a lot of soundcloud tracks in their branded wrapper
         # if so, pass the work off to the soundcloud extractor
@@ -64,7 +63,7 @@ class AudiomackIE(InfoExtractor):
             return self.url_result(api_response['url'], SoundcloudIE.ie_key())
 
         return {
-            'id': compat_str(api_response.get('id', album_url_tag)),
+            'id': str(api_response.get('id', album_url_tag)),
             'uploader': api_response.get('artist'),
             'title': api_response.get('title'),
             'url': api_response['url'],
@@ -82,8 +81,8 @@ class AudiomackAlbumIE(InfoExtractor):
             'info_dict':
             {
                 'id': '812251',
-                'title': 'Tha Tour: Part 2 (Official Mixtape)'
-            }
+                'title': 'Tha Tour: Part 2 (Official Mixtape)',
+            },
         },
         # Album playlist ripped from fakeshoredrive with no metadata
         {
@@ -98,16 +97,16 @@ class AudiomackAlbumIE(InfoExtractor):
                     'id': '837576',
                     'ext': 'mp3',
                     'uploader': 'Lil Herb a.k.a. G Herbo',
-                }
+                },
             }, {
                 'info_dict': {
                     'title': 'PPP (Pistol P Project) - 10. 4 Minutes Of Hell Part 4 (prod by DY OF 808 MAFIA)',
                     'id': '837580',
                     'ext': 'mp3',
                     'uploader': 'Lil Herb a.k.a. G Herbo',
-                }
+                },
             }],
-        }
+        },
     ]
 
     def _real_extract(self, url):
@@ -123,12 +122,12 @@ class AudiomackAlbumIE(InfoExtractor):
             api_response = self._download_json(
                 'http://www.audiomack.com/api/music/url/album/%s/%d?extended=1&_=%d'
                 % (album_url_tag, track_no, time.time()), album_url_tag,
-                note='Querying song information (%d)' % (track_no + 1))
+                note=f'Querying song information ({track_no + 1})')
 
             # Total failure, only occurs when url is totally wrong
             # Won't happen in middle of valid playlist (next case)
             if 'url' not in api_response or 'error' in api_response:
-                raise ExtractorError('Invalid url for track %d of album url %s' % (track_no, url))
+                raise ExtractorError(f'Invalid url for track {track_no} of album url {url}')
             # URL is good but song id doesn't exist - usually means end of playlist
             elif not api_response['url']:
                 break
@@ -136,10 +135,10 @@ class AudiomackAlbumIE(InfoExtractor):
                 # Pull out the album metadata and add to result (if it exists)
                 for resultkey, apikey in [('id', 'album_id'), ('title', 'album_title')]:
                     if apikey in api_response and resultkey not in result:
-                        result[resultkey] = compat_str(api_response[apikey])
+                        result[resultkey] = str(api_response[apikey])
                 song_id = url_basename(api_response['url']).rpartition('.')[0]
                 result['entries'].append({
-                    'id': compat_str(api_response.get('id', song_id)),
+                    'id': str(api_response.get('id', song_id)),
                     'uploader': api_response.get('artist'),
                     'title': api_response.get('title', song_id),
                     'url': api_response['url'],
