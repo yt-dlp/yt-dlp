@@ -73,7 +73,7 @@ pin = [
     "charset-normalizer==3.5.2",
     "idna==3.20",
     "mutagen==1.48.1",
-    "pycparser==3.11 ; implementation_name != 'PyPy' and implementation_name != 'cpython'",
+    "pycparser==3.12 ; implementation_name != 'PyPy' and implementation_name != 'cpython'",
     "pycryptodomex==3.24.1",
     "requests==2.34.2",
     "urllib3==2.8.0",
@@ -84,13 +84,13 @@ pin-curl-cffi = [
     "certifi==2026.10.23 ; implementation_name == 'cpython'",
     "cffi==2.1.1 ; implementation_name == 'cpython'",
     "curl-cffi==0.17.0 ; implementation_name == 'cpython'",
-    "pycparser==3.11 ; implementation_name == 'cpython'",
+    "pycparser==3.12 ; implementation_name == 'cpython'",
 ]
 pin-secretstorage = [
     "cffi==2.1.1 ; platform_python_implementation != 'PyPy'",
     "cryptography==50.0.2",
     "jeepney==0.9.0",
-    "pycparser==3.11 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
+    "pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'",
     "secretstorage==3.5.0",
 ]
 pin-deno = [
@@ -248,17 +248,10 @@ python = [
 exclude-newer = "7 days"
 
 [tool.uv.exclude-newer-package]
-brotli = false       # temporary
-brotlicffi = false   # temporary
-certifi = false      # temporary
-curl-cffi = false    # temporary
-deno = false         # temporary
 pip = false
 protobug = false
 pyinstaller = false
-setuptools = false   # temporary
 uv = false
-virtualenv = false   # temporary
 yt-dlp-ejs = false
 
 [tool.ruff]
