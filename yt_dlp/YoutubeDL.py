@@ -23,9 +23,10 @@ import time
 import tokenize
 import traceback
 import unicodedata
+import urllib.parse
+import urllib.request
 
 from .cache import Cache
-from .compat import urllib  # isort: split
 from .compat import urllib_req_to_req
 from .cookies import CookieLoadError, LenientSimpleCookie, load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -1080,13 +1081,13 @@ class YoutubeDL:
         """
         if message is not None:
             self.to_stderr(message)
+        error = sys.exception()
         if self.params.get('verbose'):
             if tb is None:
-                if sys.exc_info()[0]:  # if .trouble has been called from an except block
-                    tb = ''
-                    if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                        tb += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
-                    tb += encode_compat_str(traceback.format_exc())
+                if error is not None:  # if .trouble has been called from an except block
+                    exc_info = getattr(error, 'exc_info', None)
+                    tb = ''.join(traceback.format_exception(*exc_info)) if exc_info and exc_info[0] else ''
+                    tb += ''.join(traceback.format_exception(error))
                 else:
                     tb_data = traceback.format_list(traceback.extract_stack())
                     tb = ''.join(tb_data)
@@ -1095,11 +1096,8 @@ class YoutubeDL:
         if not is_error:
             return
         if not self.params.get('ignoreerrors'):
-            if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                exc_info = sys.exc_info()[1].exc_info
-            else:
-                exc_info = sys.exc_info()
-            raise DownloadError(message, exc_info)
+            exc_info = getattr(error, 'exc_info', None)
+            raise DownloadError(message, exc_info if exc_info and exc_info[0] else sys.exc_info())
         self._download_retcode = 1
 
     Styles = Namespace(
