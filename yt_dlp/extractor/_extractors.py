@@ -875,7 +875,9 @@ from .khanacademy import (
 )
 from .kick import (
     KickClipIE,
+    KickClipsIE,
     KickIE,
+    KickVideosIE,
     KickVODIE,
 )
 from .kicker import KickerIE
