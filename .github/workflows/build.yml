@@ -27,6 +27,9 @@ on:
       macos:
         default: true
         type: boolean
+      verify_macos:
+        default: true
+        type: boolean
       windows:
         default: true
         type: boolean
@@ -67,6 +70,10 @@ on:
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
+        default: true
+        type: boolean
+      verify_macos:
+        description: Verify the macOS build on arm64 (if UPDATE_TO_VERIFICATION is set)
         default: true
         type: boolean
       windows:
@@ -200,7 +207,7 @@ jobs:
           fetch-depth: 0  # Needed for changelog
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: '3.14'
 
@@ -229,7 +236,7 @@ jobs:
           [[ "${version}" != "${downgraded_version}" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -291,7 +298,7 @@ jobs:
           docker compose up --build --exit-code-from "${SERVICE}" "${SERVICE}"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-bin-${{ matrix.os }}_${{ matrix.arch }}
           path: |
@@ -304,7 +311,7 @@ jobs:
     if: inputs.macos
     permissions:
       contents: read
-    runs-on: macos-14
+    runs-on: macos-15-intel
     env:
       CHANNEL: ${{ inputs.channel }}
       ORIGIN: ${{ needs.process.outputs.origin }}
@@ -365,7 +372,7 @@ jobs:
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           python3 -m bundle.pyinstaller --target-architecture universal2
 
-      - name: Verify --update-to
+      - name: Verify --update-to (intel)
         if: vars.UPDATE_TO_VERIFICATION
         run: |
           chmod +x ./dist/yt-dlp_macos
@@ -376,7 +383,7 @@ jobs:
           [[ "$version" != "$downgraded_version" ]]
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-bin-${{ github.job }}
           path: |
@@ -385,23 +392,23 @@ jobs:
           compression-level: 0
 
   macos_verify:
-    name: Verify macos x86_64
+    name: Verify macos arm64
     needs: [macos]
-    if: inputs.macos && vars.UPDATE_TO_VERIFICATION
+    if: inputs.verify_macos && vars.UPDATE_TO_VERIFICATION
     permissions:
       contents: read
-    runs-on: macos-15-intel
+    runs-on: macos-latest
     env:
       UPDATE_TO: yt-dlp/yt-dlp@2025.09.05
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           path: dist
           pattern: build-bin-macos
 
-      - name: Verify --update-to on x86_64 architecture
+      - name: Verify --update-to (arm64)
         run: |
           chmod +x ./dist/yt-dlp_macos
           cp ./dist/yt-dlp_macos ./dist/yt-dlp_macos_downgraded
@@ -439,10 +446,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: '3.14'
           architecture: ${{ matrix.arch }}
+          check-latest: true
 
       - name: Install Requirements
         env:
@@ -495,7 +503,7 @@ jobs:
           }
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-bin-${{ github.job }}-${{ matrix.arch }}
           path: |
@@ -516,7 +524,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           path: artifact
           pattern: build-bin-*
@@ -593,7 +601,7 @@ jobs:
           done
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-${{ github.job }}
           path: |
