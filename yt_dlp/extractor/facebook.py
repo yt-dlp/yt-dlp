@@ -7,6 +7,7 @@ from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     clean_html,
     determine_ext,
     float_or_none,
@@ -27,7 +28,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
     variadic,
-    bug_reports_message,
+    
 )
 
 
