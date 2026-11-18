@@ -61,11 +61,11 @@ See above: [NO AI / NO LLM POLICY](#no-ai--no-llm-policy)
 
 We define an "established contributor" as someone who has a contribution history of **at least three pull requests merged** over a period of **at least three months.**
 
-Likewise, **pull requests that add support for new sites are also only accepted from *established contributors*.**
+Likewise, pull requests that add support for new sites are also only accepted from established contributors.
 
-The idea behind this policy is that if an established/regular contributor is the one adding support for a new site, then they are much more likely to stick around and fix that support when it breaks. Maintainer bandwidth is limited, and limiting the sprawl of site support is necessary to prevent the maintainers from becoming overwhelmed, overworked and burnt out.
+The idea behind this policy is that if a regular contributor is the one adding support for a new site, then they're more likely to stick around and fix that support when it breaks. Maintainer bandwidth is limited, and limiting the sprawl of site support is necessary to prevent the maintainers from becoming overwhelmed, overworked and burnt out.
 
-**NOTE:** This policy is being enforced as of `2026.11.23`. It is **not** retroactively enforced for any site support requests or pull requests that were submitted before `2026.11.23`.
+**NOTE:** This policy is being enforced as of `2026.11.23`. It is **not** retroactively enforced for any site support requests or pull requests that were submitted before that date.
 
 
 # OPENING AN ISSUE
