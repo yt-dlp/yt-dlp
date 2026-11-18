@@ -188,7 +188,7 @@ class ZanIE(InfoExtractor):
 
         if is_live and release_timestamp and srv_time < release_timestamp:
             start_time = dt.datetime.fromtimestamp(
-                release_timestamp, dt.timezone.utc,
+                release_timestamp, dt.UTC,
             ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
             self.raise_no_formats(
                 f'This livestream is scheduled to start at {start_time}', expected=True)
