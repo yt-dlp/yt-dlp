@@ -130,6 +130,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
         'SUPPORTS_COOKIES': True,
+        **WEB_PO_TOKEN_POLICIES,
     },
     'web_music': {
         'INNERTUBE_HOST': 'music.youtube.com',
