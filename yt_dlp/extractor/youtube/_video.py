@@ -29,6 +29,7 @@ from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, 
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking import HEADRequest
+from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -140,11 +141,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('visionos', 'web')
+    _DEFAULT_CLIENTS = ('tv_samsung', 'visionos', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('visionos',)
-    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_downgraded', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_samsung', 'web_embedded', 'web')
     # Premium does not require POT (except for subtitles)
-    _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_downgraded', 'web')
+    _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_samsung', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
     _DEFAULT_WEBPAGE_CLIENT = 'web'
 
@@ -2045,7 +2046,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         note=False, errnote='Fragment request failed')
                 except ExtractorError as e:
                     self.write_debug(e.msg)
-                    urlh = None
+                    # On some clients (e.g. tv_samsung), a HEAD request may yield HTTP Error 500,
+                    # but the response still has the X-Head-Seqnum header value that is needed.
+                    # See https://github.com/yt-dlp/yt-dlp/issues/18031
+                    if isinstance(e.cause, HTTPError) and e.cause.status >= 500:
+                        urlh = e.cause.response
+                    else:
+                        urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
                     urlh.close()
@@ -2063,9 +2070,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             last_seq += 1
-
-            if not url_feed:
-                last_seq -= 2
 
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
@@ -3151,7 +3155,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
                 append_client('web_embedded')
-                append_client('tv_downgraded')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
@@ -4042,7 +4045,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._list_formats(video_id, microformats, video_details, player_responses, player_url, duration)
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         if live_status == 'post_live':
-            self.write_debug(f'{video_id}: Video is in Post-Live Manifestless mode')
+            self.to_screen(
+                f'{video_id}: Video is in Post-Live Manifestless mode\n'
+                'Livestream has ended and is being processed by YouTube (live_status=post_live). '
+                'Some formats may not be available until processing is complete')
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -4050,8 +4056,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pemr = get_first(
                 playability_statuses,
                 ('errorScreen', 'playerErrorMessageRenderer'), expected_type=dict) or {}
-            reason = self._get_text(pemr, 'reason') or get_first(playability_statuses, 'reason')
-            subreason = clean_html(self._get_text(pemr, 'subreason') or '')
+            ivm = get_first(
+                playability_statuses,
+                ('errorScreen', 'playerInterstitialRenderer', 'content', 'interstitialViewModel', {dict})) or {}
+            reason = (
+                self._get_text(pemr, 'reason')
+                or get_first(playability_statuses, 'reason')
+                or traverse_obj(ivm, ('title', 'content', {str}))
+                or '')
+            subreason = clean_html(self._get_text(pemr, 'subreason')) or traverse_obj(ivm, ('description', 'content', {clean_html}))
             if subreason:
                 if subreason.startswith('The uploader has not made this video available in your country'):
                     countries = get_first(microformats, 'availableCountries')
@@ -4059,7 +4072,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         regions_allowed = search_meta('regionsAllowed')
                         countries = regions_allowed.split(',') if regions_allowed else None
                     self.raise_geo_restricted(subreason, countries, metadata_available=True)
-                reason += f'. {subreason}'
+                if subreason != reason:
+                    reason += f'. {subreason}'
             if reason:
                 if 'sign in' in reason.lower():
                     reason = remove_end(reason, 'This helps protect our community. Learn more')
@@ -4534,7 +4548,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or parse_iso8601(search_meta('uploadDate'), timezone=NO_DEFAULT)
         )
         upload_date = (
-            dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).strftime('%Y%m%d') if timestamp else
+            dt.datetime.fromtimestamp(timestamp, dt.UTC).strftime('%Y%m%d') if timestamp else
             (
                 unified_strdate(get_first(microformats, 'uploadDate'))
                 or unified_strdate(search_meta('uploadDate'))
@@ -4554,7 +4568,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if upload_date and live_status not in ('is_live', 'post_live', 'is_upcoming'):
             # Newly uploaded videos' HLS formats are potentially problematic and need to be checked
-            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.timezone.utc)
+            upload_datetime = datetime_from_str(upload_date).replace(tzinfo=dt.UTC)
             if upload_datetime >= datetime_from_str('today-2days'):
                 for fmt in info['formats']:
                     if fmt.get('protocol') == 'm3u8_native':
