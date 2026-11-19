@@ -6,7 +6,6 @@ class ScreenRecIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://screenrec.com/share/ZHwdTfY23O',
         'info_dict': {
-            'id': 'DasLtbknYo',
             'id': 'ZHwdTfY23O',
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.gif',
