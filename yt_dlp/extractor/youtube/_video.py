@@ -3607,6 +3607,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     https_fmts.append(fmt)
 
                 for fmt in https_fmts:
+                    # Live adaptive https formats don't need chunk size and shouldn't be made dashy
+                    if fmt.get('is_from_start'):
+                        yield fmt
+                        continue
                     if (all_formats or 'dashy' in format_types) and fmt['filesize']:
                         yield {
                             **fmt,
