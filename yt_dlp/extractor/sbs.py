@@ -212,22 +212,32 @@ class SBSIE(SBSBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        try:
-            media = self._call_api(
-                f'https://playback.pr.sbsod.com/stream/{video_id}',
-                video_id,
-                data=json.dumps({
-                    'deviceClass': 'web',
-                    'streamOptions': {'audio': 'demuxed'},
-                    'streamProviders': ['HLS'],
-                }).encode(),
-            )
-        except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status in (401, 400):
-                if self._ACCESS_TOKEN:
-                    self._refresh_access_token()
-                self.raise_login_required()
-            raise
+        for retry in self.RetryManager():
+            try:
+                media = self._call_api(
+                    f'https://playback.pr.sbsod.com/stream/{video_id}',
+                    video_id,
+                    data=json.dumps({
+                        'deviceClass': 'web',
+                        'drm': {'level': 'L3', 'type': 'widevine'},
+                        'streamOptions': {'audio': 'demuxed'},
+                        'streamProviders': ['GoogleDAI_DRM_HLS', 'GoogleDAI_AES_HLS', 'AES_HLS'],
+                    }).encode(),
+                )
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status in (401, 400):
+                    error = traverse_obj(
+                        self._parse_json(e.cause.response.read(), None, fatal=False),
+                        ('message', {str}), default='',
+                    )
+                    if any(e in error.lower() for e in ('eof', 'expire')) and self._ACCESS_TOKEN:
+                        self._refresh_access_token()
+                        retry.error = 'access token expired refreshing'  # Use better message instead
+                        continue
+                    elif error:
+                        raise ExtractorError(f'Api says: {error}')
+                    self.raise_login_required()
+                raise
 
         formats, subtitles = [], {}
         for fmt_url in traverse_obj(media, ('streamProviders', ..., 'url')):
