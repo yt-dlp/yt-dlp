@@ -178,6 +178,13 @@ DEPENDENCIES: list[Dependency] = [
         project_url='https://boringssl.googlesource.com/boringssl',
     ),
     Dependency(
+        name='c-ares',
+        license='MIT',
+        license_url='https://raw.githubusercontent.com/c-ares/c-ares/refs/heads/main/LICENSE.md',
+        comment='Not included in `yt-dlp_x86.exe` Windows builds',
+        project_url='https://c-ares.org/',
+    ),
+    Dependency(
         name='nghttp2',
         license='MIT',
         license_url='https://raw.githubusercontent.com/nghttp2/nghttp2/refs/heads/master/COPYING',

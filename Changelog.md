@@ -4,13 +4,43 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2026.10.26
+
+#### Important changes
+- **The minimum *required* Python version has been raised to 3.11**
+    - Python 3.10 has reached its end-of-life as of October 2026, and yt-dlp has now removed support for it. [Read more](https://github.com/yt-dlp/yt-dlp/issues/16916)
+- **The official Windows release binaries now require Windows 10 or later.** [Read more](https://github.com/yt-dlp/yt-dlp/issues/16917)
+- Security: The recent `brotli` and `certifi` vulnerabilities have now been fully addressed in the executables
+    - The `brotli` package bundled with the executables has been upgraded to version 1.2.1, and the `curl-cffi` package has been upgraded to version 0.17.0. These upgrades address the recent [`brotli` security vulnerability](https://github.com/advisories/GHSA-9v8h-qqgm-4m35)
+    - `curl-cffi` 0.17.0 also fully addresses the recent [`certifi` security vulnerability](https://github.com/advisories/GHSA-6q48-6c7w-9gw2) that was already partially addressed by upgrading the `certifi` package bundled with the executables
+
+#### Core changes
+- [Remove Python 3.10 support](https://github.com/yt-dlp/yt-dlp/commit/3d28cf4780fa88689fc50010d72cf2f40ce3a3b8) ([#17160](https://github.com/yt-dlp/yt-dlp/issues/17160)) by [bashonly](https://github.com/bashonly), [doe1080](https://github.com/doe1080), [Grub4K](https://github.com/Grub4K)
+
+#### Extractor changes
+- **odnoklassniki**: [Fix boosty direct link extraction](https://github.com/yt-dlp/yt-dlp/commit/fa9886678eb65103303c627b8e013f13f8999b41) ([#17749](https://github.com/yt-dlp/yt-dlp/issues/17749)) by [bashonly](https://github.com/bashonly)
+
+#### Networking changes
+- **Request Handler**: curl_cffi: [Support `curl_cffi` 0.17.x](https://github.com/yt-dlp/yt-dlp/commit/7f7106cd323e17ffd3d4119250739cf1ae520cea) ([#17929](https://github.com/yt-dlp/yt-dlp/issues/17929)) by [bashonly](https://github.com/bashonly) (With fixes in [15262b0](https://github.com/yt-dlp/yt-dlp/commit/15262b0b9813131e72236f7fc9a663407ac295b1))
+
+#### Misc. changes
+- **build**
+    - [Always use latest Python version on Windows](https://github.com/yt-dlp/yt-dlp/commit/9b58cb33d0cd3e823c8d8732f6adce8faa1f37e3) ([#17901](https://github.com/yt-dlp/yt-dlp/issues/17901)) by [bashonly](https://github.com/bashonly)
+    - [Update 13 dependencies](https://github.com/yt-dlp/yt-dlp/commit/7747073a2b00ca4688637eef4e168af9d2a806cb) ([#17924](https://github.com/yt-dlp/yt-dlp/issues/17924)) by [bashonly](https://github.com/bashonly), [dlp-bot](https://github.com/dlp-bot)
+    - [Update 3 dependencies](https://github.com/yt-dlp/yt-dlp/commit/c91f8de0bfb3577894abad716eaaa01659e6bd14) ([#17933](https://github.com/yt-dlp/yt-dlp/issues/17933)) by [dlp-bot](https://github.com/dlp-bot)
+- **ci**
+    - [Test with PyPy 3.12](https://github.com/yt-dlp/yt-dlp/commit/755a01732c2d8f1406b23221f0d1b68af8e00fc5) ([#17926](https://github.com/yt-dlp/yt-dlp/issues/17926)) by [gamer191](https://github.com/gamer191)
+    - [Update 7 actions in 9 workflows](https://github.com/yt-dlp/yt-dlp/commit/fd26888eb0087daf601ae3b2c79650e0d693ea60) ([#17925](https://github.com/yt-dlp/yt-dlp/issues/17925)) by [bashonly](https://github.com/bashonly), [dlp-bot](https://github.com/dlp-bot)
+- **cleanup**: Miscellaneous: [7e3644c](https://github.com/yt-dlp/yt-dlp/commit/7e3644cfa6d6a965889ce23c9e50f46ecc1cb705) by [bashonly](https://github.com/bashonly), [doe1080](https://github.com/doe1080)
+- **docs**: [Add changelog entries for dropping Py3.10 & Win8 support](https://github.com/yt-dlp/yt-dlp/commit/43a45ae37419b2a90db710c9fd06cd250ef524d3) ([#17889](https://github.com/yt-dlp/yt-dlp/issues/17889)) by [bashonly](https://github.com/bashonly)
+
 ### 2026.10.21
 
 #### Important changes
 - Security: Old yt-dlp executables are vulnerable to man-in-the-middle attacks
     - A man-in-the-middle/MITM attack is when your internet traffic is intercepted by an attacker that impersonates the website(s) you browse and sends you malicious data instead.
     - If you think you may be targeted by such an attack, it is strongly recommended to avoid using the self-updater (e.g. the `-U`, `--update`, `--update-to` command-line options), and instead manually download and install this release's executable.
-    - For more details, see the [`certifi` security advisory](https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2)
+    - For more details, see the [`certifi` security advisory](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)
 
 #### Core changes
 - **update**

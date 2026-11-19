@@ -133,7 +133,7 @@ class ArteTVIE(ArteTVBaseIE):
         for lang, sub_formats in subs.items():
             for fmt in sub_formats:
                 url = fmt.get('url') or ''
-                suffix = ('acc' if url.endswith('-MAL.m3u8')
+                suffix = ('acc' if re.search(r'[_-]MAL[._-]', url)
                           else 'forced' if '_VO' not in url
                           else None)
                 updated_subs.setdefault(join_nonempty(lang, suffix), []).append(fmt)
