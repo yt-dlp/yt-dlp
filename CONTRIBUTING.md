@@ -65,7 +65,7 @@ Likewise, pull requests that add support for new sites are also only accepted fr
 
 The idea behind this policy is that if a regular contributor is the one adding support for a new site, then they're more likely to stick around and fix that support when it breaks. Maintainer bandwidth is limited, and limiting the sprawl of site support is necessary to prevent the maintainers from becoming overwhelmed, overworked and burnt out.
 
-**NOTE:** This policy took effect on `2026.11.20`. It is not retroactively enforced for any site support requests or pull requests that were submitted before that date.
+(This policy took effect on November 19, 2026. It is not retroactively enforced for any site support requests or pull requests that were submitted before that date.)
 
 
 # OPENING AN ISSUE
