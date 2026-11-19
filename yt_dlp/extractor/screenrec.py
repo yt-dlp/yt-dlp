@@ -1,5 +1,6 @@
 from .common import InfoExtractor
 from ..utils import js_to_json, unified_strdate
+from ..utils.traversal import require, traverse_obj
 
 
 class ScreenRecIE(InfoExtractor):
@@ -20,23 +21,30 @@ class ScreenRecIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         clip_id = self._search_json(
-            r'var\s+vars\s*=',
-            webpage,
-            'player vars',
-            video_id,
-            transform_source=js_to_json,
-        )['clip_id']
+            r'var\s+vars\s*=', webpage, 'player vars',
+            video_id, transform_source=js_to_json)['clip_id']
 
         info_xml = self._download_xml(
-            f'https://service.webvideocore.net/?l=info&a=xmlClipPath&page_url={url}&clip_id={clip_id}&version=5&preview=0&timezone_offset=0&init=true',
-            video_id,
-        ).find('info')
+            'https://service.webvideocore.net/', video_id, query={
+                'l': 'info',
+                'a': 'xmlClipPath',
+                'page_url': url,
+                'clip_id': clip_id,
+                'version': '5',
+                'preview': '0',
+                'timezone_offset': '0',
+                'init': 'true',
+            })
+        m3u8_url = traverse_obj(info_xml, ('info/url/text()', ..., any, {require('m3u8 URL')}))
+        metadata = traverse_obj(info_xml, ('info/meta', ..., any))
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(info_xml.find('url').text, video_id),
+            'formats': self._extract_m3u8_formats(m3u8_url, video_id),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'upload_date': unified_strdate(info_xml.find('meta').find('clip_date_created').text),
-            'description': info_xml.find('meta').find('clip_long_descr').text or info_xml.find('meta').find('clip_descr').text,
-            'title': info_xml.find('meta').find('clip_title').text,
+            **traverse_obj(metadata, {
+                'upload_date': ('clip_date_created/text()', ..., {unified_strdate}, any),
+                'description': (('clip_long_descr/text()', 'clip_descr/text()'), ...,  any),
+                'title': ('clip_title/text()', ..., any),
+            }),
         }
