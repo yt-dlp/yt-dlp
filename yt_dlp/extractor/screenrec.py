@@ -18,8 +18,6 @@ class ScreenRecIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        m3u8_url = self._search_regex(
-            r'customUrl\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage, 'm3u8 URL', group='url')
 
         return {
             'id': video_id,
