@@ -6,6 +6,7 @@ from ..utils.traversal import require, traverse_obj
 class ScreenRecIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?screenrec\.com/share/(?P<id>\w{10})'
     _TESTS = [{
+        # live_id
         'url': 'https://screenrec.com/share/lkmH0Zu5gM',
         'info_dict': {
             'id': 'lkmH0Zu5gM',
@@ -16,6 +17,7 @@ class ScreenRecIE(InfoExtractor):
             'title': 'Settings Panel Overview Tour',
         },
     }, {
+        # live_id
         'url': 'https://screenrec.com/share/deMq9rFaZz',
         'info_dict': {
             'id': 'deMq9rFaZz',
@@ -26,6 +28,7 @@ class ScreenRecIE(InfoExtractor):
             'title': 'Quick Tour of Analytics Panel',
         },
     }, {
+        # clip_id
         'url': 'https://screenrec.com/share/ZHwdTfY23O',
         'info_dict': {
             'id': 'ZHwdTfY23O',
