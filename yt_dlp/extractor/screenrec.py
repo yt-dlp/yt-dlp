@@ -18,6 +18,13 @@ class ScreenRecIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
+        clip_id = self._search_json(
+            r'var\s+vars\s*=',
+            webpage,
+            'player vars',
+            video_id,
+            transform_source=js_to_json,
+        )['clip_id']
 
         return {
             'id': video_id,
