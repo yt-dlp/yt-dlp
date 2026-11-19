@@ -61,7 +61,7 @@ See above: [NO AI / NO LLM POLICY](#no-ai--no-llm-policy)
 
 We define an "established contributor" as someone who has a contribution history of **at least three pull requests merged** over a period of **at least three months.**
 
-Additionally, **a pull request** that adds support for a new site **will only be accepted if it resolves an existing issue** with a [`site-request` label](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue+state%3Aopen+label%3Asite-request).
+Additionally, **a pull request** that adds support for a new site **will only be accepted if it resolves an open issue with a [`site-request` label](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue+state%3Aopen+label%3Asite-request)**.
 
 The idea behind this policy is that if a regular contributor is the one requesting or adding support for a new site, then they're more likely to stick around and help with fixing that support when it breaks. Maintainer bandwidth is limited; niche support requests and drive-by contributions are harmful to the sustainability of this project. Limiting the sprawl of site support is necessary to prevent the maintainers from becoming overwhelmed, overworked and burnt out.
 
