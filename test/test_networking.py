@@ -839,13 +839,24 @@ class TestClientCertificate:
 @pytest.mark.parametrize('handler', ['CurlCFFI'], indirect=True)
 class TestHTTPImpersonateRequestHandler(TestRequestHandlerBase):
     def test_supported_impersonate_targets(self, handler):
+        CHROMIUMS = {
+            'chrome': 'Chrome',
+            'chromium': 'Chrome',
+            'edge': 'Edg',
+        }
         with handler(headers=std_headers) as rh:
             # note: this assumes the impersonate request handler supports the impersonate extension
             for target in rh.supported_targets:
+                assert target.client and target.version
                 res = validate_and_send(rh, Request(
                     f'http://127.0.0.1:{self.http_port}/headers', extensions={'impersonate': target}))
                 assert res.status == 200
-                assert std_headers['user-agent'].lower() not in res.read().decode().lower()
+                res_text = res.read().decode()
+                # chromium-based targets' UAs can overlap with yt-dlp's built-in random UA
+                if target.client.lower() not in CHROMIUMS:
+                    assert std_headers['user-agent'].lower() not in res_text.lower()
+                else:
+                    assert f'{CHROMIUMS[target.client.lower()]}/{target.version}' in res_text
 
     def test_response_extensions(self, handler):
         with handler() as rh:
