@@ -41,7 +41,7 @@ Fixes #
 
 ### What is the purpose of your *pull request*? Check those that apply and remove the others:
 - [ ] Fix or improvement to an extractor (Make sure to add/update tests)
-- [ ] New extractor ([READ THE NEW SITE SUPPORT POLICY](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#new-site-support-policy))
+- [ ] New extractor ([**Only allowed from established contributors**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#new-site-support-policy))
 - [ ] Core bug fix/improvement
 - [ ] New feature (It is strongly [recommended to open an issue first](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#adding-new-feature-or-making-overarching-changes))
 
