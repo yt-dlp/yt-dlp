@@ -4,16 +4,14 @@ from ..utils import js_to_json, unified_strdate
 class ScreenRecIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?screenrec\.com/share/(?P<id>\w{10})'
     _TESTS = [{
-        'url': 'https://screenrec.com/share/DasLtbknYo',
+        'url': 'https://screenrec.com/share/ZHwdTfY23O',
         'info_dict': {
             'id': 'DasLtbknYo',
+            'id': 'ZHwdTfY23O',
             'ext': 'mp4',
-            'title': '02.05.2024_03.01.25_REC',
-            'description': 'Recorded with ScreenRec',
-            'thumbnail': r're:^https?://.*\.gif$',
-        },
-        'params': {
-            'skip_download': True,
+            'thumbnail': r're:^https?://.*\.gif',
+            'upload_date': '20261117',
+            'title': '17.11.2026_12.01.13_REC',
         },
     }]
 
