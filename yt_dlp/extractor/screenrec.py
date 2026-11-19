@@ -33,8 +33,9 @@ class ScreenRecIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
-            'description': self._og_search_description(webpage),
+            'formats': self._extract_m3u8_formats(info_xml.find('url').text, video_id),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'formats': self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4'),
+            'upload_date': unified_strdate(info_xml.find('meta').find('clip_date_created').text),
+            'description': info_xml.find('meta').find('clip_long_descr').text or info_xml.find('meta').find('clip_descr').text,
+            'title': info_xml.find('meta').find('clip_title').text,
         }
