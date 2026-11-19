@@ -742,6 +742,14 @@ class InstagramStoryIE(InstagramBaseIE):
             display_id, errnote=False, fatal=False, headers=self._api_headers,
             impersonate=self._can_impersonate and self._is_web_app), 'reels')
         if not videos:
+            xdt = self._search_json(r'"xdt_api__v1__feed__reels_media":', story_info, 'xdt', display_id, fatal=False, default=None)
+            if xdt and 'reels_media' in xdt:
+                videos = {str(r.get('id')): r for r in xdt['reels_media']}
+            if not videos:
+                conn = self._search_json(r'"xdt_api__v1__feed__reels_media__connection":', story_info, 'connection', display_id, fatal=False, default=None)
+                if conn and 'edges' in conn:
+                    videos = {str(edge.get('node', {}).get('id')): edge.get('node', {}) for edge in conn['edges']}
+        if not videos:
             self.raise_login_required('You need to log in to access this content')
         user_info = traverse_obj(videos, (user_id, 'user', {dict})) or {}
 
@@ -750,14 +758,18 @@ class InstagramStoryIE(InstagramBaseIE):
         if not story_title:
             story_title = f'Story by {username}'
 
-        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (user_id, 'items'))
+        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (story_id, 'items'), (user_id, 'items'))
         info_data = []
         for highlight in highlights:
             highlight.setdefault('user', {}).update(user_info)
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
+                item_id = highlight_data.get('id') or str(highlight.get('id', ''))
+                item_title = highlight_data.get('title') or f'{story_title} #{item_id}'
                 info_data.append({
-                    'uploader': full_name,
+                    'id': item_id,
+                    'title': item_title,
+                    'uploader': full_name or username,
                     'uploader_id': user_id,
                     **filter_dict(highlight_data),
                 })
