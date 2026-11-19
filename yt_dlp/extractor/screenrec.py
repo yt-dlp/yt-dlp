@@ -6,6 +6,26 @@ from ..utils.traversal import require, traverse_obj
 class ScreenRecIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?screenrec\.com/share/(?P<id>\w{10})'
     _TESTS = [{
+        'url': 'https://screenrec.com/share/lkmH0Zu5gM',
+        'info_dict': {
+            'id': 'lkmH0Zu5gM',
+            'ext': 'mp4',
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)',
+            'upload_date': '20261119',
+            'description': 'md5:110a66bcea744bf0d6dbca3a0b9419f8',
+            'title': 'Settings Panel Overview Tour',
+        },
+    }, {
+        'url': 'https://screenrec.com/share/deMq9rFaZz',
+        'info_dict': {
+            'id': 'deMq9rFaZz',
+            'ext': 'mp4',
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)',
+            'upload_date': '20261119',
+            'description': 'md5:c0d339e767e0dc90b330e4f6dc42b6f9',
+            'title': 'Quick Tour of Analytics Panel',
+        },
+    }, {
         'url': 'https://screenrec.com/share/ZHwdTfY23O',
         'info_dict': {
             'id': 'ZHwdTfY23O',
@@ -35,6 +55,7 @@ class ScreenRecIE(InfoExtractor):
                 'timezone_offset': '0',
                 'init': 'true',
             })
+
         m3u8_url = traverse_obj(info_xml, ('info/url/text()', ..., any, {require('m3u8 URL')}))
         metadata = traverse_obj(info_xml, ('info/meta', ..., any))
 
