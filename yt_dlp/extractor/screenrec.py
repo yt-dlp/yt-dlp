@@ -26,6 +26,11 @@ class ScreenRecIE(InfoExtractor):
             transform_source=js_to_json,
         )['clip_id']
 
+        info_xml = self._download_xml(
+            f'https://service.webvideocore.net/?l=info&a=xmlClipPath&page_url={url}&clip_id={clip_id}&version=5&preview=0&timezone_offset=0&init=true',
+            video_id,
+        ).find('info')
+
         return {
             'id': video_id,
             'title': self._og_search_title(webpage, default=None) or self._html_extract_title(webpage),
