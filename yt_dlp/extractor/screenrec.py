@@ -40,11 +40,15 @@ class ScreenRecIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        clip_id = self._search_json(
-            r'var\s+vars\s*=', webpage, 'player vars',
-            video_id, transform_source=js_to_json).get('clip_id') or self._search_json(
-            r'var\s+params\s*=', webpage, 'player params',
-            video_id, transform_source=js_to_json)['live_id']
+        clip_id = traverse_obj(
+            self._search_json(
+                r'var\s+vars\s*=', webpage, 'player vars',
+                video_id, transform_source=js_to_json, fatal=False),
+            ('clip_id', {str}))
+        if not clip_id:
+            clip_id = self._search_json(
+                r'var\s+params\s*=', webpage, 'player params',
+                video_id, transform_source=js_to_json)['live_id']
 
         info_xml = self._download_xml(
             'https://service.webvideocore.net/', video_id, query={
