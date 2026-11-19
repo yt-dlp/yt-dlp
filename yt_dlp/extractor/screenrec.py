@@ -64,7 +64,7 @@ class ScreenRecIE(InfoExtractor):
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(m3u8_url, video_id),
-            'thumbnail': self._og_search_thumbnail(webpage),
+            'thumbnail': traverse_obj(metadata, ('clip_image/text()', ..., any)) or self._og_search_thumbnail(webpage),
             **traverse_obj(metadata, {
                 'upload_date': ('clip_date_created/text()', ..., {unified_strdate}, any),
                 'description': (('clip_long_descr/text()', 'clip_descr/text()'), ..., any),
