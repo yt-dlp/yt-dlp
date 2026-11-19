@@ -44,7 +44,7 @@ class ScreenRecIE(InfoExtractor):
             'thumbnail': self._og_search_thumbnail(webpage),
             **traverse_obj(metadata, {
                 'upload_date': ('clip_date_created/text()', ..., {unified_strdate}, any),
-                'description': (('clip_long_descr/text()', 'clip_descr/text()'), ...,  any),
+                'description': (('clip_long_descr/text()', 'clip_descr/text()'), ..., any),
                 'title': ('clip_title/text()', ..., any),
             }),
         }
