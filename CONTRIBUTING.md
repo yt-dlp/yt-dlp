@@ -71,13 +71,11 @@ The idea behind this policy is that if a regular contributor is the one requesti
 
 # STUDENT PROJECT POLICY
 
-We do **not** accept pull requests that are made as part of a university/college student project or homework assignment.
+We do not accept pull requests that are made as part of a university/college student project or homework assignment.
 
-These types of contributions put unfair pressure on the maintainers, since the PR author's course grades usually depend on their PR getting reviewed (or even merged) within a specific timeframe.
+These types of contributions put unfair pressure on the maintainers, since the PR author's course grades usually depend on their PR getting reviewed (or even merged) within a specific timeframe. The yt-dlp maintainers are unpaid volunteers, while your professor/teacher/instructor is presumably being paid by the school. Please tell them to do their own job and to stop using open source software maintainers as free labor.
 
-The yt-dlp maintainers are unpaid volunteers. Your professor/teacher/instructor is presumably being paid by the school you're attending. Please tell them to do their own job and to stop using open source software maintainers as free labor.
-
-All that being said: if you are a student who wishes to contribute in your own free time and **not** as part of any coursework obligation, you are very welcome to do so!
+With that said, if you're a student who wishes to contribute in your own free time and **not** as part of any coursework obligation, you are very welcome to do so!
 
 
 # OPENING AN ISSUE
