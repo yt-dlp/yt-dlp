@@ -8,6 +8,7 @@ from ..utils import (
     join_nonempty,
     parse_iso8601,
     parse_qs,
+    require,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -225,16 +226,16 @@ class ArteTVIE(ArteTVBaseIE):
 
         return {
             **traverse_obj(attributes, ('metadata', {
-                'id': ('providerId', {str_or_none}),
-                'title': ('title', {str_or_none}),
-                'alt_title': ('subtitle', {str_or_none}),
+                'id': ('providerId', {str_or_none}, {require('id')}),
+                'title': ('title', {str}),
+                'alt_title': ('subtitle', {str}),
                 'description': ('description', {strip_or_none}),
                 'duration': ('duration', 'seconds', {int_or_none}),
-                'language': ('language', {str_or_none}),
+                'language': ('language', {str}),
                 'thumbnails': ('images', ...,
                                {
                                    'url': ('url', {url_or_none}),
-                                   'id': ('caption', {str_or_none}),
+                                   'id': ('caption', {str}),
                                }),
             })),
             'formats': formats,
@@ -246,7 +247,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'chapters': ('chapters', 'elements', ...,
                              {
                                  'start_time': ('start_time', {int_or_none}),
-                                 'title': ('title', {str_or_none}),
+                                 'title': ('title', {str}),
                              }),
             })),
         }
