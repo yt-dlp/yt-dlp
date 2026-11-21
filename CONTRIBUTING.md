@@ -2,6 +2,7 @@
 
 - [NO AI / NO LLM POLICY](#no-ai--no-llm-policy)
 - [NEW SITE SUPPORT POLICY](#new-site-support-policy)
+- [STUDENT PROJECT POLICY](#student-project-policy)
 - [OPENING AN ISSUE](#opening-an-issue)
     - [Is the description of the issue itself sufficient?](#is-the-description-of-the-issue-itself-sufficient)
     - [Are you using the latest version?](#are-you-using-the-latest-version)
@@ -66,6 +67,15 @@ Additionally, **a pull request** that adds support for a new site **will only be
 The idea behind this policy is that if a regular contributor is the one requesting or adding support for a new site, then they're more likely to stick around and help with fixing that support when it breaks. Maintainer bandwidth is limited; niche support requests and drive-by contributions are harmful to the sustainability of this project. Limiting the sprawl of site support is necessary to prevent the maintainers from becoming overwhelmed, overworked and burnt out.
 
 (This policy took effect on November 19, 2026. It is not retroactively enforced for any site support requests or pull requests that were submitted before that date.)
+
+
+# STUDENT PROJECT POLICY
+
+We do not accept pull requests that are made as part of a university/college student project or homework assignment.
+
+These types of contributions put unfair pressure on the maintainers, since the PR author's course grades usually depend on their PR getting reviewed (or even merged) within a specific timeframe. The yt-dlp maintainers are unpaid volunteers, while your professor/teacher/instructor is presumably being paid by the school. Please tell them to do their own job and to stop using open source software maintainers as free labor.
+
+With that said, if you're a student who wishes to contribute in your own free time and **not** as part of any coursework obligation, you are very welcome to do so!
 
 
 # OPENING AN ISSUE
