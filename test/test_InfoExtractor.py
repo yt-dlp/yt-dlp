@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import http.server
 import threading
+import xml.etree.ElementTree
 
 from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
-from yt_dlp.compat import compat_etree_fromstring
 from yt_dlp.extractor import YoutubeIE, get_info_extractor
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
@@ -1466,7 +1466,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
             with open(f'./test/testdata/mpd/{mpd_file}.mpd', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
-                    compat_etree_fromstring(f.read().encode()),
+                    xml.etree.ElementTree.fromstring(f.read()),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
@@ -1899,7 +1899,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
             with open(f'./test/testdata/ism/{ism_file}.Manifest', encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
-                    compat_etree_fromstring(f.read().encode()), ism_url=ism_url)
+                    xml.etree.ElementTree.fromstring(f.read()), ism_url=ism_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
                 expect_value(self, subtitles, expected_subtitles, None)
@@ -1925,7 +1925,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for f4m_file, f4m_url, expected_formats in _TEST_CASES:
             with open(f'./test/testdata/f4m/{f4m_file}.f4m', encoding='utf-8') as f:
                 formats = self.ie._parse_f4m_formats(
-                    compat_etree_fromstring(f.read().encode()),
+                    xml.etree.ElementTree.fromstring(f.read()),
                     f4m_url, None)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
@@ -1972,7 +1972,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for xspf_file, xspf_url, expected_entries in _TEST_CASES:
             with open(f'./test/testdata/xspf/{xspf_file}.xspf', encoding='utf-8') as f:
                 entries = self.ie._parse_xspf(
-                    compat_etree_fromstring(f.read().encode()),
+                    xml.etree.ElementTree.fromstring(f.read()),
                     xspf_file, xspf_url=xspf_url, xspf_base_url=xspf_url)
                 expect_value(self, entries, expected_entries, None)
                 for i in range(len(entries)):
