@@ -1,13 +1,14 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
     float_or_none,
     format_field,
     int_or_none,
     merge_dicts,
     traverse_obj,
-    unescapeHTML,
     unified_timestamp,
+    url_or_none,
 )
 
 
@@ -75,7 +76,7 @@ class ServusIE(InfoExtractor):
         next_data = {}
         next_datas = traverse_obj(
             self._search_nextjs_v13_data(webpage, video_id, fatal=False),
-            (..., 'featuredCollectionCards', lambda _, v: video_id in v['id']),
+            (..., 'featuredCollectionCards', lambda _, v: video_id == v['id']),
         )
         if next_datas:
             next_data = merge_dicts(*next_datas)
