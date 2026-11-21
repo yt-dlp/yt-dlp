@@ -3,6 +3,7 @@ import collections
 import contextlib
 import functools
 import getpass
+import hashlib
 import http.cookiejar
 import inspect
 import itertools
@@ -3971,7 +3972,18 @@ class InfoExtractor:
 
     @staticmethod
     def _generic_id(url):
-        return urllib.parse.unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
+        # Sort url query first
+        parts = urllib.parse.urlsplit(url)
+        params = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+        params.sort(key=lambda item: item[0])
+        sorted_url = urllib.parse.urlunsplit((
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            urllib.parse.urlencode(params),
+            "", # empty fragment
+        ))
+        return hashlib.sha256(sorted_url.encode()).hexdigest()
 
     def _generic_title(self, url='', webpage='', *, default=None):
         return (self._og_search_title(webpage, default=None)
