@@ -219,12 +219,11 @@ class SocksWebSocketTestRequestHandler(SocksTestRequestHandler):
         connection_args = [self.request, protocol]
         if int(websockets.version.version.partition('.')[0]) >= 17:
             connection_args.append(self.server)
-        connection = websockets.sync.server.ServerConnection(*connection_args, close_timeout=0)
-        connection.handshake()
-        for message in connection:
-            if message == 'socks_info':
-                connection.send(json.dumps(self.socks_info))
-        connection.close()
+        with websockets.sync.server.ServerConnection(*connection_args, close_timeout=0) as connection:
+            connection.handshake()
+            for message in connection:
+                if message == 'socks_info':
+                    connection.send(json.dumps(self.socks_info))
 
 
 @contextlib.contextmanager
@@ -277,11 +276,9 @@ class WebSocketSocksTestProxyContext(SocksProxyTestContext):
     def socks_info_request(self, handler, target_domain=None, target_port=None, **req_kwargs):
         request = Request(f'ws://{target_domain or "127.0.0.1"}:{target_port or "40000"}', **req_kwargs)
         handler.validate(request)
-        ws = handler.send(request)
-        ws.send('socks_info')
-        socks_info = ws.recv()
-        ws.close()
-        return json.loads(socks_info)
+        with handler.send(request) as ws:
+            ws.send('socks_info')
+            return json.loads(ws.recv())
 
 
 CTX_MAP = {
