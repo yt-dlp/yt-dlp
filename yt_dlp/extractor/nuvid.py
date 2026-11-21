@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class NuvidIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www|m)\.nuvid\.com/video/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www|m)\.nuvid\.com/(?:video|embed)/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.nuvid.com/video/6513023/italian-babe',
         'md5': '772d2f8288f3d3c5c45f7a41761c7844',
@@ -46,6 +46,11 @@ class NuvidIE(InfoExtractor):
             'age_limit': 18,
             'thumbnail': r're:https?://.+\.jpg',
         },
+    }, {
+        # /embed/<id> path — same underlying player_config_json API as /video/,
+        # so the existing _real_extract handles it once _VALID_URL accepts it.
+        'url': 'https://www.nuvid.com/embed/3547026',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -77,6 +82,14 @@ class NuvidIE(InfoExtractor):
             'url': source,
             'format_id': qualities.get(quality),
             'height': int_or_none(qualities.get(quality)[:-1]),
+            # nuvid throttles each signed URL server-side (the `speed=NNk`
+            # query param — typically 50-100 KB/s). On long videos that means
+            # 15-30 minute downloads — use chunked HTTP so a connection blip
+            # mid-download only loses the current 10 MB chunk instead of
+            # restarting from zero.
+            'downloader_options': {
+                'http_chunk_size': 10485760,  # 10 MB
+            },
         } for quality, source in video_data.get('files').items() if source]
 
         self._check_formats(formats, video_id)
