@@ -46,7 +46,7 @@ from .utils import (
 from .utils._utils import _YDLLogger
 from .utils.networking import normalize_url
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'whale'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'helium', 'opera', 'vivaldi', 'whale'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -241,6 +241,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(appdata_local, R'Google\Chrome\User Data'),
             'chromium': os.path.join(appdata_local, R'Chromium\User Data'),
             'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
+            'helium': os.path.join(appdata_local, R'imput\Helium\User Data'),
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
             'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
             'whale': os.path.join(appdata_local, R'Naver\Naver Whale\User Data'),
@@ -253,6 +254,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(appdata, 'Google/Chrome'),
             'chromium': os.path.join(appdata, 'Chromium'),
             'edge': os.path.join(appdata, 'Microsoft Edge'),
+            'helium': os.path.join(appdata, 'net.imput.helium'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
             'whale': os.path.join(appdata, 'Naver/Whale'),
@@ -265,6 +267,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'chrome': os.path.join(config, 'google-chrome'),
             'chromium': os.path.join(config, 'chromium'),
             'edge': os.path.join(config, 'microsoft-edge'),
+            'helium': os.path.join(config, 'net.imput.helium'),
             'opera': os.path.join(config, 'opera'),
             'vivaldi': os.path.join(config, 'vivaldi'),
             'whale': os.path.join(config, 'naver-whale'),
@@ -277,6 +280,7 @@ def _get_chromium_based_browser_settings(browser_name):
         'chrome': 'Chrome',
         'chromium': 'Chromium',
         'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
+        'helium': 'Helium' if sys.platform == 'darwin' else 'Chromium',
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
         'vivaldi': 'Vivaldi' if sys.platform == 'darwin' else 'Chrome',
         'whale': 'Whale',
@@ -999,7 +1003,8 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
              '-a', browser_keyring_name,  # match 'account'
-             '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
+             '-s', f'{browser_keyring_name} Storage Key' if browser_keyring_name == 'Helium'
+                   else f'{browser_keyring_name} Safe Storage'],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         if returncode:
             logger.warning('find-generic-password failed')
