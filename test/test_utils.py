@@ -46,6 +46,7 @@ from yt_dlp.utils import (
     date_from_str,
     datetime_from_str,
     detect_exe_version,
+    detect_media_ext,
     determine_ext,
     determine_file_encoding,
     dfxp2srt,
@@ -2151,6 +2152,88 @@ Line 1
         headers['Content-Disposition'] = "attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm"
         headers['Content-Type'] = 'video/mp4'
         self.assertEqual(urlhandle_detect_ext(unittest.mock.Mock(headers=headers)), 'webm')
+
+    def test_detect_media_ext(self):
+        ftyp = b'\x00\x00\x00\x10ftyp'
+        mov64 = b'\x00\x00\x00\x01ftyp' + (24).to_bytes(8, 'big') + b'qt  ' + bytes(4)
+        avif = b'\x00\x00\x00\x14ftypisom' + bytes(4) + b'avif'
+        ogg = b'OggS\x00' + bytes(21) + b'\x01'
+        opus = ogg + b'\x13OpusHead'
+        webm = b'\x1a\x45\xdf\xa3\x8c\x42\x86\x81\x01\x42\x82\x85webm\x00'
+        mp3 = bytes.fromhex('fffb9064') + bytes(413)
+        adts = bytes.fromhex('fff05080017ffc') + bytes(4)
+        large_id3 = b'ID3\x03\x00\x00\x00\x02\x00\x00' + bytes(32 * 1024)
+        id3_v24 = b'ID3\x04\x00\x10\x00\x00\x00\x04'
+        id3_footer = id3_v24 + bytes(4) + b'3DI' + id3_v24[3:]
+        packet = b'\x47\x40\x00\x10' + bytes(184)
+        mxf = bytes.fromhex('060e2b34020501010d01020101020400')
+
+        test_cases = (
+            (b'ADIF', 'aac'),
+            (bytes.fromhex('3026b2758e66cf11a6d900aa0062ce6c'), 'asf'),
+            (b'BM\x3a\x00\x00\x00' + bytes(4) + b'\x36\x00\x00\x00', 'bmp'),
+            (b'fLaC\x00\x00\x00\x22', 'flac'),
+            (b'FLV\x01\x05\x00\x00\x00\x09', 'flv'),
+            (b'GIF89a', 'gif'),
+            (b'\xff\xd8\xff\xe0\x00\x10JFIF\x00', 'jpg'),
+            (b'\xff\x0a', 'jxl'),
+            (b'\x00\x00\x00\x0cJXL \r\n\x87\n', 'jxl'),
+            (b'\x00\x00\x01\xba\x44', 'mpg'),
+            (b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR', 'png'),
+
+            (b'RIFF\x00\x00\x00\x00AVI ', 'avi'),
+            (b'RF64\xff\xff\xff\xffWAVE', 'wav'),
+            (b'FORM\x00\x00\x00\x00AIFF', 'aiff'),
+            (b'RIFF\x16\x00\x00\x00WEBPVP8L', 'webp'),
+            (b'RF64\xff\xff\xff\xffWEBP', None),
+
+            (b'\x00\x00\x00\x08free' + mov64, 'mov'),
+            (ftyp + b'isom' + bytes(4), 'mp4'),
+            (ftyp + b'M4A ' + bytes(4), 'm4a'),
+            (ftyp + b'M4B ' + bytes(4), 'm4b'),
+            (ftyp + b'M4V ' + bytes(4), 'm4v'),
+            (ftyp + b'3gp6' + bytes(4), '3gp'),
+            (ftyp + b'3g2a' + bytes(4), '3g2'),
+            (avif, 'avif'),
+            (mov64[:15], None),
+            (avif[:-1], None),
+            (ftyp + b'mif1' + bytes(4), None),
+
+            (opus, 'opus'),
+            (ogg + b'\x07\x80theora', 'ogv'),
+            (ogg + b'\x07\x01vorbis', 'ogg'),
+            (opus[:-1], None),
+            (webm, 'webm'),
+            (b'\x1a\x45\xdf\xa3\x8b\x42\x82\x88matroska', 'mkv'),
+            (webm[:-1], None),
+
+            ((bytes.fromhex('fff72200') + bytes(104)) * 2, 'mp1'),
+            ((bytes.fromhex('fffd9004') + bytes(518)) * 2, 'mp2'),
+            (mp3 + bytes.fromhex('fffba064'), 'mp3'),
+            ((bytes.fromhex('ffe38064') + bytes(413)) * 2, 'mp3'),
+            (mp3 + mp3[:3], None),
+            (mp3 + bytes.fromhex('fffb9444'), None),
+
+            (adts + bytes.fromhex('fff15080013ffc'), 'aac'),
+            (adts + adts[:7], None),
+            (adts + bytes.fromhex('fff15480013ffc'), None),
+            (adts[:5], None),
+
+            (large_id3 + id3_footer + mp3 * 2, 'mp3'),
+            (large_id3[:9], None),
+
+            (packet * 2 + packet[:1], 'ts'),
+            ((bytes(4) + packet) * 3, 'm2ts'),
+            ((packet + bytes(16)) * 3, 'ts'),
+            (packet * 2, None),
+            (bytes(65535) + mxf, 'mxf'),
+            (bytes(65536) + mxf, None),
+
+            (b'', None),
+        )
+        for data, expected in test_cases:
+            with self.subTest(data=data[:16], size=len(data)):
+                self.assertEqual(detect_media_ext(data), expected)
 
     def test_try_call(self):
         def total(*x, **kwargs):

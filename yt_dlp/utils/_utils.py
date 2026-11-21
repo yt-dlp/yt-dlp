@@ -3151,6 +3151,208 @@ def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
         or mimetype2ext(headers.get('Content-Type'), default=default))
 
 
+def detect_media_ext(data):
+    # https://id3.org/id3v2.4.0-structure
+    while data.startswith(b'ID3'):
+        if len(data) < 10 or data[3] not in (2, 3, 4) or max(data[6:10]) >= 0x80:
+            return None
+        tag_size = (data[6] << 21) | (data[7] << 14) | (data[8] << 7) | data[9]
+        footer_size = 10 if data[3] == 4 and data[5] & 0x10 else 0
+        data = data[10 + tag_size + footer_size:]
+
+    for signature, ext in (
+        (b'ADIF', 'aac'),
+        (b'\x30\x26\xb2\x75\x8e\x66\xcf\x11\xa6\xd9\x00\xaa\x00\x62\xce\x6c', 'asf'),
+        (b'BM', 'bmp'),
+        (b'fLaC', 'flac'),
+        (b'FLV\x01', 'flv'),
+        ((b'GIF87a', b'GIF89a'), 'gif'),
+        (b'\xff\xd8\xff', 'jpg'),
+        ((b'\xff\x0a', b'\x00\x00\x00\x0cJXL \r\n\x87\n'), 'jxl'),
+        (b'\x00\x00\x01\xba', 'mpg'),
+        (b'\x89PNG\r\n\x1a\n', 'png'),
+    ):
+        if data.startswith(signature):
+            return ext
+
+    if data.startswith((b'BW64', b'FORM', b'RF64', b'RIFF')):
+        file_type = data[8:12]
+        for signature, file_types, ext in (
+            (b'FORM', (b'AIFC', b'AIFF'), 'aiff'),
+            (b'RIFF', (b'AVI ',), 'avi'),
+            ((b'BW64', b'RF64', b'RIFF'), (b'WAVE',), 'wav'),
+            (b'RIFF', (b'WEBP',), 'webp'),
+        ):
+            if file_type in file_types and data.startswith(signature):
+                return ext
+        return None
+
+    # https://www.xiph.org/ogg/doc/framing.html
+    # https://www.rfc-editor.org/info/rfc7845/#section-5.1
+    # https://www.theora.org/doc/Theora.pdf
+    if len(data) >= 27 and data.startswith(b'OggS\x00'):
+        packet_offset = 27 + data[26]
+        if packet_offset < len(data):
+            packet = data[packet_offset:packet_offset + 8]
+            for signature, ext in (
+                (b'OpusHead', 'opus'),
+                (b'\x80theora', 'ogv'),
+            ):
+                if packet.startswith(signature):
+                    return ext
+                if signature.startswith(packet):
+                    return None
+            return 'ogg'
+
+    # https://www.rfc-editor.org/info/rfc8794/
+    # https://www.rfc-editor.org/info/rfc9559/
+    # https://www.webmproject.org/docs/container/
+    if data.startswith(b'\x1a\x45\xdf\xa3'):
+        end = len(data)
+
+        def read_vint(offset, *, is_size=False):
+            width = 9 - data[offset].bit_length()
+            if width > 8 or offset + width > end:
+                raise ValueError
+            value = int.from_bytes(data[offset:offset + width], 'big')
+            if is_size:
+                value ^= 1 << (7 * width)
+            return value, offset + width
+
+        try:
+            header_size, offset = read_vint(4, is_size=True)
+            end = min(end, offset + header_size)
+            while offset < end:
+                element_id, offset = read_vint(offset)
+                size, offset = read_vint(offset, is_size=True)
+                if offset + size > end:
+                    return None
+                if element_id == 0x4282:
+                    return {
+                        b'matroska': 'mkv',
+                        b'webm': 'webm',
+                    }.get(data[offset:offset + size].split(b'\x00', 1)[0])
+                offset += size
+        except (IndexError, ValueError):
+            pass
+        return None
+
+    # https://developer.apple.com/documentation/quicktime-file-format/atoms
+    # https://developer.apple.com/documentation/quicktime-file-format/file_type_compatibility_atom
+    # https://mp4ra.org/registered-types/brands
+    offset = 0
+    while offset + 8 <= len(data):
+        size, box_type = struct.unpack_from('>I4s', data, offset)
+        header_size = 8
+        if size == 1:
+            if offset + 16 > len(data):
+                break
+            size = struct.unpack_from('>Q', data, offset + 8)[0]
+            header_size = 16
+        if size < header_size or offset + size > len(data):
+            break
+        if box_type == b'ftyp':
+            start, end = offset + header_size, offset + size
+            if end - start < 8 or (end - start) % 4:
+                return None
+            extensions = {
+                b'qt  ': 'mov',
+                b'mp41': 'mp4',
+                b'mp42': 'mp4',
+                b'M4A ': 'm4a',
+                b'M4B ': 'm4b',
+                b'M4V ': 'm4v',
+                b'avif': 'avif',
+                b'avis': 'avif',
+            }
+            fallback = None
+            for i in itertools.chain((start,), range(start + 8, end, 4)):
+                brand = data[i:i + 4]
+                if ext := extensions.get(brand):
+                    return ext
+                if brand.startswith(b'3g2'):
+                    return '3g2'
+                if brand.startswith(b'3gp'):
+                    return '3gp'
+                if fallback is None and (
+                    brand in (b'isom', b'avc1', b'dash') or re.fullmatch(rb'iso[2-9a-c]', brand)
+                ):
+                    fallback = 'mp4'
+            return fallback
+        offset += size
+
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/mpegaudiotabs.h
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/mpegaudiodecheader.h
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/mpegaudiodecheader.c
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/adts_header.c
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/mpeg4audio_sample_rates.h
+    # https://github.com/knik0/faad2/blob/master/libfaad/syntax.c#L2536-L2544
+    if len(data) >= 4 and data[0] == 0xff and data[1] & 0xe0 == 0xe0:
+        def frame_info(offset):
+            if offset + 4 > len(data) or data[offset] != 0xff or data[offset + 1] & 0xe0 != 0xe0:
+                return None
+            layer_bits = (data[offset + 1] >> 1) & 3
+            if layer_bits:
+                version = (data[offset + 1] >> 3) & 3
+                layer = 4 - layer_bits
+                bitrate_index = data[offset + 2] >> 4
+                sample_index = (data[offset + 2] >> 2) & 3
+                if version == 1 or not 0 < bitrate_index < 15 or sample_index == 3:
+                    return None
+                if version == 3:
+                    bitrates = (
+                        (32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448),
+                        (32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384),
+                        (32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320),
+                    )[layer - 1]
+                elif layer == 1:
+                    bitrates = (32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256)
+                else:
+                    bitrates = (8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160)
+                bitrate = bitrates[bitrate_index - 1]
+                sample_rate = (44100, 48000, 32000)[sample_index] // (1 if version == 3 else 2)
+                if version == 0:
+                    sample_rate //= 2
+                padding = (data[offset + 2] >> 1) & 1
+                if layer == 1:
+                    frame_size = (12000 * bitrate // sample_rate + padding) * 4
+                else:
+                    coefficient = 72000 if layer == 3 and version != 3 else 144000
+                    frame_size = coefficient * bitrate // sample_rate + padding
+                return f'mp{layer}', (version, sample_index), frame_size
+
+            if offset + 7 > len(data) or data[offset + 1] & 0xf6 != 0xf0:
+                return None
+            sample_index = (data[offset + 2] >> 2) & 15
+            header_size = 7 if data[offset + 1] & 1 else 9
+            frame_size = ((data[offset + 3] & 3) << 11) | (data[offset + 4] << 3) | (data[offset + 5] >> 5)
+            if sample_index >= 13 or frame_size < header_size or offset + header_size > len(data):
+                return None
+            return 'aac', (data[offset + 1] & 8, data[offset + 2] & 0xfc), frame_size
+
+        if first_frame := frame_info(0):
+            if (next_frame := frame_info(first_frame[2])) and next_frame[:2] == first_frame[:2]:
+                return first_frame[0]
+
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mpegts.h#L27-L36
+    # https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mpegts.c#L3380-L3384
+    for offset, stride, ext in (
+        (0, 188, 'ts'),
+        (4, 192, 'm2ts'),
+        (0, 204, 'ts'),
+    ):
+        if data[offset:offset + 3 * stride:stride] == b'\x47\x47\x47':
+            return ext
+
+    # https://pub.smpte.org/latest/st377-1/st377-1-2019.pdf
+    # https://registry.smpte-ra.org/view/published/groups_view.html
+    mxf_header = b'\x06\x0e\x2b\x34\x02\x05\x01\x01\x0d\x01\x02\x01\x01\x02'
+    if data.find(mxf_header, 0, 65535 + len(mxf_header)) >= 0:
+        return 'mxf'
+
+    return None
+
+
 def encode_data_uri(data, mime_type):
     return 'data:{};base64,{}'.format(mime_type, base64.b64encode(data).decode('ascii'))
 
