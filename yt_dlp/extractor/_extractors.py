@@ -407,7 +407,6 @@ from .dailymotion import (
 )
 from .dailywire import (
     DailyWireIE,
-    DailyWirePodcastIE,
 )
 from .damtomo import (
     DamtomoRecordIE,
