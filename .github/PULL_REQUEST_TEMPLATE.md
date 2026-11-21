@@ -32,6 +32,7 @@ Fixes #
 
 ### Before submitting a *pull request* you must attest to the following:
 - [ ] This pull request complies with yt-dlp's [**NO AI / NO LLM POLICY**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#no-ai--no-llm-policy)
+- [ ] This PR is not part of a student project or coursework obligation ([see our policy](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#student-project-policy))
 - [ ] I have skimmed through [contributing guidelines](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) including [yt-dlp coding conventions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#yt-dlp-coding-conventions)
 - [ ] I have [searched](https://github.com/yt-dlp/yt-dlp/search?q=is%3Apr&type=Issues) the tracker for similar pull requests
 
@@ -41,7 +42,7 @@ Fixes #
 
 ### What is the purpose of your *pull request*? Check those that apply and remove the others:
 - [ ] Fix or improvement to an extractor (Make sure to add/update tests)
-- [ ] New extractor ([Piracy websites will not be accepted](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy))
+- [ ] New extractor ([**Must resolve an open `site-request` issue**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#new-site-support-policy))
 - [ ] Core bug fix/improvement
 - [ ] New feature (It is strongly [recommended to open an issue first](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#adding-new-feature-or-making-overarching-changes))
 
