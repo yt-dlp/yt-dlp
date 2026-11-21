@@ -8,46 +8,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 import yt_dlp
+from devscripts.utils import gather_completion_opts
 
 ZSH_COMPLETION_FILE = 'completions/zsh/_yt-dlp'
 ZSH_COMPLETION_TEMPLATE = 'devscripts/zsh-completion.in'
 
 
 def build_completion(opt_parser):
-    opts = [opt for group in opt_parser.option_groups
-            for opt in group.option_list]
-    opts_file = [opt for opt in opts if opt.metavar == 'FILE']
-    opts_dir = [opt for opt in opts if opt.metavar == 'DIR']
-    opts_path = [opt for opt in opts if opt.metavar == 'PATH']
-
-    fileopts = []
-    for opt in opts_file:
-        if opt._short_opts:
-            fileopts.extend(opt._short_opts)
-        if opt._long_opts:
-            fileopts.extend(opt._long_opts)
-
-    for opt in opts_path:
-        if opt._short_opts:
-            fileopts.extend(opt._short_opts)
-        if opt._long_opts:
-            fileopts.extend(opt._long_opts)
-
-    diropts = []
-    for opt in opts_dir:
-        if opt._short_opts:
-            diropts.extend(opt._short_opts)
-        if opt._long_opts:
-            diropts.extend(opt._long_opts)
-
-    flags = [opt.get_opt_string() for opt in opts]
+    opts = gather_completion_opts(opt_parser)
 
     with open(ZSH_COMPLETION_TEMPLATE) as f:
         template = f.read()
 
-    template = template.replace('{{fileopts}}', '|'.join(fileopts))
-    template = template.replace('{{diropts}}', '|'.join(diropts))
-    template = template.replace('{{flags}}', ' '.join(flags))
+    template = template.replace('{{fileopts}}', '|'.join(opts.file_opts))
+    template = template.replace('{{diropts}}', '|'.join(opts.dir_opts))
+    template = template.replace('{{flags}}', ' '.join(opts.opts))
 
     with open(ZSH_COMPLETION_FILE, 'w') as f:
         f.write(template)
