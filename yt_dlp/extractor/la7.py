@@ -7,6 +7,7 @@ from .common import (
 )
 from ..utils import (
     int_or_none,
+    join_nonempty,
     url_or_none,
 )
 from ..utils.traversal import traverse_obj
@@ -165,12 +166,11 @@ class LA7IE(InfoExtractor):
             http_f = f.copy()
             del http_f['manifest_url']
             http_f.update({
-                'format_id': http_f['format_id'].replace('hls-', 'https-'),
+                'format_id': join_nonempty('https', http_f['format_id'].removeprefix('hls-')),
                 'url': f'{self._HOST}{quality}.mp4',
                 'protocol': 'https',
             })
-            return http_f
-        return None
+            yield http_f
 
     def _real_extract(self, url):
         video_id, path = self._match_valid_url(url).group('id', 'path')
@@ -179,7 +179,7 @@ class LA7IE(InfoExtractor):
 
         type_name = traverse_obj(type_info, ('entity', '__typename', {str}))
         self.write_debug(f'Entity type: {type_name}')
-        match (type_name):
+        match type_name:
             case 'NodeVideo':
                 endpoint_id = '9e6877beb0b950cb'
             case 'NodeReplica':
@@ -208,20 +208,20 @@ class LA7IE(InfoExtractor):
             video_id, mpd_id='dash', fatal=False)
         m3u8_formats = self._extract_m3u8_formats(
             f'{self._HOST}/local/hls/,{video_path},.mp4.urlset/master.m3u8',
+            # _generate_mp4_url depends on the m3u8_id value being 'hls'
             video_id, 'mp4', m3u8_id='hls', fatal=False)
         formats.extend(m3u8_formats)
 
         # Only older videos have direct HTTP links
         if traverse_obj(data, ('uploadVideo', 'cf_old_entry_id', {str})):
             for q in filter(None, video_path.split(',')):
-                if http_f := self._generate_mp4_url(q, m3u8_formats):
-                    formats.append(http_f)
+                formats.extend(self._generate_mp4_url(q, m3u8_formats))
 
         subtitles = {}
-        for sub in traverse_obj(data, ('uploadVideo', 'subtitles', {list})) or []:
-            if lang := traverse_obj(sub, ('lang', {str})):
-                if url := traverse_obj(sub, ('url', {url_or_none})):
-                    subtitles.setdefault(lang, []).append({'url': url})
+        for sub in traverse_obj(data, (
+            'uploadVideo', 'subtitles', lambda _, v: v['lang'] and url_or_none(v['url']),
+        )):
+            subtitles.setdefault(sub['lang'], []).append({'url': sub['url']})
 
         return {
             'id': video_id,
