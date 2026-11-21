@@ -2284,6 +2284,7 @@ from .weverse import (
 from .wevidi import WeVidiIE
 from .whowatch import WhoWatchIE
 from .whyp import WhypIE
+from .wibes import WibesIE
 from .wikimedia import WikimediaIE
 from .wimbledon import WimbledonIE
 from .wimtv import WimTVIE
