@@ -234,9 +234,15 @@ def partial_application(func):
 
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
-    assert re.match(r'^[a-zA-Z_-]+$', key)
-    expr = xpath + (f'[@{key}]' if val is None else f"[@{key}='{val}']")
-    return node.find(expr)
+    assert re.fullmatch(r'[a-zA-Z_-]+', key)
+    expr = xpath + f'[@{key}]'
+    if val is None:
+        return node.find(expr)
+
+    val = f'{val}'
+    for n in node.iterfind(expr):
+        if n.get(key) == val:
+            return n
 
 
 def xpath_with_ns(path, ns_map):
