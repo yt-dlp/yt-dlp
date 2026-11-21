@@ -3151,10 +3151,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 client in {'android_vr', 'visionos'}
                 and (self._is_unplayable(pr) or self._is_error_response(pr))
                 and webpage and 'made for kids' in webpage
-                # ...and is a JS runtime is available?
-                and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
-                append_client('web_embedded')
+                # Is a JS runtime available?
+                if any(p.is_available() for p in self._jsc_director.providers.values()):
+                    append_client('web_embedded')
+                if not self.is_authenticated:
+                    append_client('ios_producer')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
@@ -3605,6 +3607,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     https_fmts.append(fmt)
 
                 for fmt in https_fmts:
+                    # Live adaptive https formats don't need chunk size and shouldn't be made dashy
+                    if fmt.get('is_from_start'):
+                        yield fmt
+                        continue
                     if (all_formats or 'dashy' in format_types) and fmt['filesize']:
                         yield {
                             **fmt,
