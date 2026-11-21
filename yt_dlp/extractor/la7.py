@@ -197,6 +197,10 @@ class LA7IE(InfoExtractor):
             'path': traverse_obj(type_info, ('entity', 'path', {str})) or path,
         })['entity']
 
+        # Example remote URLs:
+        # //content/entry/data/0/608/0_wsbps6kq_0_edzqb9id_1.mp4,/content/entry/data/0/608/0_wsbps6kq_0_bvd3ckkf_1.mp4
+        # /nk/content/entry/data/0/400/0_0usrx8nr_0_djtnz3hm_2.mp4,/nk/content/entry/data/0/400/0_0usrx8nr_0_4lup3o64_2.mp4
+        # /nk/content/entry/data/0/397/0_c4lgs673_0_ualutund_2.mp4
         video_path = data['uploadVideo']['cf_remote_url'].replace('.mp4', '')
 
         formats = self._extract_mpd_formats(
