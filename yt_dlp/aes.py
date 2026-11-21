@@ -112,7 +112,7 @@ def aes_ecb_decrypt(data, key, iv=None):
     return encrypted_data[:len(data)]
 
 
-def aes_ctr_decrypt(data, key, iv):
+def aes_ctr_decrypt(data, key, iv, nonce=None):
     """
     Decrypt with aes in counter mode
 
@@ -121,10 +121,10 @@ def aes_ctr_decrypt(data, key, iv):
     @param {int[]} iv          16-Byte initialization vector
     @returns {int[]}           decrypted data
     """
-    return aes_ctr_encrypt(data, key, iv)
+    return aes_ctr_encrypt(data, key, iv, nonce)
 
 
-def aes_ctr_encrypt(data, key, iv):
+def aes_ctr_encrypt(data, key, iv, nonce=None):
     """
     Encrypt with aes in counter mode
 
@@ -133,13 +133,15 @@ def aes_ctr_encrypt(data, key, iv):
     @param {int[]} iv          16-Byte initialization vector
     @returns {int[]}           encrypted data
     """
+    if nonce is None:
+        nonce = []
     expanded_key = key_expansion(key)
     block_count = ceil(len(data) / BLOCK_SIZE_BYTES)
     counter = iter_vector(iv)
 
     encrypted_data = []
     for i in range(block_count):
-        counter_block = next(counter)
+        counter_block = nonce + next(counter)
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
         block += [0] * (BLOCK_SIZE_BYTES - len(block))
 
@@ -223,12 +225,10 @@ def aes_gcm_decrypt_and_verify(data, key, tag, nonce):
         ghash_in = nonce + [0] * fill + list((8 * len(nonce)).to_bytes(8))
         j0 = ghash(hash_subkey, ghash_in)
 
-    # TODO: add nonce support to aes_ctr_decrypt
+    nonce_ctr = j0[:12]
+    iv_ctr = inc(j0[12:])
 
-    # nonce_ctr = j0[:12]
-    iv_ctr = inc(j0)
-
-    decrypted_data = aes_ctr_decrypt(data, key, iv_ctr + [0] * (BLOCK_SIZE_BYTES - len(iv_ctr)))
+    decrypted_data = aes_ctr_encrypt(data, key, iv_ctr, nonce_ctr)
     pad_len = (BLOCK_SIZE_BYTES - (len(data) % BLOCK_SIZE_BYTES)) % BLOCK_SIZE_BYTES
     s_tag = ghash(
         hash_subkey,
