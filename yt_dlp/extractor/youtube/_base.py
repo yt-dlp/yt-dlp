@@ -130,6 +130,7 @@ INNERTUBE_CLIENTS = {
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56,
         'SUPPORTS_COOKIES': True,
+        **WEB_PO_TOKEN_POLICIES,
     },
     'web_music': {
         'INNERTUBE_HOST': 'music.youtube.com',
@@ -292,6 +293,22 @@ INNERTUBE_CLIENTS = {
         'PLAYER_PO_TOKEN_POLICY': PlayerPoTokenPolicy(required=False, recommended=True),
         'REQUIRE_JS_PLAYER': False,
     },
+    # Only H.264 and mp4a formats are available with this client
+    'ios_producer': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'IOS_PRODUCER',
+                'clientVersion': '0.147.945',
+                'deviceMake': 'Apple',
+                'deviceModel': 'iPhone16,2',
+                'userAgent': 'com.google.ios.youtubeproducer/0.147.945 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+                'osName': 'iPhone',
+                'osVersion': '18.3.2.22D82',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 92,
+        'REQUIRE_JS_PLAYER': False,
+    },
     # "Made for kids" videos aren't available with this client
     'visionos': {
         'INNERTUBE_CONTEXT': {
@@ -359,6 +376,21 @@ INNERTUBE_CLIENTS = {
                 'clientName': 'TVHTML5',
                 'clientVersion': '5.20260707',
                 'userAgent': 'Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
+        'SUPPORTS_COOKIES': True,
+    },
+    'tv_samsung': {
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5',
+                'clientVersion': '5.20260707',
+                'deviceMake': 'Samsung',
+                'deviceModel': 'UKS9800',
+                'userAgent': 'Mozilla/5.0 (SMART-TV; Linux; Tizen 2.4.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/2.4.0 TV Safari/538.1',
+                'osName': 'Tizen',
+                'osVersion': '2.4.0',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 7,
@@ -707,6 +739,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 f'Login details are needed to download this content. {self._youtube_login_hint}', method=None)
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
+    _YT_INITIAL_DATA_ALT_RE = r'<script\b(?!-)[^>]+(?<!-)\bid=["\']yt-initial-data["\'][^>]*>'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
@@ -850,6 +883,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             }, cndn=lambda _, v: v))
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
+        if data := self._search_json(self._YT_INITIAL_DATA_ALT_RE, webpage, 'data', item_id, default=None):
+            self.write_debug('Parsed initial data from dedicated script element')
+            return data
+
         return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
 
     @staticmethod
