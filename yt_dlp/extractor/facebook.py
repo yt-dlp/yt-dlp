@@ -841,6 +841,9 @@ class FacebookIE(FacebookBaseIE):
                 ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'is_age_gated', {bool},
             )):
                 self.raise_login_required('This video is age-restricted and requires authentication')
+            cookies = self._get_cookies('https://www.facebook.com/')
+            if cookies.get('c_user') and cookies.get('xs'):
+                raise ExtractorError('No video found')
             raise ExtractorError(
                 'No video found. Check if this post is accessible in your '
                 f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
