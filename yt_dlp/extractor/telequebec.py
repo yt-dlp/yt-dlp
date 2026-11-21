@@ -20,6 +20,7 @@ class TeleQuebecBaseIE(InfoExtractor):
 
 
 class TeleQuebecIE(TeleQuebecBaseIE):
+    _WORKING = False
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -82,6 +83,7 @@ class TeleQuebecIE(TeleQuebecBaseIE):
 
 
 class TeleQuebecSquatIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://squat\.telequebec\.tv/videos/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://squat.telequebec.tv/videos/9314',
@@ -127,58 +129,69 @@ class TeleQuebecSquatIE(InfoExtractor):
         }
 
 
-class TeleQuebecEmissionIE(InfoExtractor):
+class TeleQuebecEmissionIE(TeleQuebecBaseIE):
+    IE_DESC = 'TeleQuebec.tv shows'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:
-                            [^/]+\.telequebec\.tv/emissions/|
-                            (?:www\.)?telequebec\.tv/
-                        )
-                        (?P<id>[^?#&]+)
-                    '''
+                        (?:www\.)?(?:[^/]+\.)?telequebec\.tv/regarder/
+                        (?P<id>(?:(?<=/|/)[^?#/]+/?)+)(?:[^?#]|$)
+                 '''
     _TESTS = [{
-        'url': 'http://lindicemcsween.telequebec.tv/emissions/100430013/des-soins-esthetiques-a-377-d-interets-annuels-ca-vous-tente',
+        'url': 'https://telequebec.tv/regarder/les-millimus/1/4',
         'info_dict': {
-            'id': '6154476028001',
+            'id': '6376691733112',
             'ext': 'mp4',
-            'title': 'Des soins esthétiques à 377 % d’intérêts annuels, ça vous tente?',
-            'description': 'md5:cb4d378e073fae6cce1f87c00f84ae9f',
-            'upload_date': '20200505',
-            'timestamp': 1588713424,
+            'title': 'Le farfouilleur volant',
+            'description': r're:Nimbus veut explorer le grand dehors .{88} encore fini de le réparer\.\.\.$',
+            'timestamp': 1754659085,
+            'upload_date': '20250808',
             'uploader_id': '6150020952001',
+            'duration': 1440.107,
+            'season_id': '1',
+            'episode_id': '4',
+            'season_number': 1,
+            'episode_number': 4,
+            'subtitles': dict,
+            'tags': None,
         },
-    }, {
-        'url': 'http://bancpublic.telequebec.tv/emissions/emission-49/31986/jeunes-meres-sous-pression',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.telequebec.tv/masha-et-michka/epi059masha-et-michka-3-053-078',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.telequebec.tv/documentaire/bebes-sur-mesure/',
-        'only_matching': True,
     }]
+    _PLAYER_ID = 'ja7RtbSne'
+
+    @classmethod
+    def suitable(cls, url):
+        return (
+            not TeleQuebecLiveIE.suitable(url)
+            and super().suitable(url))
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        display_id = self._match_id(url).rstrip('/')
 
         webpage = self._download_webpage(url, display_id)
 
         media_id = self._search_regex(
-            r'mediaId\s*:\s*(?P<id>\d+)', webpage, 'media id')
+            r'\bmediaId(?:\s*:\s*|\\"\s*,\s*\\")(?P<id>\d+)', webpage, 'media id')
 
-        return self.url_result(
-            'http://zonevideo.telequebec.tv/media/' + media_id,
-            TeleQuebecIE.ie_key())
+        season, episode = self._search_regex(
+            r'(?:/(?P<full>saison/)?(?P<sn>\d+))(?(full)/episode)/(?P<ep>\d+)',
+            url, 'season/episode', group=('sn', 'ep'), default=(None, None))
+
+        return {
+            **self._brightcove_result('ref:' + media_id, self._PLAYER_ID),
+            'season_id': season,
+            'episode_id': episode,
+            'season_number': int_or_none(season),
+            'episode_number': int_or_none(episode),
+        }
 
 
 class TeleQuebecLiveIE(TeleQuebecBaseIE):
-    _VALID_URL = r'https?://zonevideo\.telequebec\.tv/(?P<id>endirect)'
+    _VALID_URL = r'https?://telequebec\.tv/regarder/(?P<id>en-direct)(?:/telequebec)?/?(?:[#?]|$)'
     _TEST = {
-        'url': 'http://zonevideo.telequebec.tv/endirect/',
+        'url': 'https://telequebec.tv/regarder/en-direct/telequebec',
         'info_dict': {
-            'id': '6159095684001',
+            'id': '6385015302112',
             'ext': 'mp4',
-            'title': 're:^Télé-Québec [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': 're:Télé-Québec [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'is_live': True,
             'description': 'Canal principal de Télé-Québec',
             'uploader_id': '6150020952001',
@@ -191,10 +204,13 @@ class TeleQuebecLiveIE(TeleQuebecBaseIE):
     }
 
     def _real_extract(self, url):
-        return self._brightcove_result('6159095684001', 'skCsmi2Uw')
+        return self._brightcove_result(
+            # media, player, account
+            '6385015302112', 'LxEKol9ER', '6101674910001')
 
 
 class TeleQuebecVideoIE(TeleQuebecBaseIE):
+    _WORKING = False
     _VALID_URL = r'https?://video\.telequebec\.tv/player(?:-live)?/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://video.telequebec.tv/player/31110/stream',
