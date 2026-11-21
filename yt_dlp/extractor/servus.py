@@ -75,7 +75,7 @@ class ServusIE(InfoExtractor):
         next_data = {}
         next_datas = traverse_obj(
             self._search_nextjs_v13_data(webpage, video_id, fatal=False),
-            (..., 'featuredCollectionCards', lambda _, x: video_id in x.get('id'), {dict}),
+            (..., 'featuredCollectionCards', lambda _, v: video_id in v['id']),
         )
         if next_datas:
             next_data = merge_dicts(*next_datas)
@@ -98,8 +98,8 @@ class ServusIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video.get('title'),
-            'description': unescapeHTML(next_data.get('long_description')) or video.get('description'),
-            'thumbnail': video.get('poster') or self._og_search_thumbnail(webpage),
+            'description': traverse_obj(next_data, ('long_description', {clean_html})) or video.get('description'),
+            'thumbnail': traverse_obj(video, ('poster', {url_or_none})) or self._og_search_thumbnail(webpage),
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
             'series': video.get('label'),
