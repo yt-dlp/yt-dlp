@@ -1,6 +1,6 @@
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..utils import parse_iso8601
+from ..utils import parse_iso8601, parse_qs
 from ..utils.traversal import require, traverse_obj
 
 
@@ -77,3 +77,40 @@ class NetAppCollectionIE(NetAppBaseIE):
             f'https://api.media.netapp.com/client/collection/{collection_uuid}', collection_uuid)
 
         return self.playlist_result(self._entries(metadata), collection_uuid, playlist_title=metadata.get('name'))
+
+
+class NetAppSearchIE(NetAppBaseIE):
+    _VALID_URL = r'https?://media\.netapp\.com/search\?q=(?P<query>[^&]+)'
+    _TESTS = [{
+        'url': 'https://media.netapp.com/search?q=2023',
+        'info_dict': {
+            'title': 'Search query',
+            'id': 'searchresults',
+        },
+        'playlist_count': 182,
+    }, {
+        'url': 'https://media.netapp.com/search?q=kompakt',
+        'info_dict': {
+            'id': 'searchresults',
+            'title': 'Search query',
+        },
+        'playlist_count': 51,
+        'only_matching': True,
+    }]
+
+    def _entries(self, query):
+        while True:
+            items = self._download_json('https://api.media.netapp.com/client/search/results', 'Search query', query=query)
+            if items.get('totalCount', 0) == 0:
+                break
+            for item in traverse_obj(items, ('items', lambda _, v: v['brightcoveVideoId'])):
+                brightcove_video_id = item['brightcoveVideoId']
+                yield self.url_result(
+                    self._BC_URL.format(brightcove_video_id), BrightcoveNewIE, brightcove_video_id,
+                    url_transparent=True, **self._parse_metadata(item))
+            query['page'] += 1
+
+    def _real_extract(self, url):
+        query = parse_qs(url)
+        query['page'] = 1
+        return self.playlist_result(self._entries(query), 'searchresults', playlist_title='Search query')
