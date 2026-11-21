@@ -140,11 +140,9 @@ class QuickJsRuntime(JsRuntime):
         out = _get_exe_version_output(path, ['--help'], ignore_return_code=True)
         if not out:
             return None
-        is_ng = 'QuickJS-ng' in out
-
         version = detect_exe_version(out, r'^QuickJS(?:-ng)?\s+version\s+(\S+)', 'unknown')
         vt = version_tuple(version, lenient=True)
-        if is_ng:
+        if 'QuickJS-ng' in out:
             return JsRuntimeInfo(
                 name='quickjs-ng', path=path, version=version, version_tuple=vt,
                 supported=vt > (0,))
