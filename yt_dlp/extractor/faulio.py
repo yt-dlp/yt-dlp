@@ -23,10 +23,15 @@ class FaulioBaseIE(InfoExtractor):
             'Origin': f'{parsed_url.scheme}://{parsed_url.hostname}',
         }
 
-    def _get_api_base(self, url, video_id):
+    def _get_config_data(self, url, video_id):
         webpage = self._download_webpage(url, video_id)
-        config_data = self._search_json(
+        return self._search_json(
             r'window\.__NUXT__\.config=', webpage, 'config', video_id, transform_source=js_to_json)
+
+    def _get_cms_base(self, config_data):
+        return config_data['public']['CMS_BASE_URL']
+
+    def _get_api_base(self, config_data):
         return config_data['public']['TRANSLATIONS_API_URL']
 
 
@@ -107,7 +112,8 @@ class FaulioIE(FaulioBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_base = self._get_api_base(url, video_id)
+        config_data = self._get_config_data(url, video_id)
+        api_base = self._get_api_base(config_data)
         video_info = self._download_json(f'{api_base}/video/{video_id}', video_id, fatal=False)
         player_info = self._download_json(f'{api_base}/video/{video_id}/player', video_id)
 
@@ -203,22 +209,27 @@ class FaulioLiveIE(FaulioBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_base = self._get_api_base(url, video_id)
+        config_data = self._get_config_data(url, video_id)
+        api_base = self._get_api_base(config_data)
+        cms_base = self._get_cms_base(config_data)
 
         channel = traverse_obj(
             self._download_json(f'{api_base}/channels', video_id),
             (lambda k, v: v['url'] == video_id, any))
 
+        channel_id = channel['id']
+        player_info = self._download_json(f'{cms_base}/api/v1.1/channels/{channel_id}/player', channel_id)
+
         headers = self._get_headers(url)
         formats = []
         subtitles = {}
-        if hls_url := traverse_obj(channel, ('streams', 'hls', {url_or_none})):
+        if hls_url := traverse_obj(player_info, ('streams', 'hls', {url_or_none})):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 hls_url, video_id, 'mp4', m3u8_id='hls', live=True, fatal=False, headers=headers)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        if mpd_url := traverse_obj(channel, ('streams', 'mpd', {url_or_none})):
+        if mpd_url := traverse_obj(player_info, ('streams', 'mpd', {url_or_none})):
             fmts, subs = self._extract_mpd_formats_and_subtitles(
                 mpd_url, video_id, mpd_id='dash', fatal=False, headers=headers)
             formats.extend(fmts)
