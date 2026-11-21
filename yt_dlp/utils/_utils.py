@@ -194,7 +194,7 @@ def write_json_file(obj, fn):
 
     tf = tempfile.NamedTemporaryFile(
         prefix=f'{os.path.basename(fn)}.', dir=os.path.dirname(fn),
-        suffix='.tmp', delete=False, mode='w', encoding='utf-8')
+        suffix='.tmp', delete=False, mode='w', encoding='utf-8', buffering=1048576)
 
     try:
         with tf:
@@ -608,7 +608,7 @@ def sanitize_open(filename, open_mode):
                     raise LockingUnsupportedError
                 stream = locked_file(filename, open_mode, block=False).__enter__()
             except OSError:
-                stream = open(filename, open_mode)
+                stream = open(filename, open_mode, buffering=1048576)
             return stream, filename
         except OSError as err:
             if attempt or err.errno in (errno.EACCES,):
