@@ -11,6 +11,7 @@ from yt_dlp.cookies import (
     _LinuxDesktopEnvironment,
     parse_safari_cookies,
     pbkdf2_sha1,
+    _get_chromium_based_browser_settings,
 )
 
 
@@ -100,24 +101,27 @@ class TestCookies(unittest.TestCase):
         self.assertEqual(key, b'Y\xe2\xc0\xd0P\xf6\xf4\xe1l\xc1\x8cQ\xcb|\xcdY')
 
     def test_chrome_cookie_decryptor_linux_v10(self):
+        config = _get_chromium_based_browser_settings('chrome')
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v10\xccW%\xcd\xe6\xe6\x9fM" \xa7\xb0\xca\xe4\x07\xd6'
             value = 'USD'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
+            decryptor = LinuxChromeCookieDecryptor(config, 'Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_linux_v11(self):
+        config = _get_chromium_based_browser_settings('chrome')
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v11#\x81\x10>`w\x8f)\xc0\xb2\xc1\r\xf4\x1al\xdd\x93\xfd\xf8\xf8N\xf2\xa9\x83\xf1\xe9o\x0elVQd'
             value = 'tz=Europe.London'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
+            decryptor = LinuxChromeCookieDecryptor(config, 'Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_linux_v10_meta24(self):
+        config = _get_chromium_based_browser_settings('chrome')
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v10\x1f\xe4\x0e[\x83\x0c\xcc*kPi \xce\x8d\x1d\xbb\x80\r\x11\t\xbb\x9e^Hy\x94\xf4\x963\x9f\x82\xba\xfe\xa1\xed\xb9\xf1)\x00710\x92\xc8/<\x96B'
             value = 'DE'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger(), meta_version=24)
+            decryptor = LinuxChromeCookieDecryptor(config, 'Chrome', Logger(), meta_version=24)
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_windows_v10(self):
