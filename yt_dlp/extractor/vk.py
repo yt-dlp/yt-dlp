@@ -147,6 +147,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20120212',
                 'comment_count': int,
                 'like_count': int,
+                'view_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
             'params': {'skip_download': 'm3u8'},
@@ -164,6 +165,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20130720',
                 'comment_count': int,
                 'like_count': int,
+                'view_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
         },
@@ -194,6 +196,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'uploader': 'Dizi2021',
                 'like_count': int,
+                'view_count': int,
                 'timestamp': 1640162189,
                 'upload_date': '20211222',
                 'uploader_id': '-93049196',
@@ -259,6 +262,7 @@ class VKIE(VKBaseIE):
                 'comment_count': int,
                 'duration': 9,
                 'like_count': int,
+                'view_count': int,
                 'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
                 'timestamp': 1664995597,
                 'title': 'Clip by @madempress',
@@ -316,6 +320,7 @@ class VKIE(VKBaseIE):
                 'uploader_id': '-18403220',
                 'comment_count': int,
                 'like_count': int,
+                'view_count': int,
                 'duration': 1983,
                 'thumbnail': r're:https?://.+\.jpg',
                 'chapters': 'count:21',
@@ -334,6 +339,7 @@ class VKIE(VKBaseIE):
                 'uploader_id': '-50883936',
                 'comment_count': int,
                 'like_count': int,
+                'view_count': int,
                 'duration': 4651,
                 'thumbnail': r're:https?://.+\.jpg',
                 'chapters': 'count:59',
@@ -394,6 +400,7 @@ class VKIE(VKBaseIE):
         video_id = mobj.group('videoid')
 
         mv_data = {}
+        modal_info = {}
         if video_id:
             data = {
                 'act': 'show',
@@ -408,6 +415,7 @@ class VKIE(VKBaseIE):
             info_page = payload[1]
             opts = payload[-1]
             mv_data = opts.get('mvData') or {}
+            modal_info = opts.get('videoModalInfoData') or {}
             player = opts.get('player') or {}
         else:
             video_id = '{}_{}'.format(mobj.group('oid'), mobj.group('id'))
@@ -565,12 +573,16 @@ class VKIE(VKBaseIE):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            'view_count': view_count,
             **traverse_obj(mv_data, {
                 'title': ('title', {str}, {unescapeHTML}),
                 'description': ('desc', {clean_html}, filter),
                 'duration': ('duration', {int_or_none}),
                 'like_count': ('likes', {int_or_none}),
                 'comment_count': ('commcount', {int_or_none}),
+            }),
+            **traverse_obj(modal_info, {
+                'view_count': ('views', {int_or_none}),
             }),
             **traverse_obj(data, {
                 'title': ('md_title', {str}, {unescapeHTML}),
@@ -585,7 +597,6 @@ class VKIE(VKBaseIE):
                 }),
             }),
             'timestamp': timestamp,
-            'view_count': view_count,
             'is_live': is_live,
             '_format_sort_fields': ('res', 'source'),
         }
