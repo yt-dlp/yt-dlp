@@ -1700,6 +1700,10 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
 )
 from .scrolller import ScrolllerIE
+from .secondtry import (
+    SecondTryIE,
+    SecondTrySeasonIE,
+)
 from .sejmpl import SejmIE
 from .sen import SenIE
 from .senalcolombia import SenalColombiaLiveIE
