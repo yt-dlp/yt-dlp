@@ -3,7 +3,9 @@ from __future__ import annotations
 import functools
 import http.client
 import io
+import os
 import ssl
+import stat
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -290,6 +292,18 @@ class UrllibResponseAdapter(Response):
             fp=res, headers=res.headers, url=res.url,
             status=res.status, reason=getattr(res, 'reason', None))
 
+    @staticmethod
+    def _can_autoclose(fp):
+        if type(fp) is not io.BufferedReader or type(fp.raw) is not io.FileIO:
+            return False
+        try:
+            fd = fp.fileno()
+            if os.name == 'nt':
+                return stat.S_ISREG(os.fstat(fd).st_mode)
+            return os.get_blocking(fd)
+        except (AttributeError, OSError, ValueError):
+            return False
+
     def read(self, amt=None):
         if self.closed:
             return b''
@@ -307,9 +321,11 @@ class UrllibResponseAdapter(Response):
                         fully_read = underlying.tell() >= len(view)
                     if fully_read:
                         self.close()
-                elif isinstance(underlying, io.BufferedReader) and amt is None:
+                elif isinstance(underlying, io.BufferedReader) and (
+                    amt is None or (type(amt) is int and amt == -1 and self._can_autoclose(underlying))
+                ):
                     # file URLs.
-                    # XXX: this will not mark the response as closed if it was fully read with amt.
+                    # XXX: reads with amt > 0 do not close the response at EOF.
                     self.close()
             elif underlying is not None and underlying.closed:
                 # Catch-all for any cases where underlying file is closed
