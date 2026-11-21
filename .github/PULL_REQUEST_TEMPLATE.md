@@ -32,6 +32,7 @@ Fixes #
 
 ### Before submitting a *pull request* you must attest to the following:
 - [ ] This pull request complies with yt-dlp's [**NO AI / NO LLM POLICY**](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#no-ai--no-llm-policy)
+- [ ] This PR is not part of a student project or coursework obligation ([see our policy](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#student-project-policy))
 - [ ] I have skimmed through [contributing guidelines](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) including [yt-dlp coding conventions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#yt-dlp-coding-conventions)
 - [ ] I have [searched](https://github.com/yt-dlp/yt-dlp/search?q=is%3Apr&type=Issues) the tracker for similar pull requests
 
