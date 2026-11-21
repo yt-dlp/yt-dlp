@@ -3,8 +3,9 @@ import json
 import re
 
 from .common import InfoExtractor
+from ..networking.exceptions import HTTPError
 from ..utils import (
-    OnDemandPagedList,
+    ExtractorError,
     bug_reports_message,
     determine_ext,
     int_or_none,
@@ -383,10 +384,11 @@ class ARDBetaMediathekIE(InfoExtractor):
 class ARDMediathekCollectionIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:(?:beta|www)\.)?ardmediathek\.de/
+        (?![^/?#]+/(?:video|live)/)
         (?:[^/?#]+/)?
-        (?P<playlist>sendung|serie|sammlung)/
+        (?P<playlist>sendung|serie|sammlung|radiobremen|rbb|sw?r|(?:nd|md|b|h)r)/
         (?:(?P<display_id>[^?#]+?)/)?
-        (?P<id>[a-zA-Z0-9]+)
+        (?P<id>[a-zA-Z0-9-_]+)
         (?:/(?P<season>\d+)(?:/(?P<version>OV|AD))?)?/?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
 
@@ -398,30 +400,34 @@ class ARDMediathekCollectionIE(InfoExtractor):
             'title': 'Staffel 1 Originalversion',
         },
         'playlist_count': 3,
+        'skip': '404 not found',
     }, {
-        'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-4-mit-audiodeskription/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu/4/AD',
+        'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-4-mit-audiodeskription/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu',
         'info_dict': {
-            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu_4_AD',
-            'display_id': 'babylon-berlin/staffel-4-mit-audiodeskription',
-            'title': 'Staffel 4 mit Audiodeskription',
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu',
+            'title': 'Babylon Berlin',
+            'description': 'md5:cc35a2e097029ae3fef86cde71a34123',
         },
-        'playlist_count': 12,
+        'playlist_count': 18,
+        'skip': '404 not found',
     }, {
-        'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu/1/',
+        'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu',
         'info_dict': {
-            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu_1',
-            'display_id': 'babylon-berlin/staffel-1',
-            'title': 'Staffel 1',
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu',
+            'title': 'Babylon Berlin',
+            'description': 'md5:cc35a2e097029ae3fef86cde71a34123',
         },
-        'playlist_count': 8,
+        'playlist_count': 18,
+        'skip': '404 not found',
     }, {
         'url': 'https://www.ardmediathek.de/sendung/tatort/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydA',
         'info_dict': {
             'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydA',
-            'display_id': 'tatort',
             'title': 'Tatort',
+            'description': 'md5:6d20b78f4d13ee9f027324eee18ad2d4',
+            'display_id': 'tatort',
         },
-        'playlist_mincount': 500,
+        'playlist_mincount': 100,
     }, {
         'url': 'https://www.ardmediathek.de/sammlung/die-kirche-bleibt-im-dorf/5eOHzt8XB2sqeFXbIoJlg2',
         'info_dict': {
@@ -431,6 +437,63 @@ class ARDMediathekCollectionIE(InfoExtractor):
             'description': 'Die Kirche bleibt im Dorf',
         },
         'playlist_count': 4,
+        'skip': '404 not found',
+    }, {
+        'url': 'https://www.ardmediathek.de/ndr/mordenimnorden',
+        'info_dict': {
+            'id': 'mordenimnorden',
+            'title': 'Morden im Norden',
+            'description': 'md5:11bd5fb663d2fccffb6adca1e4e26da6',
+        },
+        'playlist_count': 108,
+    }, {
+        'url': 'https://www.ardmediathek.de/br/hubert-ohne-staller',
+        'info_dict': {
+            'id': 'hubert-ohne-staller',
+            'title': 'Hubert ohne Staller',
+            'description': 'md5:8e23cd6b9ff0256c2f3b92d9f1ebf2c0',
+        },
+        'playlist_count': 80,
+    }, {
+        'url': 'https://www.ardmediathek.de/rbb/heiland',
+        'info_dict': {
+            'id': 'heiland',
+            'title': 'Die Heiland – Wir sind Anwalt',
+            'description': 'md5:f67d18192eb4cc74bdb967fa9449a6d8',
+        },
+        'playlist_count': 85,
+    }, {
+        'url': 'https://www.ardmediathek.de/hr/mittendrin-flughafen-frankfurt',
+        'info_dict': {
+            'id': 'mittendrin-flughafen-frankfurt',
+            'title': 'Mittendrin - Flughafen Frankfurt ',
+            'description': 'md5:46a6040f6275d12dfa42f717d8f3695b',
+        },
+        'playlist_count': 189,
+    }, {
+        'url': 'https://www.ardmediathek.de/radiobremen/rb-retro',
+        'info_dict': {
+            'id': 'rb-retro',
+            'title': 'Radio Bremen Retro – Filme aus dem Archiv',
+            'description': 'md5:8ec92398a208995659b37ce082b7bea4',
+        },
+        'playlist_count': 146,
+    }, {
+        'url': 'https://www.ardmediathek.de/swr/die-fallers',
+        'info_dict': {
+            'id': 'die-fallers',
+            'title': 'Die Fallers',
+            'description': 'Die SWR Kultserie über das Leben einer fiktiven Familie auf einem Bauernhof im Schwarzwald.',
+        },
+        'playlist_count': 45,
+    }, {
+        'url': 'https://www.ardmediathek.de/sr/sr_retro',
+        'info_dict': {
+            'id': 'sr_retro',
+            'title': 'SR Retro - Abendschau',
+            'description': 'md5:ada2899f7ea13c65ff47ea56a7e1c6cf',
+        },
+        'playlist_count': 425,
     }, {
         # playlist of type 'sendung'
         'url': 'https://www.ardmediathek.de/ard/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw/',
@@ -443,31 +506,23 @@ class ARDMediathekCollectionIE(InfoExtractor):
         # playlist of type 'sammlung'
         'url': 'https://www.ardmediathek.de/ard/sammlung/team-muenster/5JpTzLSbWUAK8184IOvEir/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.ardmediathek.de/mdr/elefanttigerundco',
+        'info_dict': {
+            'id': 'elefanttigerundco',
+            'title': 'Elefant, Tiger & Co.',
+            'description': 'md5:d64966b9807646f15484c1739287a48f',
+        },
+        'playlist_mincount': 100,
     }]
 
     _PAGE_SIZE = 100
+    _PAGE_NUMBER = 0
+    _API_BASE_URL = 'https://api.ardmediathek.de/page-gateway'
 
-    def _real_extract(self, url):
-        playlist_id, display_id, playlist_type, season_number, version = self._match_valid_url(url).group(
-            'id', 'display_id', 'playlist', 'season', 'version')
-
-        def call_api(page_num):
-            api_path = 'compilations/ard' if playlist_type == 'sammlung' else 'widgets/ard/asset'
-            return self._download_json(
-                f'https://api.ardmediathek.de/page-gateway/{api_path}/{playlist_id}', playlist_id,
-                f'Downloading playlist page {page_num}', query={
-                    'pageNumber': page_num,
-                    'pageSize': self._PAGE_SIZE,
-                    **({
-                        'seasoned': 'true',
-                        'seasonNumber': season_number,
-                        'withOriginalversion': 'true' if version == 'OV' else 'false',
-                        'withAudiodescription': 'true' if version == 'AD' else 'false',
-                    } if season_number else {}),
-                })
-
-        def fetch_page(page_num):
-            for item in traverse_obj(call_api(page_num), ('teasers', ..., {dict})):
+    def parse_teasers(self, data, display_id, playlist_id, season_number, version, is_direct=True):
+        def entries(data):
+            for item in traverse_obj(data, ((('widgets', 0), None), 'teasers', ..., {dict})):
                 item_id = traverse_obj(item, ('links', 'target', ('urlId', 'id')), 'id', get_all=False)
                 if not item_id or item_id == playlist_id:
                     continue
@@ -482,12 +537,66 @@ class ARDMediathekCollectionIE(InfoExtractor):
                         'timestamp': ('broadcastedOn', {parse_iso8601}),
                     }))
 
-        page_data = call_api(0)
-        full_id = join_nonempty(playlist_id, season_number, version, delim='_')
+        if is_direct:
+            return self.playlist_result(
+                entries=entries(data),
+                playlist_id=join_nonempty(playlist_id, season_number, version, delim='_'),
+                **traverse_obj(data, ('teasers', 0, {
+                    'playlist_title': ('show', 'title', {str_or_none}),
+                    'playlist_description': ('show', 'synopsis', {str_or_none}),
+                })),
+                display_id=display_id,
+            )
 
-        return self.playlist_result(
-            OnDemandPagedList(fetch_page, self._PAGE_SIZE), full_id, display_id=display_id,
-            title=page_data.get('title'), description=page_data.get('synopsis'))
+        return entries(data)
+
+    def _real_extract(self, url):
+        playlist_id, display_id, playlist_type, season_number, version = self._match_valid_url(url).group(
+            'id', 'display_id', 'playlist', 'season', 'version')
+
+        if playlist_type in ('sammlung', 'serie', 'sendung'):
+            api_path = 'pages/ard/compilation' if playlist_type == 'sammlung' else 'widgets/ard/asset'
+            if playlist_type == 'serie':
+                api_path = 'pages/ard/grouping'
+            data = self._download_json(
+                f'{self._API_BASE_URL}/{api_path}/{playlist_id}', playlist_id,
+                f'Downloading playlist page {self._PAGE_NUMBER}', query={
+                    'pageNumber': self._PAGE_NUMBER,
+                    'pageSize': self._PAGE_SIZE,
+                    **({
+                        'seasoned': 'true',
+                        'seasonNumber': season_number,
+                    } if season_number else {}),
+                })
+            return self.parse_teasers(data, display_id, playlist_id, season_number, version)
+        else:
+            try:
+                data = self._download_json(
+                    f'{self._API_BASE_URL}/pages/{playlist_type}/editorial/{playlist_id}',
+                    playlist_id, note=f'Downloading page {self._PAGE_NUMBER}',
+                    query={
+                        'pageNumber': self._PAGE_NUMBER,
+                        'pageSize': 100,
+                    },
+                )['widgets']
+            except ExtractorError as e:
+                if isinstance(e.cause, HTTPError) and e.cause.status == 404:
+                    raise ExtractorError(f'Unsupported playlist type {playlist_type}')
+                raise
+
+            return self.playlist_result(
+                entries=(
+                    entry
+                    for block in data
+                    for entry in self.parse_teasers(block, display_id, playlist_id, season_number, version, is_direct=False)
+                ),
+                **traverse_obj(data, (0, 'teasers', 0, {
+                    'playlist_title': ('show', 'title', {str_or_none}),
+                    'playlist_description': ('show', 'synopsis', {str_or_none}),
+                })),
+                playlist_id=playlist_id,
+                display_id=display_id,
+            )
 
 
 class ARDAudiothekBaseIE(InfoExtractor):
