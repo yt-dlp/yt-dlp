@@ -74,8 +74,15 @@ class UdemyIE(InfoExtractor):
             [
                 r'data-course-id=["\'](\d+)',
                 r'&quot;courseId&quot;\s*:\s*(\d+)',
+                r'courseId\s*[:=]\s*["\']?(\d+)',
+                r'course_id\s*[:=]\s*["\']?(\d+)',
+                r'related_object_id%3D(\d+)',
             ], webpage, 'course id')
-        return course_id, course.get('title')
+        title = course.get('title') or self._html_search_meta(
+            ['og:title', 'twitter:title'], webpage, 'course title', default=None) or self._html_extract_title(webpage)
+        if title:
+            title = re.sub(r'\s*\|\s*Udemy\s*$', '', title, flags=re.I)
+        return course_id, title
 
     def _enroll_course(self, base_url, webpage, course_id):
         def combine_url(base_url, url):
@@ -326,7 +333,10 @@ class UdemyIE(InfoExtractor):
                 cc_url = url_or_none(cc.get('url'))
                 if not cc_url:
                     continue
-                lang = try_get(cc, lambda x: x['locale']['locale'], str)
+                lang = cc.get('locale_id') or cc.get('locale')
+                if isinstance(lang, dict):
+                    lang = lang.get('locale')
+                lang = lang or try_get(cc, lambda x: x['locale']['locale'], str)
                 sub_dict = (automatic_captions if cc.get('source') == 'auto'
                             else subtitles)
                 sub_dict.setdefault(lang or 'en', []).append({
@@ -410,7 +420,7 @@ class UdemyIE(InfoExtractor):
 
 class UdemyCourseIE(UdemyIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'udemy:course'
-    _VALID_URL = r'https?://(?:[^/]+\.)?udemy\.com/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?udemy\.com/(?:course/)?(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.udemy.com/java-tutorial/',
         'only_matching': True,
