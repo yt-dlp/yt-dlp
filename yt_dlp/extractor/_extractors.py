@@ -1866,6 +1866,11 @@ from .svt import (
 )
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
+from .tango import (
+    TangoCdnIE,
+    TangoFeedIE,
+    TangoIE,
+)
 from .taptap import (
     TapTapAppIE,
     TapTapAppIntlIE,
