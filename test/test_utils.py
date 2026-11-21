@@ -487,7 +487,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('28/01/2014 21:00:00 +0100'), 1390939200)
         self.assertEqual(
             unified_timestamp('11/26/2014 11:30:00 AM PST', day_first=False),
-            1417001400)
+            1417030200)
         self.assertEqual(
             unified_timestamp('2/2/2015 6:47:40 PM', day_first=False),
             1422902860)
@@ -502,7 +502,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('December 15, 2017 at 7:49 am'), 1513324140)
         self.assertEqual(unified_timestamp('2018-03-14T08:32:43.1493874+00:00'), 1521016363)
         self.assertEqual(unified_timestamp('Sunday, 26 Nov 2006, 19:00'), 1164567600)
-        self.assertEqual(unified_timestamp('wed, aug 16, 2008, 12:00pm'), 1218931200)
+        self.assertEqual(unified_timestamp('wed, aug 16, 2008, 12:00pm'), 1218888000)
+
+        for am_pm, timestamp in (('AM', 1767219300), ('PM', 1767262500)):
+            for date_str in (
+                f'2026-01-01 12:15 {am_pm} +0200',
+                f'Jan 1, 2026 12:15 {am_pm} +0200',
+                f'Jan 1st 2026 12:15{am_pm} +0200',
+            ):
+                with self.subTest(date_str=date_str):
+                    self.assertEqual(unified_timestamp(date_str), timestamp)
 
         self.assertEqual(unified_timestamp('December 31 1969 20:00:01 EDT'), 1)
         self.assertEqual(unified_timestamp('Wednesday 31 December 1969 18:01:26 MDT'), 86)
@@ -511,6 +520,15 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=0), 1767225600)
         self.assertEqual(unified_timestamp('2026-01-01 00:00:00', tz_offset=8), 1767196800)
         self.assertEqual(unified_timestamp('2026-01-01 00:00:00 +0800', tz_offset=-5), 1767196800)
+        self.assertEqual(unified_timestamp('2026-01-01T12:00:00Z', tz_offset=2), 1767268800)
+        self.assertEqual(unified_timestamp('2026.01.01.Z', tz_offset=2), 1767225600)
+        self.assertEqual(unified_timestamp(' 2026-01-01 12:00PM pst '), 1767297600)
+        self.assertEqual(unified_timestamp('12:00 PM 01-Jan-2026 PST'), 1767297600)
+        for timezone in ('AMT', 'XYZ'):
+            with self.subTest(timezone=timezone):
+                self.assertEqual(unified_timestamp(f'2026-01-01 12:00 {timezone}', tz_offset=2), 1767261600)
+        self.assertEqual(unified_timestamp('2026-01-01 1:00 PMT', tz_offset=2), 1767222000)
+        self.assertEqual(unified_timestamp('2026-01-01 12:00 Z_'), None)
 
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
@@ -880,6 +898,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_iso8601('2014-03-23T23:04:26-07:00', timezone=dt.timedelta(hours=-10)), 1395641066)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26+0000'), 1395612266)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z'), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T22:04:26 UTC', timezone=dt.timedelta(hours=-7)), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z', timezone=NO_DEFAULT), 1395612266)
+        self.assertEqual(parse_iso8601('2014-03-23T22:04:26Z_'), None)
         self.assertEqual(parse_iso8601('2014-03-23T22:04:26.1234Z'), 1395612266)
         self.assertEqual(parse_iso8601('2015-09-29T08:27:31.727'), 1443515251)
         self.assertEqual(parse_iso8601('2015-09-29T08-27-31.727'), None)
