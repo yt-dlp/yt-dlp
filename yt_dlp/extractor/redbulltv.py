@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -61,6 +60,7 @@ class RedBullTVIE(InfoExtractor):
                 self.IE_NAME, session['message']))
         token = session['token']
 
+        video = {}
         try:
             video = self._download_json(
                 'https://api.redbull.tv/v3/products/' + video_id,
@@ -68,13 +68,9 @@ class RedBullTVIE(InfoExtractor):
                 headers={'Authorization': token},
             )
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError) and e.cause.status == 404:
-                error_message = self._parse_json(
-                    e.cause.response.read().decode(), video_id)['error']
-                raise ExtractorError(f'{self.IE_NAME} said: {error_message}', expected=True)
-            raise
+            self.report_warning(f'Downloading video information failed, {e.cause.response.read().decode()}')
 
-        title = video['title'].strip()
+        title = (video.get('title') or 'title').strip()
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://dms.redbull.tv/v3/{video_id}/{token}/playlist.m3u8',
@@ -123,19 +119,11 @@ class RedBullEmbedIE(RedBullTVIE):  # XXX: Do not subclass from concrete IE
 
     def _real_extract(self, url):
         rrn_id = self._match_id(url)
-        asset_id = self._download_json(
-            'https://edge-graphql.crepo-production.redbullaws.com/v1/graphql',
-            rrn_id, headers={
-                'Accept': 'application/json',
-                'API-KEY': 'e90a1ff11335423998b100c929ecc866',
-            }, query={
-                'query': '''{
-  resource(id: "%s", enforceGeoBlocking: false) {
-    %s
-    %s
-  }
-}''' % (rrn_id, self._VIDEO_ESSENSE_TMPL % 'LiveVideo', self._VIDEO_ESSENSE_TMPL % 'VideoResource'),  # noqa: UP031
-            })['data']['resource']['videoEssence']['attributes']['assetId']
+        data = self._download_json(
+            url_or_request=f'https://api-player.redbull.com/rbcom/videoresource?videoId={rrn_id}',
+            video_id=rrn_id,
+        )
+        asset_id = data['assetId']
         return self.extract_info(asset_id)
 
 
@@ -210,13 +198,19 @@ class RedBullIE(InfoExtractor):
                 regions.append('INT')
         locale = '>'.join([f'{lang}-{reg}' for reg in regions])
 
-        rrn_id = self._download_json(
-            'https://www.redbull.com/v3/api/graphql/v1/v3/query/' + locale,
-            display_id, query={
+        response_data = self._download_json(
+            'https://www.redbull.com/v3/api/graphql/v1/v3/feed/' + locale,
+            display_id,
+            query={
+                'page[limit]': '1',
+                'disableUsageRestrictions': 'true',
                 'filter[type]': filter_type,
                 'filter[uriSlug]': display_id,
-                'rb3Schema': 'v1:hero',
-            })['data']['id']
+                'rb3Schema': 'v1:pageConfig',
+                'rb3PageUrl': f'/{region}-{lang}/{filter_type}/{display_id}',
+            },
+        )
+        rrn_id = response_data['data']['id']
 
         return self.url_result(
             'https://www.redbull.com/embed/' + rrn_id,
