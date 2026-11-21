@@ -9,7 +9,6 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_ord
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -269,7 +268,7 @@ class CDAIE(InfoExtractor):
             a = urllib.parse.unquote(a)
             b = []
             for c in a:
-                f = compat_ord(c)
+                f = ord(c)
                 b.append(chr(33 + (f + 14) % 94) if 33 <= f <= 126 else chr(f))
             a = ''.join(b)
             a = a.replace('.cda.mp4', '')

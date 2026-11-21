@@ -1,7 +1,6 @@
 import base64
 from math import ceil
 
-from .compat import compat_ord
 from .dependencies import Cryptodome
 
 if Cryptodome.AES:
@@ -31,7 +30,7 @@ BLOCK_SIZE_BYTES = 16
 
 
 def unpad_pkcs7(data):
-    return data[:-compat_ord(data[-1])]
+    return data[:-data[-1]]
 
 
 def pkcs7_padding(data):

@@ -2,9 +2,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_ord,
-)
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -60,7 +57,7 @@ class XMinusIE(InfoExtractor):
             r'<div[^>]+id="player-bottom"[^>]+data-k="([^"]+)">', webpage,
             'encoded data')
         h = time.time() / 3600
-        a = sum(map(int, [compat_ord(c) for c in k])) + int(video_id) + h
+        a = sum(map(ord, k)) + int(video_id) + h
         video_url = 'http://x-minus.me/dl/minus?id=%s&tkn2=%df%d' % (video_id, a, h)
 
         return {
