@@ -1,5 +1,4 @@
 import base64
-import math
 import time
 
 from .common import InfoExtractor
@@ -222,25 +221,37 @@ class XimalayaAlbumIE(XimalayaBaseIE):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        first_page = self._fetch_page(playlist_id, 1)
-        page_count = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
+        meta = self._download_json('https://www.ximalaya.com/revision/album/v1/simple',
+                                   playlist_id, note='Downloading album info', query={'albumId': playlist_id})
+        title = traverse_obj(meta, ('data', 'albumPageMainInfo', 'albumTitle'))
+
+        page_size = 30
+        page_idx = 1
+        page_cache = {}
+        while True:
+            page_data = self._fetch_page(playlist_id, page_idx, page_size)
+            page_cache[str(page_idx)] = page_data
+            if len(page_data) < page_size:
+                break
+            page_idx += 1
+
+        page_count = page_idx
 
         entries = InAdvancePagedList(
-            lambda idx: self._get_entries(self._fetch_page(playlist_id, idx + 1) if idx else first_page),
-            page_count, first_page['pageSize'])
-
-        title = traverse_obj(first_page, ('tracks', 0, 'albumTitle'), expected_type=str)
+            lambda idx: self._get_entries(page_cache.get(str(idx + 1))),
+            page_count, page_size)
 
         return self.playlist_result(entries, playlist_id, title)
 
-    def _fetch_page(self, playlist_id, page_idx):
-        return self._download_json(
-            'https://www.ximalaya.com/revision/album/v1/getTracksList',
+    def _fetch_page(self, playlist_id, page_idx, page_size=30):
+        meta = self._download_json(
+            'https://www.ximalaya.com/revision/play/v1/show',
             playlist_id, note=f'Downloading tracks list page {page_idx}',
-            query={'albumId': playlist_id, 'pageNum': page_idx})['data']
+            query={'id': playlist_id, 'num': page_idx, 'size': page_size, 'ptype': 0})
+        return traverse_obj(meta, ('data', 'tracksAudioPlay'))
 
     def _get_entries(self, page_data):
-        for e in page_data['tracks']:
+        for e in page_data:
             yield self.url_result(
-                self._proto_relative_url(f'//www.ximalaya.com{e["url"]}'),
+                self._proto_relative_url(f'//www.ximalaya.com{e.get("trackUrl")}'),
                 XimalayaIE, e.get('trackId'), e.get('title'))
