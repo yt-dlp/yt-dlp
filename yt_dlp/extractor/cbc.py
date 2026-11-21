@@ -553,7 +553,7 @@ class CBCGemBaseIE(InfoExtractor):
                 'output': 'json',
                 'tech': 'hls',
                 'manifestVersion': '2',
-                'manifestType': 'desktop',
+                'manifestType': 'smart-tv',
                 'idMedia': media_id,
             })
 
@@ -740,7 +740,7 @@ class CBCGemIE(CBCGemBaseIE):
         m3u8_url = self._call_media_api(
             item_info['idMedia'], display_id=video_id, headers=headers)['url']
         formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', m3u8_id='hls', query={'manifestType': ''})
+            m3u8_url, video_id, 'mp4', m3u8_id='hls', query={'manifestType': 'smart-tv'})
         self._remove_duplicate_formats(formats)
 
         for fmt in formats:
