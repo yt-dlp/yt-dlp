@@ -66,6 +66,9 @@ class RutubeBaseIE(InfoExtractor):
         if not query:
             query = {}
         query['format'] = 'json'
+        query['no_404'] = 'true'
+        query['referer'] = 'https://tv3.ru/'
+        # The referer must be made configurable by the user from the command line arguments/configuration file.
         return self._download_json(
             f'https://rutube.ru/api/play/options/{video_id}/',
             video_id, 'Downloading options JSON',
