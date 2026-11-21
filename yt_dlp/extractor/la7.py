@@ -19,7 +19,7 @@ class LA7IE(InfoExtractor):
     _TESTS = [{
         # Full episode, "rivedila7" path segment (entity type NodeReplica)
         'url': 'https://www.la7play.it/bellidentrobellifuori/rivedila7/belli-dentro-belli-fuori-puntata-del-932024-09-03-2024-530432',
-        'md5': '67bf76fb2eb52386137cae68e8687edf',
+        'md5': 'f01608c9e2507cd637c399ae2c476ffb',
         'info_dict': {
             'id': 'belli-dentro-belli-fuori-puntata-del-932024-09-03-2024-530432',
             'ext': 'mp4',
@@ -74,7 +74,7 @@ class LA7IE(InfoExtractor):
     }, {
         # Clip/video (entity type NodeVideo)
         'url': 'https://www.la7play.it/in-onda/video/crisi-in-venezuela-lintervista-a-luciana-castellina-05-01-2026-626950',
-        'md5': 'b76230799cbaf16a9550adf0a1859cef',
+        'md5': '00de82356f72c66112a77d3718bba21e',
         'info_dict': {
             'id': 'crisi-in-venezuela-lintervista-a-luciana-castellina-05-01-2026-626950',
             'ext': 'mp4',
@@ -88,13 +88,14 @@ class LA7IE(InfoExtractor):
             'modified_date': '20260105',
         },
     }, {
-        # Single path segment
+        # Single path segment, also: video with only one resolution
         'url': 'https://www.la7play.it/dream-bike-20-09-2026-393369',
         'md5': '29a2adcda6d8b5b626b9aef19421996e',
         'info_dict': {
             'id': 'dream-bike-20-09-2026-393369',
             'ext': 'mp4',
             'title': 'Puntata del 23/9/2026',
+            'duration': 1782,
             'thumbnail': 'https://images.la7play.it/video/0/397/0_c4lgs673_0_zzscdbmp_2/puntata-del-23-9-2026/scena-854x480.webp',
             'season': 'Season 1',
             'season_number': 1,
@@ -108,7 +109,7 @@ class LA7IE(InfoExtractor):
     }, {
         # Video with reconstructed direct HTTPS URL
         'url': 'https://www.la7play.it/otto-e-mezzo/rivedila7/otto-e-mezzo-26-06-2026-650566',
-        'md5': 'eeca111e2b4f97e46d693f565fcafef9',
+        'md5': '1b3fbd1be2a867730cb644d976e8af4a',
         'info_dict': {
             'id': 'otto-e-mezzo-26-06-2026-650566',
             'ext': 'mp4',
