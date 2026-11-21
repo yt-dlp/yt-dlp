@@ -16,7 +16,15 @@ from ..utils.traversal import traverse_obj
 
 class ThisOldHouseIE(InfoExtractor):
     _NETRC_MACHINE = 'thisoldhouse'
-    _VALID_URL = r'https?://(?:www\.)?thisoldhouse\.com/(?:watch|how-to|tv-episode|(?:[^/?#]+/)?\d+)/(?P<id>[^/?#]+)'
+    _VALID_URL = r'''(?x)
+            https?://(?:www\.)?thisoldhouse\.com/(?:
+                watch|
+                how-to|
+                tv-episode|
+                (?:[^/?#]+/)?\d+|
+                (?P<ask>ask-this-old-house)
+            )/(?P<id>(?(ask)season-\d+/episode-\d+|[^/?#]+))
+        '''
     _TESTS = [{
         # Unresolved Brightcove URL embed (formerly Zype), free
         'url': 'https://www.thisoldhouse.com/furniture/21017078/how-to-build-a-storage-bench',
@@ -55,6 +63,21 @@ class ThisOldHouseIE(InfoExtractor):
             'skip_download': True,
         },
         'skip': 'Requires subscription',
+    }, {
+        # New URL format
+        'url': 'https://www.thisoldhouse.com/ask-this-old-house/season-24/episode-17',
+        'info_dict': {
+            'id': '6390764156112',
+            'ext': 'mp4',
+            'title': 'E17 | Lead Testing, Hillside Steps | Ask This Old House',
+            'description': 'md5:f276e1925713b1e3f74c0956762434b9',
+            'uploader_id': '6314471934001',
+            'duration': 1422.165,
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'tags': 'count:16',
+            'timestamp': 1773279323,
+            'upload_date': '20260312',
+        },
     }, {
         # Page no longer has video
         'url': 'https://www.thisoldhouse.com/watch/arlington-arts-crafts-arts-and-crafts-class-begins',

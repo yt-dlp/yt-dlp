@@ -48,7 +48,7 @@ class SaitosanIE(InfoExtractor):
 
         self._download_webpage(base, b_id, note='Polling socket')
         payload = f'420["room_start_join",{{"room_id":"{b_id}"}}]'
-        payload = f'{len(payload)}:{payload}'
+        payload = f'{len(payload)}:{payload}'.encode()
 
         self._download_webpage(base, b_id, data=payload, note='Polling socket with payload')
         response = self._download_socket_json(base, b_id, note='Polling socket')
@@ -59,11 +59,11 @@ class SaitosanIE(InfoExtractor):
                 else 'The socket reported that the broadcast could not be joined. Maybe it\'s offline or the URL is incorrect',
                 expected=True, video_id=b_id)
 
-        self._download_webpage(base, b_id, data='26:421["room_finish_join",{}]', note='Polling socket')
+        self._download_webpage(base, b_id, data=b'26:421["room_finish_join",{}]', note='Polling socket')
         b_data = self._download_socket_json(base, b_id, note='Getting broadcast metadata from socket')
         m3u8_url = b_data.get('url')
 
-        self._download_webpage(base, b_id, data='1:1', note='Closing socket', fatal=False)
+        self._download_webpage(base, b_id, data=b'1:1', note='Closing socket', fatal=False)
 
         return {
             'id': b_id,

@@ -127,7 +127,7 @@ class TenPlayIE(InfoExtractor):
 
     @staticmethod
     def _generate_xnetwork_ten_auth_token():
-        ts = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
+        ts = dt.datetime.now(dt.UTC).strftime('%Y%m%d%H%M%S')
         return base64.b64encode(ts.encode()).decode()
 
     @staticmethod

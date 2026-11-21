@@ -105,7 +105,7 @@ class TeamTreeHouseIE(InfoExtractor):
                         '_type': 'url_transparent',
                         'id': self._match_id(page_url),
                         'url': page_url,
-                        'id_key': self.ie_key(),
+                        'ie_key': self.ie_key(),
                     }
                     if extract_info:
                         entry.update(extract_info)
