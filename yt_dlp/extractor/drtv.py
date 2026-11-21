@@ -166,7 +166,7 @@ class DRTVIE(InfoExtractor):
         item = traverse_obj(
             json_data, ('cache', 'page', ..., (None, ('entries', 0)), 'item', {dict}), get_all=False)
         if item:
-            item_id = item.get('id')
+            item_id = self._search_regex(r'_(\d+)$', item.get('path'), 'item id', default=item.get('id'))
         else:
             item_id = url_slug.rsplit('_', 1)[-1]
             item = self._download_json(
@@ -229,6 +229,8 @@ class DRTVIE(InfoExtractor):
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
+            'season_id': self._search_regex(
+                r'_(\d+)$', traverse_obj(item, ('season', 'path')), 'season id', default=item.get('seasonId')),
             **traverse_obj(item, {
                 'title': 'title',
                 'alt_title': 'contextualTitle',
@@ -239,7 +241,6 @@ class DRTVIE(InfoExtractor):
                 'series': ('season', 'show', 'title'),
                 'season': ('season', 'title'),
                 'season_number': ('season', 'seasonNumber', {int_or_none}),
-                'season_id': 'seasonId',
                 'episode': 'episodeName',
                 'episode_number': ('episodeNumber', {int_or_none}),
                 'release_year': ('releaseYear', {int_or_none}),
