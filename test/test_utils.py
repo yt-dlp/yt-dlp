@@ -799,6 +799,8 @@ class TestUtil(unittest.TestCase):
         testPL(5, 2, (0, 3), [0, 1, 2])
         testPL(5, 2, (1, 4), [1, 2, 3])
         testPL(5, 2, (2, 99), [2, 3, 4])
+        testPL(5, 2, (0, 0), [])
+        testPL(5, 2, (2, 1), [])
         testPL(5, 2, (20, 99), [])
 
     def test_read_batch_urls(self):
