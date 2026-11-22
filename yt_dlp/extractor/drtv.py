@@ -12,7 +12,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
 )
-from ..utils.traversal import traverse_obj
+from ..utils.traversal import require, traverse_obj
 
 SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
 
