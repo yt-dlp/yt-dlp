@@ -1,4 +1,5 @@
 import json
+import re
 import uuid
 
 from .common import InfoExtractor
@@ -125,6 +126,8 @@ class DRTVIE(InfoExtractor):
         'url': 'https://www.dr.dk/drtv/program/jagten_220924',
         'only_matching': True,
     }]
+
+    _ID_RE = re.compile(r'_(\d+)$')
 
     SUBTITLE_LANGS = {
         'DanishLanguageSubtitles': 'da',
