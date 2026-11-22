@@ -76,7 +76,7 @@ class WatIE(InfoExtractor):
             if error_code == 'GEOBLOCKED':
                 self.raise_geo_restricted(error_desc, video_info.get('geoList'))
             elif error_code == 'DELIVERY_ERROR':
-                if traverse_obj(video_data, ('delivery', 'code')) == 500:
+                if traverse_obj(video_data, ('delivery', 'code')) in (403, 500):
                     self.report_drm(video_id)
                 error_desc = join_nonempty(
                     error_desc, traverse_obj(video_data, ('delivery', 'error', {str})), delim=': ')

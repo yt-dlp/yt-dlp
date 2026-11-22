@@ -6,7 +6,10 @@ from ..utils.traversal import traverse_obj
 class PartiBaseIE(InfoExtractor):
     def _call_api(self, path, video_id, note=None):
         return self._download_json(
-            f'https://api-backend.parti.com/parti_v2/profile/{path}', video_id, note)
+            f'https://prod-api.parti.com/parti_v2/profile/{path}', video_id, note, headers={
+                'Origin': 'https://parti.com',
+                'Referer': 'https://parti.com/',
+            })
 
 
 class PartiVideoIE(PartiBaseIE):
@@ -20,7 +23,7 @@ class PartiVideoIE(PartiBaseIE):
             'title': 'NOW LIVE ',
             'upload_date': '20250327',
             'categories': ['Gaming'],
-            'thumbnail': 'https://assets.parti.com/351424_eb9e5250-2821-484a-9c5f-ca99aa666c87.png',
+            'thumbnail': 'https://media.parti.com/351424_eb9e5250-2821-484a-9c5f-ca99aa666c87.png',
             'channel': 'ItZTMGG',
             'timestamp': 1743044379,
         },
@@ -34,7 +37,7 @@ class PartiVideoIE(PartiBaseIE):
         return {
             'id': video_id,
             'formats': self._extract_m3u8_formats(
-                urljoin('https://watch.parti.com', data['livestream_recording']), video_id, 'mp4'),
+                urljoin('https://media.parti.com/', data['livestream_recording']), video_id, 'mp4'),
             **traverse_obj(data, {
                 'title': ('event_title', {str}),
                 'channel': ('user_name', {str}),
@@ -47,32 +50,27 @@ class PartiVideoIE(PartiBaseIE):
 
 class PartiLivestreamIE(PartiBaseIE):
     IE_NAME = 'parti:livestream'
-    _VALID_URL = r'https?://(?:www\.)?parti\.com/creator/(?P<service>[\w]+)/(?P<id>[\w/-]+)'
+    _VALID_URL = r'https?://(?:www\.)?parti\.com/(?!video/)(?P<id>[\w/-]+)'
     _TESTS = [{
-        'url': 'https://parti.com/creator/parti/Capt_Robs_Adventures',
+        'url': 'https://parti.com/247CryptoTracker',
         'info_dict': {
-            'id': 'Capt_Robs_Adventures',
             'ext': 'mp4',
+            'id': '247CryptoTracker',
+            'description': 'md5:a78051f3d7e66e6a64c6b1eaf59fd364',
             'title': r"re:I'm Live on Parti \d{4}-\d{2}-\d{2} \d{2}:\d{2}",
-            'view_count': int,
-            'thumbnail': r're:https://assets\.parti\.com/.+\.png',
-            'timestamp': 1743879776,
-            'upload_date': '20250405',
+            'thumbnail': r're:https://media\.parti\.com/stream-screenshots/.+\.png',
             'live_status': 'is_live',
         },
         'params': {'skip_download': 'm3u8'},
-    }, {
-        'url': 'https://parti.com/creator/discord/sazboxgaming/0',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        service, creator_slug = self._match_valid_url(url).group('service', 'id')
+        creator_slug = self._match_id(url)
 
         encoded_creator_slug = creator_slug.replace('/', '%23')
         creator_id = self._call_api(
-            f'get_user_by_social_media/{service}/{encoded_creator_slug}',
-            creator_slug, note='Fetching user ID')
+            f'user_id_from_name/{encoded_creator_slug}',
+            creator_slug, note='Fetching user ID')['user_id']
 
         data = self._call_api(
             f'get_livestream_channel_info/{creator_id}', creator_id,
@@ -85,11 +83,7 @@ class PartiLivestreamIE(PartiBaseIE):
 
         return {
             'id': creator_slug,
-            'formats': self._extract_m3u8_formats(
-                channel_info['playback_url'], creator_slug, live=True, query={
-                    'token': channel_info['playback_auth_token'],
-                    'player_version': '1.17.0',
-                }),
+            'formats': self._extract_m3u8_formats(channel_info['playback_url'], creator_slug, live=True),
             'is_live': True,
             **traverse_obj(data, {
                 'title': ('livestream_event_info', 'event_name', {str}),

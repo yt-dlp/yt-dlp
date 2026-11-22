@@ -4,6 +4,7 @@ from .common import InfoExtractor
 
 
 class AdobeConnectIE(InfoExtractor):
+    _WORKING = False
     _VALID_URL = r'https?://\w+\.adobeconnect\.com/(?P<id>[\w-]+)'
 
     def _real_extract(self, url):

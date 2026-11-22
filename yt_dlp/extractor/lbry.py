@@ -95,6 +95,7 @@ class LBRYBaseIE(InfoExtractor):
                 '_type': 'url',
                 'id': item['claim_id'],
                 'url': self._permanent_url(url, item['name'], item['claim_id']),
+                'ie_key': 'LBRY',
             }
 
     def _playlist_entries(self, url, display_id, claim_param, metadata):

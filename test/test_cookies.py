@@ -163,7 +163,7 @@ class TestCookies(unittest.TestCase):
         self.assertEqual(cookie.name, 'foo')
         self.assertEqual(cookie.value, 'test%20%3Bcookie')
         self.assertFalse(cookie.secure)
-        expected_expiration = dt.datetime(2021, 6, 18, 21, 39, 19, tzinfo=dt.timezone.utc)
+        expected_expiration = dt.datetime(2021, 6, 18, 21, 39, 19, tzinfo=dt.UTC)
         self.assertEqual(cookie.expires, int(expected_expiration.timestamp()))
 
     def test_pbkdf2_sha1(self):
@@ -205,8 +205,8 @@ class TestLenientSimpleCookie(unittest.TestCase):
             ),
             (
                 'Test quoted cookie',
-                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
-                {'keebler': 'E=mc2; L="Loves"; fudge=\012;'},
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=;"',
+                {'keebler': 'E=mc2; L="Loves"; fudge=;'},
             ),
             (
                 "Allow '=' in an unquoted value",
@@ -327,5 +327,31 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 'Invalid Morsel keys should not result in an error',
                 'Key=Value; [Invalid]=Value; Another=Value',
                 {'Key': 'Value', 'Another': 'Value'},
+            ),
+            # Ref: https://github.com/python/cpython/issues/143919
+            (
+                'Test invalid cookie name w/ control character',
+                'foo\012=bar;',
+                {},
+            ),
+            (
+                'Test invalid cookie name w/ control character 2',
+                'foo\015baz=bar',
+                {},
+            ),
+            (
+                'Test invalid cookie name w/ control character followed by valid cookie',
+                'foo\015=bar; x=y;',
+                {'x': 'y'},
+            ),
+            (
+                'Test invalid cookie value w/ control character',
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
+                {},
+            ),
+            (
+                'Test invalid quoted attribute value w/ control character',
+                'Customer="WILE_E_COYOTE"; Version="1\\012"; Path="/acme"',
+                {},
             ),
         )

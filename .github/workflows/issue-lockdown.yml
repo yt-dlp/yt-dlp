@@ -3,13 +3,17 @@ on:
   issues:
     types: [opened]
 
-permissions:
-  issues: write
+permissions: {}
+
+env:
+  GH_TELEMETRY: "false"
 
 jobs:
   lockdown:
-    name: Issue Lockdown
+    name: Issue lockdown
     if: vars.ISSUE_LOCKDOWN
+    permissions:
+      issues: write  # Needed to lock issues
     runs-on: ubuntu-latest
     steps:
       - name: "Lock new issue"
@@ -18,4 +22,4 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          gh issue lock "${ISSUE_NUMBER}" -R "${REPOSITORY}"
+          gh issue lock -R "${REPOSITORY}" "${ISSUE_NUMBER}"

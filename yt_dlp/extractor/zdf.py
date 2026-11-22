@@ -127,6 +127,7 @@ class ZDFBaseIE(InfoExtractor):
                                 **parse_codecs(quality.get('mimeCodec')),
                                 'height': height,
                                 'width': width,
+                                'filesize': int_or_none(variant.get('filesize')),
                                 'format_id': join_nonempty('http', stream.get('type')),
                                 'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None)),
                             }]
@@ -193,123 +194,125 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = [
         r'https?://(?:www\.)?zdf\.de/(?:video|play)/(?:[^/?#]+/)*(?P<id>[^/?#]+)',
-        # /nachrichten/ sub-site URLs and legacy redirects from before the redesign in 2025-03
+        # Legacy redirects from before the redesign in 2025-03 or from before sister sites moved to their own domains
         r'https?://(?:www\.)?zdf\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
+        # Sister sites
+        r'https?://(?:www\.)?(?:zdfheute|logo)\.de/(?:[^/?#]+/)*(?P<id>[^/?#]+)\.html',
     ]
     IE_NAME = 'zdf'
     _TESTS = [{
         # Standalone video (i.e. not part of a playlist), video URL
-        'url': 'https://www.zdf.de/video/dokus/sylt---deutschlands-edles-nordlicht-movie-100/sylt-deutschlands-edles-nordlicht-100',
+        'url': 'https://www.zdf.de/video/dokus/ein-tag-im-juli---ahrtalflut-2021-movie-100/terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100',
+        'md5': '19dedfc5bca3f4f015deeb96c153ecec',
         'info_dict': {
-            'id': 'sylt-deutschlands-edles-nordlicht-100',
+            'id': 'terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100',
             'ext': 'mp4',
-            'title': 'Sylt - Deutschlands edles Nordlicht',
-            'description': 'md5:35407b810c2e1e33efbe15ef6e4c06c3',
-            'duration': 810.0,
-            'thumbnail': 'https://www.zdf.de/assets/sylt-118~original?cb=1613992485011',
-            'series': 'Sylt - Deutschlands edles Nordlicht',
-            'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
-            'timestamp': 1612462500,
-            'upload_date': '20210204',
-            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
+            'title': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'description': 'md5:7a426ce6f44d988eccbd4a485453e336',
+            'duration': 5304.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/terra-x-history-ein-tag-im-juli-ahrtal-flut-2021-102~original\?cb=\d+',
+            'series': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'series_id': 'ein-tag-im-juli---ahrtalflut-2021-movie-100',
+            'timestamp': 1779214500,
+            'upload_date': '20260519',
+            '_old_archive_ids': ['zdf 260519_2015_sendung_his'],
         },
     }, {
         # Standalone video (i.e. not part of a playlist), play URL
-        'url': 'https://www.zdf.de/play/dokus/sylt---deutschlands-edles-nordlicht-movie-100/sylt-deutschlands-edles-nordlicht-100',
+        'url': 'https://www.zdf.de/play/dokus/ein-tag-im-juli---ahrtalflut-2021-movie-100/terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100',
         'info_dict': {
-            'id': 'sylt-deutschlands-edles-nordlicht-100',
+            'id': 'terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100',
             'ext': 'mp4',
-            'title': 'Sylt - Deutschlands edles Nordlicht',
-            'description': 'md5:35407b810c2e1e33efbe15ef6e4c06c3',
-            'duration': 810.0,
-            'thumbnail': 'https://www.zdf.de/assets/sylt-118~original?cb=1613992485011',
-            'series': 'Sylt - Deutschlands edles Nordlicht',
-            'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
-            'timestamp': 1612462500,
-            'upload_date': '20210204',
-            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
+            'title': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'description': 'md5:7a426ce6f44d988eccbd4a485453e336',
+            'duration': 5304.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/terra-x-history-ein-tag-im-juli-ahrtal-flut-2021-102~original\?cb=\d+',
+            'series': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'series_id': 'ein-tag-im-juli---ahrtalflut-2021-movie-100',
+            'timestamp': 1779214500,
+            'upload_date': '20260519',
+            '_old_archive_ids': ['zdf 260519_2015_sendung_his'],
         },
         'params': {'skip_download': True},
     }, {
         # Standalone video (i.e. not part of a playlist), legacy URL before website redesign in 2025-03
-        'url': 'https://www.zdf.de/dokumentation/dokumentation-sonstige/sylt-deutschlands-edles-nordlicht-100.html',
+        'url': 'https://www.zdf.de/dokumentation/dokumentation-sonstige/terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100.html',
         'info_dict': {
-            'id': 'sylt-deutschlands-edles-nordlicht-100',
+            'id': 'terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100',
             'ext': 'mp4',
-            'title': 'Sylt - Deutschlands edles Nordlicht',
-            'description': 'md5:35407b810c2e1e33efbe15ef6e4c06c3',
-            'duration': 810.0,
-            'thumbnail': 'https://www.zdf.de/assets/sylt-118~original?cb=1613992485011',
-            'series': 'Sylt - Deutschlands edles Nordlicht',
-            'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
-            'timestamp': 1612462500,
-            'upload_date': '20210204',
-            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
+            'title': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'description': 'md5:7a426ce6f44d988eccbd4a485453e336',
+            'duration': 5304.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/terra-x-history-ein-tag-im-juli-ahrtal-flut-2021-102~original\?cb=\d+',
+            'series': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'series_id': 'ein-tag-im-juli---ahrtalflut-2021-movie-100',
+            'timestamp': 1779214500,
+            'upload_date': '20260519',
+            '_old_archive_ids': ['zdf 260519_2015_sendung_his'],
         },
         'params': {'skip_download': True},
     }, {
         # Video belongs to a playlist, video URL
-        'url': 'https://www.zdf.de/video/dokus/die-magie-der-farben-116/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100',
-        'md5': '1eda17eb40a9ead3046326e10b9c5973',
+        # Also: video mirrored from ARD Mediathek
+        'url': 'https://www.zdf.de/video/dokus/collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-132/page-video-ard-gelb-vom-hellen-glanz-zu-finsteren-abgruenden-102',
+        'md5': '84980c1a0148da6cd94de58333d7e1ee',
         'info_dict': {
-            'id': 'die-magie-der-farben-von-koenigspurpur-und-jeansblau-100',
+            'id': 'page-video-ard-gelb-vom-hellen-glanz-zu-finsteren-abgruenden-102',
             'ext': 'mp4',
-            'title': 'Von Königspurpur bis Jeansblau',
-            'description': 'md5:a89da10c928c6235401066b60a6d5c1a',
-            'duration': 2615.0,
-            'thumbnail': 'https://www.zdf.de/assets/koenigspurpur-bis-jeansblau-100~original?cb=1741857765971',
+            'title': 'Gelb · Vom hellen Glanz zu finsteren Abgründen (6/6)',
+            'description': 'md5:9aad4806b4c8ea152ab21e70c9d516be',
+            'duration': 895.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/image-ard-gelb--vom-hellen-glanz-zu-finsteren-abgruenden-66-100~original\?cb=\d+',
             'series': 'Die Magie der Farben',
-            'series_id': 'die-magie-der-farben-116',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 2',
-            'episode_number': 2,
-            'timestamp': 1445797800,
-            'upload_date': '20151025',
-            '_old_archive_ids': ['zdf 151025_magie_farben2_tex'],
+            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-140',
+            'season': 'Season 2023',
+            'season_number': 2023,
+            'episode': 'Episode 5',
+            'episode_number': 5,
+            'timestamp': 1690902120,
+            'upload_date': '20230801',
+            '_old_archive_ids': ['zdf video_ard_dXJuOmFyZDpwdWJsaWNhdGlvbjo0YTYyOTJjM2Q0ZThlNmY1'],
         },
     }, {
         # Video belongs to a playlist, play URL
-        'url': 'https://www.zdf.de/play/dokus/die-magie-der-farben-116/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100',
-        'md5': '1eda17eb40a9ead3046326e10b9c5973',
+        'url': 'https://www.zdf.de/play/dokus/collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-132/page-video-ard-gelb-vom-hellen-glanz-zu-finsteren-abgruenden-102',
         'info_dict': {
-            'id': 'die-magie-der-farben-von-koenigspurpur-und-jeansblau-100',
+            'id': 'page-video-ard-gelb-vom-hellen-glanz-zu-finsteren-abgruenden-102',
             'ext': 'mp4',
-            'title': 'Von Königspurpur bis Jeansblau',
-            'description': 'md5:a89da10c928c6235401066b60a6d5c1a',
-            'duration': 2615.0,
-            'thumbnail': 'https://www.zdf.de/assets/koenigspurpur-bis-jeansblau-100~original?cb=1741857765971',
+            'title': 'Gelb · Vom hellen Glanz zu finsteren Abgründen (6/6)',
+            'description': 'md5:9aad4806b4c8ea152ab21e70c9d516be',
+            'duration': 895.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/image-ard-gelb--vom-hellen-glanz-zu-finsteren-abgruenden-66-100~original\?cb=\d+',
             'series': 'Die Magie der Farben',
-            'series_id': 'die-magie-der-farben-116',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 2',
-            'episode_number': 2,
-            'timestamp': 1445797800,
-            'upload_date': '20151025',
-            '_old_archive_ids': ['zdf 151025_magie_farben2_tex'],
+            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-140',
+            'season': 'Season 2023',
+            'season_number': 2023,
+            'episode': 'Episode 5',
+            'episode_number': 5,
+            'timestamp': 1690902120,
+            'upload_date': '20230801',
+            '_old_archive_ids': ['zdf video_ard_dXJuOmFyZDpwdWJsaWNhdGlvbjo0YTYyOTJjM2Q0ZThlNmY1'],
         },
         'params': {'skip_download': True},
     }, {
         # Video belongs to a playlist, legacy URL before website redesign in 2025-03
-        'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
-        'md5': '1eda17eb40a9ead3046326e10b9c5973',
+        'url': 'https://www.zdf.de/dokus/collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-132/page-video-ard-gelb-vom-hellen-glanz-zu-finsteren-abgruenden-102.html',
         'info_dict': {
-            'id': 'die-magie-der-farben-von-koenigspurpur-und-jeansblau-100',
+            'id': 'page-video-ard-gelb-vom-hellen-glanz-zu-finsteren-abgruenden-102',
             'ext': 'mp4',
-            'title': 'Von Königspurpur bis Jeansblau',
-            'description': 'md5:a89da10c928c6235401066b60a6d5c1a',
-            'duration': 2615.0,
-            'thumbnail': 'https://www.zdf.de/assets/koenigspurpur-bis-jeansblau-100~original?cb=1741857765971',
+            'title': 'Gelb · Vom hellen Glanz zu finsteren Abgründen (6/6)',
+            'description': 'md5:9aad4806b4c8ea152ab21e70c9d516be',
+            'duration': 895.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/image-ard-gelb--vom-hellen-glanz-zu-finsteren-abgruenden-66-100~original\?cb=\d+',
             'series': 'Die Magie der Farben',
-            'series_id': 'die-magie-der-farben-116',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 2',
-            'episode_number': 2,
-            'timestamp': 1445797800,
-            'upload_date': '20151025',
-            '_old_archive_ids': ['zdf 151025_magie_farben2_tex'],
+            'series_id': 'collection-index-page-ard-collection-ard-dxjuomfyzdpzag93ojy2mzhhmmq3mzk2ztq4nda-140',
+            'season': 'Season 2023',
+            'season_number': 2023,
+            'episode': 'Episode 5',
+            'episode_number': 5,
+            'timestamp': 1690902120,
+            'upload_date': '20230801',
+            '_old_archive_ids': ['zdf video_ard_dXJuOmFyZDpwdWJsaWNhdGlvbjo0YTYyOTJjM2Q0ZThlNmY1'],
         },
         'params': {'skip_download': True},
     }, {
@@ -323,7 +326,7 @@ class ZDFIE(ZDFBaseIE):
             'title': 'heute journal vom 19.12.2021',
             'description': 'md5:02504cf3b03777ff32fcc927d260c5dd',
             'duration': 1770.0,
-            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/273e5545-16e7-4ca3-898e-52fe9e06d964?layout=1920x1080',
+            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/273e5545-16e7-4ca3-898e-52fe9e06d964?layout=2400x1350',
             'chapters': 'count:11',
             'series': 'heute journal',
             'series_id': 'heute-journal-104',
@@ -337,23 +340,8 @@ class ZDFIE(ZDFBaseIE):
             '_old_archive_ids': ['zdf 211219_sendung_hjo'],
         },
     }, {
-        # Video that requires fallback extraction
-        'url': 'https://www.zdf.de/nachrichten/politik/deutschland/koalitionsverhandlungen-spd-cdu-csu-dobrindt-100.html',
-        'md5': 'c3a78514dd993a5781aa3afe50db51e2',
-        'info_dict': {
-            'id': 'koalitionsverhandlungen-spd-cdu-csu-dobrindt-100',
-            'ext': 'mp4',
-            'title': 'Dobrindt schließt Steuererhöhungen aus',
-            'description': 'md5:9a117646d7b8df6bc902eb543a9c9023',
-            'duration': 325,
-            'thumbnail': 'https://www.zdfheute.de/assets/dobrindt-csu-berlin-direkt-100~1920x1080?cb=1743357653736',
-            'timestamp': 1743374520,
-            'upload_date': '20250330',
-            '_old_archive_ids': ['zdf 250330_clip_2_bdi'],
-        },
-    }, {
         # FUNK video (hosted on a different CDN, has atypical PTMD and HLS files)
-        'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
+        'url': 'https://www.zdf.de/video/serien/funk-collection-funk-11790-1596/funk-alles-ist-verzaubert-102',
         'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
             'id': 'funk-alles-ist-verzaubert-102',
@@ -361,56 +349,108 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Alles ist verzaubert',
             'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
             'duration': 1278.0,
-            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-102~original?cb=1663848412907',
+            'thumbnail': r're:https://www\.zdf\.de/assets/teaser-funk-alles-ist-verzaubert-102~original\?cb=\d+',
             'series': 'DRUCK',
-            'series_id': 'funk-collection-funk-11790-1590',
-            'season': 'Season 7',
-            'season_number': 7,
-            'episode': 'Episode 1',
-            'episode_number': 1,
+            'series_id': 'funk-collection-funk-11790-1596',
+            'season': 'Season 2021',
+            'season_number': 2021,
+            'episode': 'Episode 50',
+            'episode_number': 50,
             'timestamp': 1635520560,
             'upload_date': '20211029',
             '_old_archive_ids': ['zdf video_funk_1770473'],
         },
     }, {
-        'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
+        # zdfheute video, also available on zdf.de
+        'url': 'https://www.zdfheute.de/video/heute-journal/heute-journal-vom-19-dezember-2025-100.html',
+        'md5': '47af8c2cfa30abf74501170f62754c63',
         'info_dict': {
-            'id': 'das-geld-anderer-leute-100',
+            'id': 'heute-journal-vom-19-dezember-2025-100',
             'ext': 'mp4',
-            'title': 'Das Geld anderer Leute',
-            'description': 'md5:cb6f660850dc5eb7d1ab776ea094959d',
-            'duration': 2581.0,
-            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=1920x1080',
-            'series': 'SOKO Stuttgart',
-            'series_id': 'soko-stuttgart-104',
-            'season': 'Season 11',
-            'season_number': 11,
-            'episode': 'Episode 10',
-            'episode_number': 10,
-            'timestamp': 1728983700,
-            'upload_date': '20241015',
-            '_old_archive_ids': ['zdf 191205_1800_sendung_sok8'],
+            'title': 'heute journal vom 19. Dezember 2025',
+            'description': 'md5:fd0dfbce0783486db839ff9140a8074b',
+            'duration': 1780.0,
+            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/273e5545-16e7-4ca3-898e-52fe9e06d964?layout=2400x1350',
+            'chapters': 'count:10',
+            'series': 'heute journal',
+            'series_id': 'heute-journal-104',
+            'season': 'Season 2025',
+            'season_number': 2025,
+            'episode': 'Episode 365',
+            'episode_number': 365,
+            'timestamp': 1766178000,
+            'upload_date': '20251219',
+            '_old_archive_ids': ['zdf 251219_2200_sendung_hjo'],
         },
     }, {
-        'url': 'https://www.zdf.de/serien/northern-lights/begegnung-auf-der-bruecke-100.html',
+        # zdfheute video, not available on zdf.de (uses the fallback extraction path)
+        'url': 'https://www.zdfheute.de/politik/deutschland/wildberger-ki-einsatz-rede-texte-100.html',
+        'md5': '7e3f7bb4fcaf0ce2c7a56f6cfb33e054',
         'info_dict': {
-            'id': 'begegnung-auf-der-bruecke-100',
-            'ext': 'webm',
-            'title': 'Begegnung auf der Brücke',
-            'description': 'md5:e53a555da87447f7f1207f10353f8e45',
-            'duration': 3083.0,
-            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/c5ff1d1f-f5c8-4468-86ac-1b2f1dbecc76?layout=1920x1080',
-            'series': 'Northern Lights',
-            'series_id': 'northern-lights-100',
-            'season': 'Season 1',
-            'season_number': 1,
-            'episode': 'Episode 1',
-            'episode_number': 1,
-            'timestamp': 1738546500,
-            'upload_date': '20250203',
-            '_old_archive_ids': ['zdf 240319_2310_sendung_not'],
+            'id': 'wildberger-ki-einsatz-rede-texte-100',
+            'ext': 'mp4',
+            'title': 'Minister Wildberger nutzte KI für Texte und Reden',
+            'description': 'md5:6093c58c5aa98a9a1549ff66c93f3209',
+            'duration': 30.0,
+            'thumbnail': r're:https://www\.zdfheute\.de/assets/karsten-wildberger-120~2400x1350\?cb=\d+',
+            'timestamp': 1781388300,
+            'upload_date': '20260613',
+            '_old_archive_ids': ['zdf 260611_mario_voigt_viu'],
         },
-        'params': {'skip_download': 'geo-restricted http format'},
+    }, {
+        # logo! video, also available on zdf.de
+        'url': 'https://www.logo.de/logo-vom-freitag-19-dezember-2025-102.html',
+        'md5': 'cfb1a0988b1249f052a437a55851134b',
+        'info_dict': {
+            'id': 'logo-vom-freitag-19-dezember-2025-102',
+            'ext': 'mp4',
+            'title': 'logo! vom Freitag, 19. Dezember 2025',
+            'description': 'md5:971428cb563e924c153580f23870c613',
+            'duration': 490.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/iran-rote-erde-sendung-19-dezember-2025-100~original\?cb=\d+',
+            'chapters': 'count:7',
+            'series': 'logo!',
+            'series_id': 'logo-154',
+            'season': 'Season 2025',
+            'season_number': 2025,
+            'episode': 'Episode 382',
+            'episode_number': 382,
+            'timestamp': 1766168700,
+            'upload_date': '20251219',
+            '_old_archive_ids': ['zdf 251219_1925_sendung_log'],
+        },
+    }, {
+        # logo! video, not available on zdf.de (uses the fallback extraction path)
+        'url': 'https://www.logo.de/kinderreporter-vivaan-trifft-alina-grijseels-100.html',
+        'md5': '094cea026babb67aa25fd0108400bc12',
+        'info_dict': {
+            'id': 'kinderreporter-vivaan-trifft-alina-grijseels-100',
+            'ext': 'mp4',
+            'title': 'Vivaan trifft Handballerin Alina Grijseels',
+            'description': 'md5:76bfa6581dd70ee2ef7b2679155e75dc',
+            'duration': 166.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/vivaan-alina-grijseels-100~original\?cb=\d+',
+            'series': 'logo!',
+            'series_id': 'logo-154',
+            'timestamp': 1766236320,
+            'upload_date': '20251220',
+            '_old_archive_ids': ['zdf 251219_kr_alina_grijseels_neu_log'],
+        },
+    }, {
+        # Live stream
+        'url': 'https://www.zdf.de/play/live-tv/sender/zdf-live-beitrag-100',
+        'info_dict': {
+            'id': 'zdf-live-beitrag-100',
+            'ext': 'mp4',
+            'title': r're:ZDF Livestream',
+            'description': str,
+            'thumbnail': r're:https://www\.zdf\.de/assets/2400-zdf-100~original\?cb=\d+',
+            'timestamp': int,
+            'upload_date': str,
+            'live_status': 'is_live',
+            '_old_archive_ids': ['zdf zdf-live-beitrag-100'],
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }, {
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
@@ -505,7 +545,7 @@ query VideoByCanonical($canonical: String!) {
         ptmd_data['_old_archive_ids'] = [make_archive_id(self, old_archive_id)]
         return ptmd_data
 
-    # This fallback should generally only happen for pages under `zdf.de/nachrichten`.
+    # This fallback should generally only happen for pages on zdfheute.de and logo.de
     # They are on a separate website for which GraphQL often doesn't return results.
     # The API used here is no longer in use by official clients and likely deprecated.
     # Long-term, news documents probably should use the API used by the mobile apps:
@@ -559,12 +599,14 @@ query VideoByCanonical($canonical: String!) {
             return self._extract_fallback(video_id)
 
         aspect_ratio = None
+        is_live = False
         ptmd_urls = []
         for node in traverse_obj(video_data, ('currentMedia', 'nodes', lambda _, v: v['ptmdTemplate'])):
             ptmd_url = self._expand_ptmd_template('https://api.zdf.de', node['ptmdTemplate'])
             # Smuggle vod_media_type so that _extract_ptmd is aware of 'DGS' variants
             if vod_media_type := node.get('vodMediaType'):
                 ptmd_url = smuggle_url(ptmd_url, {'vod_media_type': vod_media_type})
+            is_live = 'liveMediaType' in node
             ptmd_urls.append(ptmd_url)
             if not aspect_ratio:
                 aspect_ratio = self._parse_aspect_ratio(node.get('aspectRatio'))
@@ -582,6 +624,7 @@ query VideoByCanonical($canonical: String!) {
                 'chapters': ('currentMedia', 'nodes', 0, 'streamAnchorTags', 'nodes', {self._extract_chapters}),
             }),
             **self._extract_ptmd(ptmd_urls, video_id, self._get_api_token(), aspect_ratio),
+            'is_live': is_live,
             'id': video_id,
         }
 
@@ -610,19 +653,19 @@ class ZDFChannelIE(ZDFBaseIE):
     }, {
         # Standalone video (i.e. not part of a playlist), collection URL
         'add_ie': [ZDFIE.ie_key()],
-        'url': 'https://www.zdf.de/dokus/sylt---deutschlands-edles-nordlicht-movie-100',
+        'url': 'https://www.zdf.de/dokus/ein-tag-im-juli---ahrtalflut-2021-movie-100',
         'info_dict': {
-            'id': 'sylt-deutschlands-edles-nordlicht-100',
+            'id': 'terra-x-history-ein-tag-im-juli-ahrtalflut-2021-100',
             'ext': 'mp4',
-            'title': 'Sylt - Deutschlands edles Nordlicht',
-            'description': 'md5:35407b810c2e1e33efbe15ef6e4c06c3',
-            'duration': 810.0,
-            'thumbnail': 'https://www.zdf.de/assets/sylt-118~original?cb=1613992485011',
-            'series': 'Sylt - Deutschlands edles Nordlicht',
-            'series_id': 'sylt---deutschlands-edles-nordlicht-movie-100',
-            'timestamp': 1612462500,
-            'upload_date': '20210204',
-            '_old_archive_ids': ['zdf 210402_1915_sendung_dok'],
+            'title': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'description': 'md5:7a426ce6f44d988eccbd4a485453e336',
+            'duration': 5304.0,
+            'thumbnail': r're:https://www\.zdf\.de/assets/terra-x-history-ein-tag-im-juli-ahrtal-flut-2021-102~original\?cb=\d+',
+            'series': 'Ein Tag im Juli - Ahrtalflut 2021',
+            'series_id': 'ein-tag-im-juli---ahrtalflut-2021-movie-100',
+            'timestamp': 1779214500,
+            'upload_date': '20260519',
+            '_old_archive_ids': ['zdf 260519_2015_sendung_his'],
         },
         'params': {'skip_download': True},
     }, {
@@ -634,38 +677,24 @@ class ZDFChannelIE(ZDFBaseIE):
         },
         'playlist_mincount': 2,
     }, {
-        'url': 'https://www.zdf.de/serien/taunuskrimi/',
-        'info_dict': {
-            'id': 'taunuskrimi-100',
-            'title': 'Taunuskrimi',
-            'description': 'md5:ee7204e9c625c3b611d1274f9d0e3070',
-        },
-        'playlist_mincount': 8,
-    }, {
-        'url': 'https://www.zdf.de/serien/taunuskrimi/?staffel=1',
-        'info_dict': {
-            'id': 'taunuskrimi-100-s1',
-            'title': 'Taunuskrimi - Season 1',
-            'description': 'md5:ee7204e9c625c3b611d1274f9d0e3070',
-        },
-        'playlist_count': 7,
-    }, {
+        # All seasons of playlist
         'url': 'https://www.zdf.de/magazine/heute-journal-104',
         'info_dict': {
             'id': 'heute-journal-104',
             'title': 'heute journal',
             'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
         },
-        'playlist_mincount': 500,
+        'playlist_mincount': 366,
     }, {
-        'url': 'https://www.zdf.de/magazine/heute-journal-104?staffel=2024',
+        # Only selected season
+        'url': 'https://www.zdf.de/magazine/heute-journal-104?staffel=2025',
         'info_dict': {
-            'id': 'heute-journal-104-s2024',
-            'title': 'heute journal - Season 2024',
+            'id': 'heute-journal-104-s2025',
+            'title': 'heute journal - Season 2025',
             'description': 'md5:6edad39189abf8431795d3d6d7f986b3',
         },
-        'playlist_count': 242,
-        'skip': 'Video count changes daily, needs support for playlist_maxcount',
+        'playlist_mincount': 1,
+        'playlist_maxcount': 365,
     }]
 
     _PAGE_SIZE = 24
