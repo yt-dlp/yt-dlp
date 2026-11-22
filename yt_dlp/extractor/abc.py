@@ -208,7 +208,7 @@ class ABCIViewIE(InfoExtractor):
             'title': 'Series 1 Ep 1 Wood For The Trees',
             'series': 'Utopia',
             'description': 'md5:0cfb2c183c1b952d1548fd65c8a95c00',
-            'upload_date': '20230726',
+            'upload_date': '20250218',
             'uploader_id': 'abc1',
             'series_id': 'CO1211V',
             'episode_id': 'CO1211V001S00',
@@ -217,8 +217,9 @@ class ABCIViewIE(InfoExtractor):
             'episode_number': 1,
             'episode': 'Wood For The Trees',
             'thumbnail': 'https://cdn.iview.abc.net.au/thumbs/i/co/CO1211V001S00_5ad8353f4df09_1280.jpg',
-            'timestamp': 1690403700,
+            'timestamp': 1739865600,
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
             'skip_download': True,
         },
@@ -247,6 +248,7 @@ class ABCIViewIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Episode is no longer available on iview',
     }, {
         'note': 'No episode number',
         'url': 'https://iview.abc.net.au/show/four-corners/series/2022/video/NC2203H039S00',
@@ -281,7 +283,7 @@ class ABCIViewIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Series 2021',
             'series': 'Landline',
-            'description': 'md5:c9f30d9c0c914a7fd23842f6240be014',
+            'description': 'md5:cc6547fc5e19d8bcf706ef3c104795f5',
             'upload_date': '20211205',
             'uploader_id': 'abc1',
             'series_id': 'RF2004Q',
