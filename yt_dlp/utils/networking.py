@@ -237,9 +237,13 @@ def escape_rfc3986(s):
 def normalize_url(url):
     """Normalize URL as suggested by RFC 3986"""
     url_parsed = urllib.parse.urlparse(url)
+    path = remove_dot_segments(url_parsed.path)
+    if url_parsed.scheme == 'file' and path.startswith('//') and not url_parsed.path.startswith('//'):
+        path = '/' + path.lstrip('/')
+
     return url_parsed._replace(
         netloc=url_parsed.netloc.encode('idna').decode('ascii'),
-        path=escape_rfc3986(remove_dot_segments(url_parsed.path)),
+        path=escape_rfc3986(path),
         params=escape_rfc3986(url_parsed.params),
         query=escape_rfc3986(url_parsed.query),
         fragment=escape_rfc3986(url_parsed.fragment),
