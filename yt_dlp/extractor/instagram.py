@@ -758,6 +758,9 @@ class InstagramStoryIE(InstagramBaseIE):
         username, story_id = self._match_valid_url(url).group('user', 'id')
         if username == 'highlights' and not story_id:  # story id is only mandatory for highlights
             raise ExtractorError('Input URL is missing a highlight ID', expected=True)
+        if username != 'highlights' and not self._cookies_passed:
+            self.raise_login_required('Story cannot be extract without authenticated cookies')  # TODO: Add better error message
+
         display_id = story_id or username
         story_webpage = self._download_webpage(url, display_id, impersonate=self._can_impersonate and self._is_web_app)
 
@@ -781,35 +784,29 @@ class InstagramStoryIE(InstagramBaseIE):
                 ('node', None), any),
         )
         if not videos:
-            data = self._download_json(
-                f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
-                display_id, headers=self._api_headers,
-                impersonate=self._can_impersonate and self._is_web_app, expected_status=500)
-            videos = traverse_obj(data, 'reel')
-            if not (videos or 'ok' in (data.get('status') or '')):
-                videos = traverse_obj(
-                    self._download_json(
-                        'https://www.instagram.com/graphql/query',
-                        display_id,
-                        headers={
-                            **self._api_headers,
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'x-root-field-name': 'xdt_api__v1__feed__reels_media',
-                        },
-                        data=urlencode_postdata({
-                            'variables': json.dumps({
-                                'reel_ids_arr': [story_info_url],
-                                '__relay_internal__pv__PolarisCommunityNoteStoriesLabelEnabledrelayprovider': True,
-                            }, separators=(',', ':')),
-                            'doc_id': 29341065465524437,
-                            'fb_dtsg': self._get_fb_dstg(story_webpage),
-                        }),
-                        impersonate=self._can_impersonate and self._is_web_app,
-                        errnote=False,
-                        fatal=False,
-                    ),
-                    ('data', 'xdt_api__v1__feed__reels_media', 'reels_media', lambda _, x: x['items'], {dict}, any),
-                )
+            videos = traverse_obj(
+                self._download_json(
+                    'https://www.instagram.com/graphql/query',
+                    display_id,
+                    headers={
+                        **self._api_headers,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'x-root-field-name': 'xdt_api__v1__feed__reels_media',
+                    },
+                    data=urlencode_postdata({
+                        'variables': json.dumps({
+                            'reel_ids_arr': [story_info_url],
+                            '__relay_internal__pv__PolarisCommunityNoteStoriesLabelEnabledrelayprovider': True,
+                        }, separators=(',', ':')),
+                        'doc_id': 29341065465524437,
+                        'fb_dtsg': self._get_fb_dstg(story_webpage),
+                    }),
+                    impersonate=self._can_impersonate and self._is_web_app,
+                    errnote=False,
+                    fatal=False,
+                ),
+                ('data', 'xdt_api__v1__feed__reels_media', 'reels_media', lambda _, x: x['items'], {dict}, any),
+            )
 
         if not videos:
             self.raise_login_required('You need to log in to access this content')
@@ -823,7 +820,7 @@ class InstagramStoryIE(InstagramBaseIE):
         highlights = traverse_obj(videos, ((f'highlight:{story_id}', user_id, None), 'items', ..., {dict}))
         info_data = []
         for highlight in highlights:
-            highlight.setdefault('user', {}).update(user_info)
+            highlight.setdefault('user', {}).update(user_info)  # Is 'user' key is valid in info_dict ?
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
                 info_data.append({
