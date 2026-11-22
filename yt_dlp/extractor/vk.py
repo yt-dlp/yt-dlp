@@ -125,7 +125,7 @@ class VKIE(VKBaseIE):
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip)|
+                                (?:(?:m|new|vksport)\.)?vk(?:(?:video)?\.ru|\.com)/(?:.+?\?.*?z=)?(?:video|clip|live)|
                                 (?:www\.)?daxab\.com/embed/
                             )
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
@@ -134,6 +134,23 @@ class VKIE(VKBaseIE):
 
     _TESTS = [
         {
+            'url': 'https://vksport.vkvideo.ru/live-224124028_456250671',
+            'info_dict': {
+                'id': '-224124028_456250671',
+                'ext': 'mp4',
+                'title': 'Медведев - Зверев | 1/2 финала, Итоговый турнир ATP Finals | Валентин Попов (комментатор) | Поповоду тенниса',
+                'uploader': 'ПОПОВОДУ ТЕННИСА - СМОТРЕТЬ ТЕННИС ВКОНТАКТЕ',
+                'duration': 7309,
+                'upload_date': '20261121',
+                'uploader_id': '-224124028',
+                'timestamp': 1795288825,
+                'thumbnail': r're:https?://.+\.jpg(?:\?.*)?$',
+                'comment_count': int,
+                'like_count': int,
+                'description': 'md5:356da10bb332bee32fb9262ea49836fa',
+            },
+        },
+        {
             'url': 'https://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
             'info_dict': {
                 'id': '-77521_162222515',
@@ -141,7 +158,7 @@ class VKIE(VKBaseIE):
                 'title': 'ProtivoGunz - Хуёвая песня',
                 'description': 'Видео из официальной группы Noize MC\nhttp://vk.com/noizemc',
                 'uploader': 're:(?:Noize MC|Alexander Ilyashenko).*',
-                'uploader_id': '39545378',
+                'uploader_id': '-77521',
                 'duration': 195,
                 'timestamp': 1329049880,
                 'upload_date': '20120212',
