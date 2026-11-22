@@ -169,7 +169,7 @@ class DRTVIE(InfoExtractor):
         item = traverse_obj(
             json_data, ('cache', 'page', ..., (None, ('entries', 0)), 'item', {dict}), get_all=False)
         if item:
-            item_id = traverse_obj(item, ('path', {self._ID_RE.search}, 1, {require('item ID'}))
+            item_id = traverse_obj(item, ('path', {self._ID_RE.search}, 1, {require('item ID')}))
         else:
             item_id = url_slug.rsplit('_', 1)[-1]
             item = self._download_json(
