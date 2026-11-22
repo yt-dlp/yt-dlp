@@ -1544,7 +1544,6 @@ class TwitterBroadcastIE(TwitterBaseIE):
 
         formats = self._extract_m3u8_formats(
             m3u8_url, broadcast_id, 'mp4',
-            'm3u8_native' if live_status == 'was_live' else 'm3u8',
             m3u8_id=traverse_obj(m3u8_url, ({parse_qs}, 'type', -1)))
         if len(formats) == 1:
             fmt = formats[0]
