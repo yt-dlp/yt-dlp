@@ -917,7 +917,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)/?(?:[#?]|$)'
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)(?:/stream/(?P<stream_id>sl_[^/#?]+))?/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {
@@ -946,16 +946,22 @@ class VKPlayLiveIE(VKPlayBaseIE):
     }]
 
     def _real_extract(self, url):
-        username = self._match_id(url)
+        username, stream_id = self._match_valid_url(url).group('id', 'stream_id')
+        video_id = f'{username}/{stream_id}' if stream_id else username
 
-        stream_info = self._download_json(
-            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
+        if stream_id:
+            stream_info = traverse_obj(self._download_json(
+                f'https://api.vkplay.live/v1/channel/{username}/stream/slot/{stream_id}', video_id, fatal=False), ('data', 'stream', {dict}))
+        else:
+            stream_info = self._download_json(
+                f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', video_id, fatal=False)
+            
         if not stream_info:
-            stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
+            stream_info = self._extract_from_initial_state(url, video_id, ('stream', 'stream', 'data', 'stream'))
 
-        formats = self._extract_formats(stream_info, username)
+        formats = self._extract_formats(stream_info, video_id)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
-            raise UserNotLive(video_id=username)
+            raise UserNotLive(video_id=video_id)
 
         return {
             **self._extract_common_meta(stream_info),
