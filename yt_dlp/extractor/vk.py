@@ -556,10 +556,15 @@ class VKIE(VKBaseIE):
                 })
 
         for sub in data.get('subs') or {}:
-            subtitles.setdefault(sub.get('lang', 'en'), []).append({
-                'ext': sub.get('title', '.srt').split('.')[-1],
+            sub_title = sub.get('title', '.srt') or ''
+            ext = sub_title.split('.')[-1]
+
+            lang = sub.get('lang') or 'en'
+            subtitles.setdefault(lang, []).append({
+                'ext': ext or 'srt',
                 'url': url_or_none(sub.get('url')),
             })
+
 
         return {
             'id': video_id,
