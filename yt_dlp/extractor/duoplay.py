@@ -87,7 +87,7 @@ class DuoplayIE(InfoExtractor):
 
         manifest_url = video_player['manifest-url']
         session_token = self._download_json(
-            'https://sts.postimees.ee/session/register', video_id, 'Registering session',
+            'https://sts.euddn.net/session/register', video_id, 'Registering session',
             'Unable to register session', headers={
                 'Accept': 'application/json',
                 'X-Original-URI': manifest_url,
@@ -97,7 +97,7 @@ class DuoplayIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(manifest_url, video_id, 'mp4', query={'s': session_token}),
+            'formats': self._extract_m3u8_formats(manifest_url, video_id, query={'s': session_token}),
             **traverse_obj(episode_attr, {
                 'title': ('title', {str}),
                 'description': ('synopsis', {str}),
