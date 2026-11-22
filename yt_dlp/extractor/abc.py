@@ -6,17 +6,24 @@ import time
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    dict_get,
     int_or_none,
     js_to_json,
     parse_iso8601,
+    require,
     str_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
+    unified_timestamp,
     update_url_query,
     url_or_none,
+    urljoin,
 )
+
+
+def _if_defined(value):
+    """Treat $undefined as a sentinel value for None, from React Server Components"""
+    return None if value == '$undefined' else value
 
 
 class ABCIE(InfoExtractor):
@@ -359,20 +366,88 @@ class ABCIViewIE(InfoExtractor):
 
 class ABCIViewShowSeriesIE(InfoExtractor):
     IE_NAME = 'abc.net.au:iview:showseries'
-    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/]+)(?:/series/\d+)?$'
+    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/?#]+)/series/(?P<series>\d+)/?(?:[?#]|$)'
+    _GEO_COUNTRIES = ['AU']
+
+    _TESTS = [{
+        'url': 'https://iview.abc.net.au/show/claire-hooper-s-house-of-games/series/1',
+        'info_dict': {
+            'id': '322301-1',
+            'title': 'Season 1',
+            'series': 'Claire Hooper\'s House Of Games',
+            'season': 'Season 1',
+        },
+        'playlist_count': 50,
+    }, {
+        'url': 'https://iview.abc.net.au/show/hard-quiz-kids/series/2',
+        'info_dict': {
+            'id': '304579-2',
+            'title': 'Season 2',
+            'series': 'Hard Quiz Kids',
+            'season': 'Season 2',
+        },
+        'playlist_count': 10,
+    }, {
+        'url': 'https://iview.abc.net.au/show/australian-story/series/2023',
+        'info_dict': {
+            'id': '122716-2023',
+            'title': 'Season 2023',
+            'series': 'Australian Story',
+            'season': 'Season 2023',
+        },
+        'playlist_count': 31,
+    }]
+
+    def _entries(self, series_data, url):
+        for ep_data in traverse_obj(series_data, (
+                'episodes', 'items', lambda _, v: _if_defined(v['links']['deeplink']))):
+            yield self.url_result(
+                ie=ABCIViewIE,
+                **traverse_obj(ep_data, {
+                    'url': ('links', 'deeplink', {urljoin(url)}),
+                    'video_id': ('id', {_if_defined}, {str}),
+                    'video_title': ('subtitle', {_if_defined}, {str}),
+                    'description': ('description', {_if_defined}, {str}),
+                    'timestamp': ('airDate', {_if_defined}, {unified_timestamp}),
+                    'thumbnail': ('images', lambda _, v: v['name'] == 'episodeThumbnail', 'url', {url_or_none}, any),
+                }))
+
+    def _real_extract(self, url):
+        show_id, series_num = self._match_valid_url(url).group('id', 'series')
+        display = f'{show_id}-series-{series_num}'
+        flight_data = self._search_nextjs_v13_data(self._download_webpage(url, display), display)
+        series_data = traverse_obj(flight_data, (..., 'selectedSeries', {dict}, any, {require('series data')}))
+        # show_data isn't mandatory for this one, it only provides the series title
+        show_data = traverse_obj(flight_data, (..., 'document', {dict}, any))
+
+        return self.playlist_result(
+            self._entries(series_data, url),
+            **traverse_obj(series_data, {
+                'playlist_id': ('id', {str}),
+                'playlist_title': ('title', {_if_defined}, {str}),
+                'playlist_count': ('episodeCount', {int_or_none}),
+                'season': ('title', {_if_defined}, {str}),
+            }),
+            **traverse_obj(show_data, {
+                'series': ('title', {_if_defined}, {str}),
+            }))
+
+
+class ABCIViewShowIE(InfoExtractor):
+    IE_NAME = 'abc.net.au:iview:show'
+    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/?#]+)/?(?:[?#]|$)'
     _GEO_COUNTRIES = ['AU']
 
     _TESTS = [{
         'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
         'info_dict': {
-            'id': '124870-1',
-            'title': 'Series 1',
-            'description': 'md5:93119346c24a7c322d446d8eece430ff',
+            'id': '124870',
+            'title': 'Upper Middle Bogan',
+            'description': 'md5:c0159564257e12d2087c2c01a360a4cb',
             'series': 'Upper Middle Bogan',
-            'season': 'Series 1',
             'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
-        'playlist_count': 8,
+        'playlist_count': 3,
     }, {
         'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
         'info_dict': {
@@ -380,64 +455,63 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Series 1 Ep 1 I\'m A Swan',
             'description': 'md5:7b676758c1de11a30b79b4d301e8da93',
-            'series': 'Upper Middle Bogan',
             'uploader_id': 'abc1',
-            'upload_date': '20210630',
-            'timestamp': 1625036400,
+            'upload_date': '20240630',
+            'timestamp': 1719730800,
+
+            'series': 'Upper Middle Bogan',
+            'series_id': 'CO1108V',
+            'season': 'Season 1',
+            'season_number': 1,
+            'episode': 'I\'m A Swan',
+            'episode_number': 1,
+            'episode_id': 'CO1108V001S00',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
         },
         'params': {
             'noplaylist': True,
             'skip_download': 'm3u8',
         },
-    }, {
-        # 'videoEpisodes' is a dict with `items` key
-        'url': 'https://iview.abc.net.au/show/7-30-mark-humphries-satire',
-        'info_dict': {
-            'id': '178458-0',
-            'title': 'Episodes',
-            'description': 'Satirist Mark Humphries brings his unique perspective on current political events for 7.30.',
-            'series': '7.30 Mark Humphries Satire',
-            'season': 'Episodes',
-            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$',
-        },
-        'playlist_count': 15,
-        'skip': 'This program is not currently available in ABC iview',
+        'add_ie': [ABCIViewIE.ie_key()],
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
     }, {
         'url': 'https://iview.abc.net.au/show/inbestigators',
         'info_dict': {
-            'id': '175343-1',
-            'title': 'Series 1',
-            'description': 'md5:b9976935a6450e5b78ce2a940a755685',
+            'id': '175343',
+            'title': 'The Inbestigators',
+            'description': 'md5:11e7f3da6aa8ac6567db16344a1e398d',
             'series': 'The Inbestigators',
-            'season': 'Series 1',
             'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.+\.jpg',
         },
-        'playlist_count': 17,
+        'playlist_count': 1,
     }]
+
+    def _entries(self, show_data, url):
+        for series_data in traverse_obj(show_data, (
+                'seriesList', lambda _, s: _if_defined(s['links']['deeplink']))):
+            yield self.url_result(
+                ie=ABCIViewShowSeriesIE,
+                **traverse_obj(series_data, {
+                    'url': ('links', 'deeplink', {urljoin(url)}),
+                    'video_id': ('id', {_if_defined}, {str}),
+                    'video_title': ('title', {_if_defined}, {str}),
+                }))
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        webpage = self._download_webpage(url, show_id)
-        video_data = self._search_json(
-            r'window\.__INITIAL_STATE__\s*=\s*[\'"]', webpage, 'initial state', show_id,
-            transform_source=lambda x: x.encode().decode('unicode_escape'),
-            end_pattern=r'[\'"]\s*;')['route']['pageData']['_embedded']
+        flight_data = self._search_nextjs_v13_data(self._download_webpage(url, show_id), show_id)
+        show_data = traverse_obj(flight_data, (..., 'document', {dict}, any, {require('show data')}))
 
-        highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])
+        highlight = traverse_obj(show_data, ('highlightVideo', 'href', {_if_defined}, {urljoin(url)}))
         if not self._yes_playlist(show_id, bool(highlight), video_label='highlight video'):
-            return self.url_result(highlight, ie=ABCIViewIE.ie_key())
+            return self.url_result(highlight, ie=ABCIViewIE)
 
-        series = video_data['selectedSeries']
-        return {
-            '_type': 'playlist',
-            'entries': [self.url_result(episode_url, ABCIViewIE)
-                        for episode_url in traverse_obj(series, (
-                            '_embedded', 'videoEpisodes', (None, 'items'), ..., 'shareUrl', {url_or_none}))],
-            'id': series.get('id'),
-            'title': dict_get(series, ('title', 'displaySubtitle')),
-            'description': series.get('description'),
-            'series': dict_get(series, ('showTitle', 'displayTitle')),
-            'season': dict_get(series, ('title', 'displaySubtitle')),
-            'thumbnail': traverse_obj(
-                series, 'thumbnail', ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url'), get_all=False),
-        }
+        return self.playlist_result(
+            self._entries(show_data, url),
+            **traverse_obj(show_data, {
+                'playlist_id': ('id', {str}),
+                'playlist_title': ('title', {_if_defined}, {str}),
+                'playlist_description': ('synopsis', {_if_defined}, {str}),
+                'series': ('title', {_if_defined}, {str}),
+                'thumbnail': ('images', lambda _, v: v['name'] == 'seriesThumbnail', 'url', {url_or_none}, any),
+            }))
