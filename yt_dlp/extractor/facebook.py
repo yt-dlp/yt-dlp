@@ -7,6 +7,7 @@ from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     clean_html,
     determine_ext,
     float_or_none,
@@ -30,7 +31,14 @@ from ..utils import (
 )
 
 
-class FacebookIE(InfoExtractor):
+class FacebookBaseIE(InfoExtractor):
+    @staticmethod
+    def _parse_all_data_sjs(webpage):
+        return traverse_obj(
+            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+
+
+class FacebookIE(FacebookBaseIE):
     _VALID_URL = r'''(?x)
                 (?:
                     https?://
@@ -84,7 +92,7 @@ class FacebookIE(InfoExtractor):
             'view_count': int,
             'concurrent_view_count': 0,
         },
-        'expected_warnings': ['Cannot parse data'],
+        'skip': 'Video gone',
     }, {
         'url': 'https://www.facebook.com/video.php?v=637842556329505&fref=nf',
         'md5': '6a40d33c0eccbb1af76cf0485a052659',
@@ -114,7 +122,6 @@ class FacebookIE(InfoExtractor):
             'concurrent_view_count': int,
             'view_count': int,
         },
-        'expected_warnings': ['Cannot parse data'],
     }, {
         'note': 'Video with DASH manifest',
         'url': 'https://www.facebook.com/video.php?v=957955867617029',
@@ -245,6 +252,7 @@ class FacebookIE(InfoExtractor):
         },
         'skip': 'Invalid URL',
     }, {
+        # FIXME: falls back to tahoe API request and fails with 404 error
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/attn/posts/pfbid0j1Czf2gGDVqeQ8KiMLFm3pWN8GxsQmeRrVhimWDzMuKQoR8r4b1knNsejELmUgyhl',
         'info_dict': {
@@ -261,6 +269,7 @@ class FacebookIE(InfoExtractor):
             'timestamp': 1701975646,
         },
     }, {
+        # FIXME: falls back to tahoe API request and fails with 404 error
         # data.node.comet_sections.content.story.attachments[].styles.attachment.media
         'url': 'https://www.facebook.com/permalink.php?story_fbid=pfbid0fqQuVEQyXRa9Dp4RcaTR14KHU3uULHV1EK7eckNXSH63JMuoALsAvVCJ97zAGitil&id=100068861234290',
         'info_dict': {
@@ -343,7 +352,6 @@ class FacebookIE(InfoExtractor):
             'description': '',
             'upload_date': '20190204',
         },
-        'expected_warnings': ['Cannot parse data'],
     }, {
         # data.video.story.attachments[].media
         'url': 'https://www.facebook.com/watch/?v=647537299265662',
@@ -409,6 +417,10 @@ class FacebookIE(InfoExtractor):
     }, {
         'url': 'https://www.facebook.com/groups/1513990329015294/posts/d41d8cd9/2013209885760000/?app=fbl',
         'only_matching': True,
+    }, {
+        # Age-restricted video
+        'url': 'https://www.facebook.com/watch/?v=1388064706077874',
+        'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
         # <iframe> embed
@@ -470,8 +482,7 @@ class FacebookIE(InfoExtractor):
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
         def extract_metadata(webpage):
-            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
-                r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage)]
+            post_data = self._parse_all_data_sjs(webpage)
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
@@ -825,7 +836,19 @@ class FacebookIE(InfoExtractor):
             video_data = extract_from_jsmods_instances(tahoe_js_data)
 
         if not video_data:
-            raise ExtractorError('Cannot parse data')
+            if get_first(self._parse_all_data_sjs(webpage), (
+                'require', ..., ..., ..., '__bbox', 'require', ..., ...,
+                ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'is_age_gated', {bool},
+            )):
+                self.raise_login_required('This video is age-restricted and requires authentication')
+            cookies = self._get_cookies('https://www.facebook.com/')
+            if cookies.get('c_user') and cookies.get('xs'):
+                raise ExtractorError('No video found')
+            raise ExtractorError(
+                'No video found. Check if this post is accessible in your '
+                f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
+                'Otherwise, if the post is accessible in browser without being logged-in'
+                f'{bug_reports_message(before=",")}', expected=True)
 
         if len(video_data) > 1:
             entries = []
@@ -975,6 +998,10 @@ class FacebookReelIE(InfoExtractor):
             'comment_count': int,
             'repost_count': int,
         },
+    }, {
+        # Age-restricted video
+        'url': 'https://www.facebook.com/reel/1388064706077874',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -983,7 +1010,7 @@ class FacebookReelIE(InfoExtractor):
             f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)
 
 
-class FacebookAdsIE(InfoExtractor):
+class FacebookAdsIE(FacebookBaseIE):
     _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/ads/library/?\?(?:[^#]+&)?id=(?P<id>\d+)'
     IE_NAME = 'facebook:ads'
     _TESTS = [{
@@ -1128,9 +1155,7 @@ class FacebookAdsIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_fb_webpage_and_verify(url, video_id)
-
-        post_data = traverse_obj(
-            re.findall(r'data-sjs>({.*?ScheduledServerJS.*?})</script>', webpage), (..., {json.loads}))
+        post_data = self._parse_all_data_sjs(webpage)
         data = get_first(post_data, (
             'require', ..., ..., ..., '__bbox', 'require', ..., ..., ..., (
                 ('__bbox', 'result', 'data', 'ad_library_main', 'deeplink_ad_archive_result', 'deeplink_ad_archive'),

@@ -990,7 +990,7 @@ class ExtractorError(YoutubeDLError):
         If expected is set, this is a normal error message and most likely not a bug in yt-dlp.
         """
         from ..networking.exceptions import network_exceptions
-        if sys.exc_info()[0] in network_exceptions:
+        if type(sys.exception()) in network_exceptions:
             expected = True
 
         self.orig_msg = str(msg)
@@ -1343,7 +1343,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(dt.datetime.now(dt.timezone.utc), precision)
+    today = datetime_round(dt.datetime.now(dt.UTC), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
