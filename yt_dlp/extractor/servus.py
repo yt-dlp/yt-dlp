@@ -74,16 +74,12 @@ class ServusIE(InfoExtractor):
         webpage, urlh = self._download_webpage_handle(url, video_id)
         video_id = self._match_id(urlh.url).upper()
         next_data = {}
-        next_datas = traverse_obj(
+        next_data = merge_dicts(*traverse_obj(
             self._search_nextjs_v13_data(webpage, video_id, fatal=False),
-            (..., 'featuredCollectionCards', lambda _, v: video_id == v['id']),
-        )
-        if next_datas:
-            next_data = merge_dicts(*next_datas)
+            (..., 'featuredCollectionCards', lambda _, v: video_id == v['id'])))
         video = self._download_json(
             'https://api-player.redbull.com/tv', video_id, 'Downloading video JSON',
-            query={'videoId': video_id, 'tenant': 'stv', 'locale': 'de'},
-        )
+            query={'videoId': video_id, 'tenant': 'stv', 'locale': 'de'})
         if not video.get('videoUrl'):
             self._report_errors(video)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
