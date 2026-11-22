@@ -857,6 +857,19 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title3)s', ('foo/bar\\test', 'foo⧸bar⧹test'))
         test('folder/%(title3)s', ('folder/foo/bar\\test', f'folder{os.path.sep}foo⧸bar⧹test'))
 
+    def test_prepare_filename_path_traversal(self):
+        # Untrusted metadata fields used as path segments must not escape
+        # the output directory via '..' path traversal
+        info = dict(self.outtmpl_info, uploader='..', playlist='..')
+        for tmpl in (
+                '%(uploader)s/%(id)s.%(ext)s',
+                '%(playlist)s/%(id)s.%(ext)s'):
+            ydl = FakeYDL({'outtmpl': tmpl})
+            self.assertEqual(ydl.prepare_filename(info), '1234.mp4', tmpl)
+        # A plain filename is unaffected
+        ydl = FakeYDL({'outtmpl': '%(id)s.%(ext)s'})
+        self.assertEqual(ydl.prepare_filename(info), '1234.mp4')
+
     def test_format_note(self):
         ydl = YoutubeDL()
         self.assertEqual(ydl._format_note({}), '')

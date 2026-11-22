@@ -1213,6 +1213,11 @@ class YoutubeDL:
     def get_output_path(self, dir_type='', filename=None):
         paths = self.params.get('paths', {})
         assert isinstance(paths, dict), '"paths" parameter must be a dictionary'
+        # Neutralize '..' and '.' components so untrusted metadata fields
+        # (e.g. uploader, playlist) used as path segments cannot escape
+        # the output directory via path traversal
+        if filename:
+            filename = '/'.join(part for part in filename.split('/') if part not in ('..', '.')) or None
         path = os.path.join(
             expand_path(paths.get('home', '').strip()),
             expand_path(paths.get(dir_type, '').strip()) if dir_type else '',
