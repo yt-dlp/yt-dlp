@@ -235,7 +235,7 @@ def partial_application(func):
 def find_xpath_attr(node, xpath, key, val=None):
     """ Find the xpath xpath[@key=val] """
     assert re.fullmatch(r'[a-zA-Z_-]+', key)
-    expr = xpath + f'[@{key}]'
+    expr = f'{xpath}[@{key}]'
     if val is None:
         return node.find(expr)
 
