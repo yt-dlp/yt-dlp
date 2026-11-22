@@ -239,7 +239,7 @@ def find_xpath_attr(node, xpath, key, val=None):
     if val is None:
         return node.find(expr)
 
-    val = f'{val}'
+    val = str(val)
     for n in node.iterfind(expr):
         if n.get(key) == val:
             return n
