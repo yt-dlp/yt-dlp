@@ -7,6 +7,7 @@ from ..compat import compat_etree_fromstring
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    bug_reports_message,
     clean_html,
     determine_ext,
     float_or_none,
@@ -840,7 +841,14 @@ class FacebookIE(FacebookBaseIE):
                 ..., 'initialRouteInfo', 'route', 'rootView', 'props', 'is_age_gated', {bool},
             )):
                 self.raise_login_required('This video is age-restricted and requires authentication')
-            raise ExtractorError('Cannot parse data')
+            cookies = self._get_cookies('https://www.facebook.com/')
+            if cookies.get('c_user') and cookies.get('xs'):
+                raise ExtractorError('No video found')
+            raise ExtractorError(
+                'No video found. Check if this post is accessible in your '
+                f'browser without being logged-in. If it is not, then u{self._login_hint()[1:]}. '
+                'Otherwise, if the post is accessible in browser without being logged-in'
+                f'{bug_reports_message(before=",")}', expected=True)
 
         if len(video_data) > 1:
             entries = []
