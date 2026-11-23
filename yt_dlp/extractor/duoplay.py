@@ -113,9 +113,15 @@ class DuoplayIE(InfoExtractor):
 
         episode_attr = self._parse_json(video_player.get(':episode') or '', video_id, fatal=False) or {}
 
+        formats = self._extract_m3u8_formats(manifest_url, video_id, query={'s': session_token})
+        # Multiple languages audio workaround, audio codec is set as unknown in manifest
+        for f in formats:
+            if f.get('vcodec') != 'none' and f.get('acodec') is None:
+                f['acodec'] = 'none'
+
         return {
             'id': video_id,
-            'formats': self._extract_m3u8_formats(manifest_url, video_id, query={'s': session_token}),
+            'formats': formats,
             **traverse_obj(episode_attr, {
                 'title': ('title', {str}),
                 'description': ('synopsis', {str}),
