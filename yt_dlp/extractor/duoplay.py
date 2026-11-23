@@ -73,6 +73,24 @@ class DuoplayIE(InfoExtractor):
             'episode_number': 0,
             'episode_id': '0',
         },
+    }, {
+        # movie - multiple languages
+        'url': 'https://duoplay.ee/12155/lego-sobrad.-heartlake-i-muusikal',
+        'info_dict': {
+            'id': '12155',
+            'ext': 'mp4',
+            'title': 'Lego sõbrad. Heartlake\'i muusikal',
+            'thumbnail': r're:^https?://.*\.(?:png|jpg)',
+            'description': 'md5:05ed3934d86222becb2c2e1a11ea2a8b',
+            'upload_date': '20261213',
+            'timestamp': 1797179400,
+            'release_year': 2026,
+            'series': 'Lego sõbrad. Heartlake\'i muusikal',
+            'series_id': '12155',
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'episode_id': '0',
+        },
     }]
 
     def _real_extract(self, url):
