@@ -113,13 +113,13 @@ class DuoplayIE(InfoExtractor):
 
         episode_attr = self._parse_json(video_player.get(':episode') or '', video_id, fatal=False) or {}
 
-        formats = self._extract_m3u8_formats(manifest_url, video_id, query={'s': session_token})
+        formats = self._extract_m3u8_formats(manifest_url, video_id, 'mp4', query={'s': session_token})
         for f in formats:
             # Audio quality key undefined workaround
             if f.get('vcodec') == 'none':
                 f['quality'] = int(f['format_id'].split('-')[0])
-            # Audio codec set as unknown workaround
-            elif f['url'].endswith('_vo.m3u8') and f.get('acodec') is None:
+            # We need to manually flag video-only formats as such
+            elif '_vo.m3u8' in f['url'] and not f.get('acodec'):
                 f['acodec'] = 'none'
 
         return {
