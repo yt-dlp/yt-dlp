@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Site support request
+    url: https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#new-site-support-policy
+    about: Request support for a new site
   - name: Get help on Discord
     url: https://discord.gg/H5MNcFW63r
     about: Join the yt-dlp Discord server for support and discussion

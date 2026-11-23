@@ -29,6 +29,7 @@ from .jsc.provider import JsChallengeRequest, JsChallengeType, NChallengeInput, 
 from .pot._director import initialize_pot_director
 from .pot.provider import PoTokenContext, PoTokenRequest
 from ...networking import HEADRequest
+from ...networking.exceptions import HTTPError
 from ...utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -142,7 +143,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
     _DEFAULT_CLIENTS = ('tv_samsung', 'visionos', 'web')
     _DEFAULT_JSLESS_CLIENTS = ('visionos',)
-    _DEFAULT_AUTHED_CLIENTS = ('web_embedded', 'tv_samsung', 'web')
+    _DEFAULT_AUTHED_CLIENTS = ('tv_samsung', 'web_embedded', 'web')
     # Premium does not require POT (except for subtitles)
     _DEFAULT_PREMIUM_CLIENTS = ('web_creator', 'tv_samsung', 'web')
     _WEBPAGE_CLIENTS = ('web', 'web_safari')
@@ -1881,7 +1882,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
-    _DEFAULT_PLAYER_JS_VARIANT = 'main'
+    _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
@@ -2045,7 +2046,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         note=False, errnote='Fragment request failed')
                 except ExtractorError as e:
                     self.write_debug(e.msg)
-                    urlh = None
+                    # On some clients (e.g. tv_samsung), a HEAD request may yield HTTP Error 500,
+                    # but the response still has the X-Head-Seqnum header value that is needed.
+                    # See https://github.com/yt-dlp/yt-dlp/issues/18031
+                    if isinstance(e.cause, HTTPError) and e.cause.status >= 500:
+                        urlh = e.cause.response
+                    else:
+                        urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if urlh:
                     urlh.close()
@@ -2063,9 +2070,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             last_seq += 1
-
-            if not url_feed:
-                last_seq -= 2
 
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
@@ -2238,7 +2242,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         sts = traverse_obj(ytcfg, ('STS', {int_or_none}))
         if sts:
-            return sts
+            # TODO: Revert to `return sts` immediately when reworking STS/variant handling!
+            # XXX: If any supported (i.e. non-`tcl`) variants start using >5 digit STS,
+            #      then the line of code below is dead wrong and actively harmful!
+            # XXX: If clients other than tv_downgraded start seeing "the page needs to be reloaded"
+            #      errors, this STS truncation is the likely culprit! Revert it!
+            return int(str(sts)[:5])
 
         if not player_url:
             error_msg = 'Cannot extract signature timestamp without player url'
@@ -3147,10 +3156,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 client in {'android_vr', 'visionos'}
                 and (self._is_unplayable(pr) or self._is_error_response(pr))
                 and webpage and 'made for kids' in webpage
-                # ...and is a JS runtime is available?
-                and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
-                append_client('web_embedded')
+                # Is a JS runtime available?
+                if any(p.is_available() for p in self._jsc_director.providers.values()):
+                    append_client('web_embedded')
+                if not self.is_authenticated:
+                    append_client('ios_producer')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
@@ -3601,6 +3612,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     https_fmts.append(fmt)
 
                 for fmt in https_fmts:
+                    # Live adaptive https formats don't need chunk size and shouldn't be made dashy
+                    if fmt.get('is_from_start'):
+                        yield fmt
+                        continue
                     if (all_formats or 'dashy' in format_types) and fmt['filesize']:
                         yield {
                             **fmt,
@@ -4041,7 +4056,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self._list_formats(video_id, microformats, video_details, player_responses, player_url, duration)
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         if live_status == 'post_live':
-            self.write_debug(f'{video_id}: Video is in Post-Live Manifestless mode')
+            self.to_screen(
+                f'{video_id}: Video is in Post-Live Manifestless mode\n'
+                'Livestream has ended and is being processed by YouTube (live_status=post_live). '
+                'Some formats may not be available until processing is complete')
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
