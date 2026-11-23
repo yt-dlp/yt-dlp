@@ -119,7 +119,7 @@ class DuoplayIE(InfoExtractor):
             if f.get('vcodec') == 'none':
                 f['quality'] = int(f['format_id'].split('-')[0])
             # Audio codec set as unknown workaround
-            elif f.get('acodec') is None:
+            elif f['url'].endswith('_vo.m3u8') and f.get('acodec') is None:
                 f['acodec'] = 'none'
 
         return {
