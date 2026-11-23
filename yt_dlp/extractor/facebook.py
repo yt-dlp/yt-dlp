@@ -491,8 +491,8 @@ class FacebookIE(FacebookBaseIE):
             description = (
                 get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
                 or traverse_obj(post, (
-                    lambda _, v: video_id in map(str, traverse_obj(v, ('attachments', ..., 'media', 'id'))),
-                    'message', 'text', {str.strip}, filter), get_all=False))
+                    lambda _, v: video_id in traverse_obj(v, ('attachments', ..., 'media', 'id', {str_or_none})),
+                    'message', 'text', {str.strip}, filter, any)))
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
                 r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
