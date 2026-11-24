@@ -10,7 +10,8 @@ from ..utils.traversal import traverse_obj
 
 
 class WatIE(InfoExtractor):
-    _VALID_URL = r'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>[0-9a-z]+)'
+    _UUID_RE = r'[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}'
+    _VALID_URL = rf'(?:wat:|https?://(?:www\.)?wat\.tv/video/.*-)(?P<id>{_UUID_RE}|[0-9]{{7,}}|(?:[a-z0-9]+_){{2}}|(?P<b36>[0-9a-z]+))(?:$|\.html|[#?/])'
     IE_NAME = 'wat.tv'
     _TESTS = [
         {
@@ -53,13 +54,30 @@ class WatIE(InfoExtractor):
                 'ext': 'mp4',
             },
             'params': {'skip_download': 'm3u8'},
+            'expected_warnings': ["Ce contenu n'est pas disponible"],
+            'skip': 'This content is no longer available',
+        },
+        {
+            'url': 'wat:f0550853-c949-4e0e-8ba4-8237cbb512af',
+            'info_dict': {
+                'id': 'f0550853-c949-4e0e-8ba4-8237cbb512af',
+                'ext': 'mp4',
+                'title': '24H Pujadas du mercredi 2 juillet 2025',
+                'thumbnail': 'https://photos.tf1.fr/1280/720/24h-pujadas-du-mercredi-2-juillet-2025-394752-0@1x.jpg',
+                'upload_date': '20250702',
+                'duration': 5866,
+            },
+            'params': {
+                'skip_download': True,
+            },
         },
     ]
     _GEO_BYPASS = False
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        video_id = video_id if video_id.isdigit() and len(video_id) > 6 else str(int(video_id, 36))
+        video_id, b36_id = self._match_valid_url(url).group('id', 'b36')
+        if b36_id:
+            video_id = str(int(video_id, 36))
 
         # 'contentv4' is used in the website, but it also returns the related
         # videos, we don't need them
