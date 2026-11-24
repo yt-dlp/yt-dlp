@@ -1922,6 +1922,17 @@ def create_parser():
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists into different formats at discontinuities such as ad breaks (default)')
+    extractor.add_option(
+        '--download-manifests',
+        dest='download_manifests', action='store_true', default=True,
+        help='Download HLS/DASH manifests to extract the formats they contain (default)')
+    extractor.add_option(
+        '--no-download-manifests',
+        dest='download_manifests', action='store_false',
+        help=(
+            'Do not download HLS/DASH manifests. Each manifest is reported as a single format '
+            'with "manifest_url" set, so that an external player can open the manifest itself. '
+            'Meant for use with --dump-json'))
     _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [
         val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(
