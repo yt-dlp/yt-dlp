@@ -1934,6 +1934,7 @@ from .thechosen import (
     TheChosenGroupIE,
     TheChosenIE,
 )
+from .thegay import TheGayIE
 from .theguardian import (
     TheGuardianPodcastIE,
     TheGuardianPodcastPlaylistIE,
