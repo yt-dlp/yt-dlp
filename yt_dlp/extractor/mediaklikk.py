@@ -1,8 +1,13 @@
+import datetime as dt
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    clean_html,
+    get_element_html_by_class,
+    int_or_none,
+    js_to_json,
     traverse_obj,
     unified_strdate,
     url_or_none,
@@ -110,4 +115,80 @@ class MediaKlikkIE(InfoExtractor):
             'subtitles': subtitles,
             'upload_date': upload_date,
             'thumbnail': player_data.get('bgImage') or self._og_search_thumbnail(webpage),
+        }
+
+
+class MediaKlikkAudioIE(InfoExtractor):
+    IE_DESC = 'MédiaKlikk radio archive (Magyar Rádió)'
+    _VALID_URL = r'''(?x)https?://(?:www\.)?mediaklikk\.hu/audio/
+                        (?P<station>[^/#?]+)/
+                        (?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/(?P<day>[0-9]{1,2})/
+                        (?P<time>[0-9]{1,2}-[0-9]{2})/
+                        (?:[^/#?]+/)?(?P<id>[^/#?]+)'''
+
+    _TESTS = [{
+        'url': 'https://mediaklikk.hu/audio/kossuth-radio/2026/11/24/17-30/esti-kronika/',
+        'info_dict': {
+            'id': '10460064',
+            'ext': 'mp3',
+            'title': 'Esti krónika',
+            'display_id': 'esti-kronika',
+            'channel': 'Kossuth',
+            'channel_id': 'mr1',
+            'release_date': '20261124',
+            'duration': 1800,
+        },
+    }]
+
+    _ARCHIVE_URL = 'https://hangtar-cdn.connectmedia.hu/{begin}/{end}/{channel}.mp3'
+
+    @staticmethod
+    def _parse_datetime(value):
+        try:
+            return dt.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        except (TypeError, ValueError):
+            return None
+
+    def _real_extract(self, url):
+        display_id = self._match_valid_url(url).group('id')
+        webpage = self._download_webpage(url, display_id)
+
+        # The archive player (hms-bob-audio-player) has no API: the page's play button
+        # calls bobPlayer.startPlaying() with the channel and begin/end dates,
+        # from which the player itself builds the CDN URL
+        settings = self._parse_json(self._search_regex(
+            r'bobPlayer\.startPlaying\(\s*(\{[^{}]*?\blive\s*:\s*false\b[^{}]*?\})\s*\)',
+            webpage, 'playback settings', default='{}'), display_id,
+            transform_source=js_to_json, fatal=False)
+        channel_num = traverse_obj(settings, ('channel', {str}))
+        begin = traverse_obj(settings, ('beginDate', {self._parse_datetime}))
+        end = traverse_obj(settings, ('endDate', {self._parse_datetime}))
+        if not (channel_num and begin and end):
+            raise ExtractorError('Unable to extract player data', expected=True)
+
+        setup = self._search_json(
+            r'\bbobapSetup\s*=', webpage, 'player setup', display_id, fatal=False)
+        channel = traverse_obj(setup, ('channels', channel_num, {dict}))
+        short_name = traverse_obj(channel, ('shortName', {str}))
+        if not short_name:
+            raise ExtractorError(f'Unable to find stream name of channel {channel_num}', expected=True)
+
+        return {
+            'id': traverse_obj(settings, ('id', {str})) or display_id,
+            'display_id': display_id,
+            'title': (clean_html(get_element_html_by_class('aod_title', webpage))
+                      or self._og_search_title(webpage, fatal=False)),
+            'formats': [{
+                'url': self._ARCHIVE_URL.format(
+                    begin=begin.strftime('%Y%m%d%H%M%S'), end=end.strftime('%Y%m%d%H%M%S'),
+                    channel=short_name),
+                'format_id': 'http-mp3',
+                'ext': 'mp3',
+                'vcodec': 'none',
+                'acodec': 'mp3',
+            }],
+            'channel': traverse_obj(channel, ('name', {str})),
+            'channel_id': short_name,
+            'release_date': begin.strftime('%Y%m%d'),
+            'duration': int_or_none((end - begin).total_seconds()),
         }
