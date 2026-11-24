@@ -53,7 +53,16 @@ with contextlib.suppress(Exception):
 
 class WebsocketsResponseAdapter(WebSocketResponse):
 
+    @classmethod
+    def from_context(cls, ws_context, url):
+        with contextlib.ExitStack() as stack:
+            response = cls(stack.enter_context(ws_context), url)
+            response._stack = stack.pop_all()
+            return response
+
     def __init__(self, ws: websockets.sync.client.ClientConnection, url):
+        self._ws = ws
+        self._stack = None
         super().__init__(
             fp=io.BytesIO(ws.response.body or b''),
             url=url,
@@ -61,11 +70,16 @@ class WebsocketsResponseAdapter(WebSocketResponse):
             status=ws.response.status_code,
             reason=ws.response.reason_phrase,
         )
-        self._ws = ws
 
     def close(self):
-        self._ws.close()
-        super().close()
+        try:
+            if self._stack is None:
+                self._ws.close()
+            else:
+                self._stack.close()
+        finally:
+            if hasattr(self, 'fp'):
+                super().close()
 
     def send(self, message):
         # https://websockets.readthedocs.io/en/stable/reference/sync/client.html#websockets.sync.client.ClientConnection.send
@@ -142,6 +156,7 @@ class WebsocketsRH(WebSocketRequestHandler):
         }
         proxy = select_proxy(request.url, self._get_proxies(request))
         try:
+            ssl_ctx = self._make_sslcontext(legacy_ssl_support=request.extensions.get('legacy_ssl'))
             if proxy:
                 socks_proxy_options = make_socks_proxy_opts(proxy)
                 sock = create_connection(
@@ -155,22 +170,34 @@ class WebsocketsRH(WebSocketRequestHandler):
                     address=(wsuri.host, wsuri.port),
                     **create_conn_kwargs,
                 )
-            ssl_ctx = self._make_sslcontext(legacy_ssl_support=request.extensions.get('legacy_ssl'))
-            conn = websockets.sync.client.connect(
-                sock=sock,
-                uri=request.url,
-                additional_headers=headers,
-                open_timeout=timeout,
-                user_agent_header=None,
-                ssl=ssl_ctx if wsuri.secure else None,
-                close_timeout=0,  # not ideal, but prevents yt-dlp hanging
-                # Workaround for websockets>=17.1 support:
-                # connect() is intended to be used as a context manager and other usage has been deprecated.
-                # The `legacy` flag was added in 17.1 for backwards compat and has not yet been deprecated.
-                # Ref: https://github.com/python-websockets/websockets/commit/1f7f0e537233ac82e4ca51921678963c696c8c08
-                **({'legacy': True} if websockets_version >= (17, 1) else {}),
-            )
-            return WebsocketsResponseAdapter(conn, url=request.url)
+
+            try:
+                ws_context = websockets.sync.client.connect(
+                    sock=sock,
+                    uri=request.url,
+                    additional_headers=headers,
+                    open_timeout=timeout,
+                    user_agent_header=None,
+                    ssl=ssl_ctx if wsuri.secure else None,
+                    close_timeout=0,  # not ideal, but prevents yt-dlp hanging
+                )
+                return WebsocketsResponseAdapter.from_context(ws_context, url=request.url)
+            except Exception as e:
+                status_error = next((
+                    error for error in (e, e.__cause__, e.__context__)
+                    if isinstance(error, websockets.exceptions.InvalidStatus)
+                ), None)
+                if status_error is None:
+                    raise
+
+                raise HTTPError(
+                    Response(
+                        fp=io.BytesIO(status_error.response.body),
+                        url=request.url,
+                        headers=status_error.response.headers,
+                        status=status_error.response.status_code,
+                        reason=status_error.response.reason_phrase),
+                ) from e
 
         # Exceptions as per https://websockets.readthedocs.io/en/stable/reference/sync/client.html
         except SocksProxyError as e:
@@ -181,14 +208,5 @@ class WebsocketsRH(WebSocketRequestHandler):
             raise CertificateVerifyError(cause=e) from e
         except ssl.SSLError as e:
             raise SSLError(cause=e) from e
-        except websockets.exceptions.InvalidStatus as e:
-            raise HTTPError(
-                Response(
-                    fp=io.BytesIO(e.response.body),
-                    url=request.url,
-                    headers=e.response.headers,
-                    status=e.response.status_code,
-                    reason=e.response.reason_phrase),
-            ) from e
         except (OSError, TimeoutError, websockets.exceptions.WebSocketException) as e:
             raise TransportError(cause=e) from e
