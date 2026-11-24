@@ -1,204 +1,190 @@
-import json
-import re
+import itertools
+import operator
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
-    float_or_none,
     int_or_none,
     parse_iso8601,
+    parse_qs,
+    str_or_none,
     strip_or_none,
+    unified_strdate,
+    url_or_none,
 )
+from ..utils.traversal import traverse_obj
 
 
 class ToggleIE(InfoExtractor):
     IE_NAME = 'toggle'
-    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh)/(?:[^/]+/){2,}|toggle:)(?P<id>[0-9]+)'
+    _VALID_URL = r'(?:https?://(?:(?:www\.)?mewatch|video\.toggle)\.sg/(?:en|zh/)?(?!watch/)(?:[^/]+/)|toggle:)(?:(?:[^#?&]+)(?:/|-))?(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'http://www.mewatch.sg/en/series/lion-moms-tif/trailers/lion-moms-premier/343115',
+        'url': 'https://www.mewatch.sg/clips/Cuit-Cuit-Clip-6-Warna-Ramadan-2024-450987',
         'info_dict': {
-            'id': '343115',
+            'id': '450987',
             'ext': 'mp4',
-            'title': 'Lion Moms Premiere',
-            'description': 'md5:aea1149404bff4d7f7b6da11fafd8e6b',
-            'upload_date': '20150910',
-            'timestamp': 1441858274,
+            'title': 'Cuit-Cuit - Clip 6 - Warna Ramadan 2024',
+            'description': 'md5:786469cb5fd4d479ae80976052a3ee43',
+            'average_rating': 0,
+            'duration': 68,
+            'thumbnail': r're:https://(?:[^.]+\.)?togglestatic\.com/shain/v1/dataservice/ResizeImage/.+',
+            'upload_date': '20240408',
         },
         'params': {
-            'skip_download': 'm3u8 download',
+            'skip_download': True,
         },
     }, {
-        'url': 'http://www.mewatch.sg/en/movies/dug-s-special-mission/341413',
+        'url': 'https://www.mewatch.sg/show/New-Stirrings-598293',
+        'info_dict': {
+            'id': '598293',
+            'title': 'New Stirrings',
+        },
+        'playlist_count': 3,
+    }, {
+        'url': 'https://www.mewatch.sg/movie/The-White-Storm-3-Heaven-Or-Hell-589395',
         'only_matching': True,
     }, {
-        'url': 'http://www.mewatch.sg/en/series/28th-sea-games-5-show/28th-sea-games-5-show-ep11/332861',
-        'only_matching': True,
-    }, {
-        'url': 'http://video.toggle.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/clips/seraph-sun-aloysius-will-suddenly-sing-some-old-songs-in-high-pitch-on-set/343331',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/zh/series/zero-calling-s2-hd/ep13/336367',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/series/vetri-s2/webisodes/jeeva-is-an-orphan-vetri-s2-webisode-7/342302',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/movies/seven-days/321936',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.mewatch.sg/en/tv-show/news/may-2017-cna-singapore-tonight/fri-19-may-2017/512456',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.mewatch.sg/en/channels/eleven-plus/401585',
+        'url': 'https://www.mewatch.sg/channels/oktolidays/186574',
         'only_matching': True,
     }]
+    _API_BASE = 'https://cdn.mewatch.sg/api'
 
-    _API_USER = 'tvpapi_147'
-    _API_PASS = '11111'
+    def _call_api(self, item_id, endpoint, query=None, **kwargs):
+        query = {'segments': 'all', **(query or {})}
+        return self._download_json(f'{self._API_BASE}/items/{endpoint}', item_id, query=query, **kwargs)
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
+    def _extract_episode(self, video_id, meta, fatal=False):
+        info = self._call_api(video_id, f'{video_id}/videos', query={'delivery': 'stream,progressive', 'resolution': 'External'}, expected_status=403)
 
-        params = {
-            'initObj': {
-                'Locale': {
-                    'LocaleLanguage': '',
-                    'LocaleCountry': '',
-                    'LocaleDevice': '',
-                    'LocaleUserState': 0,
-                },
-                'Platform': 0,
-                'SiteGuid': 0,
-                'DomainID': '0',
-                'UDID': '',
-                'ApiUser': self._API_USER,
-                'ApiPass': self._API_PASS,
-            },
-            'MediaID': video_id,
-            'mediaType': 0,
-        }
-
-        info = self._download_json(
-            'http://tvpapi.as.tvinci.com/v2_9/gateways/jsonpostgw.aspx?m=GetMediaInfo',
-            video_id, 'Downloading video info json', data=json.dumps(params).encode())
-
-        title = info['MediaName']
+        if isinstance(info, dict):
+            msg = info.get('message')
+            if not fatal:
+                self.report_warning(f'Unable to extract info for episode {video_id} api says: {msg}')
+                return {}
+            raise ExtractorError(msg, expected='permitted' in msg)
 
         formats = []
-        for video_file in info.get('Files', []):
-            video_url, vid_format = video_file.get('URL'), video_file.get('Format')
-            if not video_url or video_url == 'NA' or not vid_format:
-                continue
+        for video_url, vid_format in traverse_obj(info, (
+                lambda _, v: (v.get('url') or 'NA') != 'NA' and v.get('name'),
+                {operator.itemgetter('url', 'name')},
+                {lambda x: x if len(x) == 2 and all(x) else None},
+        )):
             ext = determine_ext(video_url)
-            vid_format = vid_format.replace(' ', '')
-            # if geo-restricted, m3u8 is inaccessible, but mp4 is okay
             if ext == 'm3u8':
-                m3u8_formats = self._extract_m3u8_formats(
+                fmts = self._extract_m3u8_formats(
                     video_url, video_id, ext='mp4', m3u8_id=vid_format,
                     note=f'Downloading {vid_format} m3u8 information',
-                    errnote=f'Failed to download {vid_format} m3u8 information',
-                    fatal=False)
-                for f in m3u8_formats:
-                    # Apple FairPlay Streaming
-                    if '/fpshls/' in f['url']:
-                        continue
-                    formats.append(f)
+                    errnote=f'Failed to download {vid_format} m3u8 information', fatal=False)
             elif ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
+                fmts = self._extract_mpd_formats(
                     video_url, video_id, mpd_id=vid_format,
                     note=f'Downloading {vid_format} MPD manifest',
                     errnote=f'Failed to download {vid_format} MPD manifest',
-                    fatal=False))
+                    fatal=False)
             elif ext == 'ism':
-                formats.extend(self._extract_ism_formats(
+                fmts = self._extract_ism_formats(
                     video_url, video_id, ism_id=vid_format,
                     note=f'Downloading {vid_format} ISM manifest',
                     errnote=f'Failed to download {vid_format} ISM manifest',
-                    fatal=False))
-            elif ext == 'mp4':
-                formats.append({
-                    'ext': ext,
-                    'url': video_url,
-                    'format_id': vid_format,
-                })
-        if not formats:
-            for meta in (info.get('Metas') or []):
-                if (not self.get_param('allow_unplayable_formats')
-                        and meta.get('Key') == 'Encryption' and meta.get('Value') == '1'):
-                    self.report_drm(video_id)
-            # Most likely because geo-blocked if no formats and no DRM
+                    fatal=False)
+            formats.extend(fmts)
 
-        thumbnails = []
-        for picture in info.get('Pictures', []):
-            if not isinstance(picture, dict):
-                continue
-            pic_url = picture.get('URL')
-            if not pic_url:
-                continue
-            thumbnail = {
-                'url': pic_url,
-            }
-            pic_size = picture.get('PicSize', '')
-            m = re.search(r'(?P<width>\d+)[xX](?P<height>\d+)', pic_size)
-            if m:
-                thumbnail.update({
-                    'width': int(m.group('width')),
-                    'height': int(m.group('height')),
-                })
-            thumbnails.append(thumbnail)
-
-        def counter(prefix):
-            return int_or_none(
-                info.get(prefix + 'Counter') or info.get(prefix.lower() + '_counter'))
+        subtitles = {}
+        for sub in traverse_obj(info,(lambda _, x: x.get('subtitlesCollection'), 'subtitlesCollection', lambda _, x: x.get('url'))):
+            url = sub.get('url')
+            subtitles.setdefault(sub.get('languageCode', 'en'), []).append({
+                'url': url,
+                'ext': determine_ext(url),
+            })
 
         return {
             'id': video_id,
-            'title': title,
-            'description': strip_or_none(info.get('Description')),
-            'duration': int_or_none(info.get('Duration')),
-            'timestamp': parse_iso8601(info.get('CreationDate') or None),
-            'average_rating': float_or_none(info.get('Rating')),
-            'view_count': counter('View'),
-            'like_count': counter('Like'),
-            'thumbnails': thumbnails,
+            **traverse_obj(meta, ({
+                'title': ('title', {str_or_none}),
+                'description': ('description', {strip_or_none}),
+                'duration': ('duration', {int_or_none}),
+                'timestamp': ('TheatricalReleaseStart', {parse_iso8601}),
+                'upload_date': ('offers', 0, 'startDate', {unified_strdate}),
+                'average_rating': ('totalUserRatings', {int_or_none}),
+                'is_live': ('type', {lambda x: x.startswith('channel')}),
+                'thumbnails': (
+                    'images', ..., {
+                        'url': {url_or_none},
+                        'width': ({str.lower}, {parse_qs}, 'width', -1, {int_or_none}),
+                        'height': ({str.lower}, {parse_qs}, 'height', -1, {int_or_none}),
+                    }),
+            })),
             'formats': formats,
+            'subtitles': subtitles,
         }
+
+    def _extract_playlist(self, video_id, playlist_meta):
+        def entries(playlist_data):
+            for season in traverse_obj(playlist_data, ('seasons', 'items')):
+                season_title = season.get('title')
+                season_id = season.get('id')
+                for page_num in itertools.count(1):
+                    page = self._call_api(
+                        season_id,
+                        f'{season_id}/children',
+                        note=f'Downloading Season {season_title} page - {page_num}',
+                        query={
+                            'order': 'asc',
+                            'page': page_num,
+                            'page_size': 25,
+                        })
+                    for ep in page.get('items'):
+                        yield self._extract_episode(ep.get('id'), ep)
+                    if page_num == traverse_obj(page, ('paging', 'total')):
+                        break
+
+        return self.playlist_result(entries(playlist_meta), video_id, **traverse_obj(playlist_meta, {
+            'title': ('title', {strip_or_none}),
+            'description': ('description', {strip_or_none}),
+        }))
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        meta = self._call_api(video_id, video_id, query={'expand': 'all'})
+        is_drm = traverse_obj(meta, ('customFields', 'Encryption', {str.lower}), default='')
+        if is_drm == 'true':
+            raise self.report_drm(video_id)
+        if meta['type'] not in ('channel', 'movie', 'episode', 'program'):
+            return self._extract_playlist(video_id, meta)
+        return self._extract_episode(video_id, meta, fatal=True)
 
 
 class MeWatchIE(InfoExtractor):
     IE_NAME = 'mewatch'
     _VALID_URL = r'https?://(?:(?:www|live)\.)?mewatch\.sg/watch/[^/?#&]+-(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'https://www.mewatch.sg/watch/Recipe-Of-Life-E1-179371',
+        'url': 'https://www.mewatch.sg/watch/New-Stirrings-E3-Innovation-and-New-Blood-598958',
         'info_dict': {
-            'id': '1008625',
+            'id': '598958',
             'ext': 'mp4',
-            'title': 'Recipe Of Life 味之道',
-            'timestamp': 1603306526,
-            'description': 'md5:6e88cde8af2068444fc8e1bc3ebf257c',
-            'upload_date': '20201021',
+            'title': 'Ep 3 Innovation and New Blood',
+            'description': 'md5:7f7af43b79465be2961f8277a980c1a0',
+            'average_rating': 0,
+            'duration': 2810,
+            'thumbnail': r're:https://(?:[^.]+\.)?togglestatic\.com/shain/v1/dataservice/ResizeImage/.+',
+            'upload_date': '20251229',
         },
         'params': {
-            'skip_download': 'm3u8 download',
+            'skip_download': True,
         },
     }, {
-        'url': 'https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-搜密。打卡。小红点-S2-E1-176232',
+        'url': 'https://www.mewatch.sg/watch/Sunny-Again-Tomorrow-E2-589705',
         'only_matching': True,
     }, {
-        'url': 'https://www.mewatch.sg/watch/Little-Red-Dot-Detectives-S2-%E6%90%9C%E5%AF%86%E3%80%82%E6%89%93%E5%8D%A1%E3%80%82%E5%B0%8F%E7%BA%A2%E7%82%B9-S2-E1-176232',
+        'url': 'https://www.mewatch.sg/watch/We-Are-Number-1-(Mandarin-dubbed)-E1-589860',
         'only_matching': True,
     }, {
-        'url': 'https://live.mewatch.sg/watch/Recipe-Of-Life-E41-189759',
+        'url': 'https://www.mewatch.sg/watch/The-White-Storm-3-Heaven-Or-Hell-589395',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
         item_id = self._match_id(url)
-        custom_id = self._download_json(
-            'https://cdn.mewatch.sg/api/items/' + item_id,
-            item_id, query={'segments': 'all'})['customId']
         return self.url_result(
-            'toggle:' + custom_id, ToggleIE.ie_key(), custom_id)
+            'toggle:' + item_id, ToggleIE.ie_key(), item_id)
