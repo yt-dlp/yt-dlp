@@ -1942,8 +1942,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # If forcing a player version, the webpage player response must be skipped
         if self._player_js_version != 'actual':
             skipped.add('player_response')
-        # TODO: Remove the line below when player JS variant `tcl` support is solved
-        skipped.add('player_response')
         return skipped
 
     @classmethod
