@@ -1576,6 +1576,7 @@ from .rentv import (
     RENTVArticleIE,
 )
 from .restudy import RestudyIE
+from .retinalatina import RetinaLatinaIE
 from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
 from .ridehome import RideHomeIE
