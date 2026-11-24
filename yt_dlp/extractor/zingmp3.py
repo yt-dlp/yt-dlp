@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import itertools
-import json
 import urllib.parse
 
 from .common import InfoExtractor
@@ -21,6 +20,10 @@ class ZingMp3BaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['VN']
     _DOMAIN = 'https://zingmp3.vn'
     _PER_PAGE = 50
+    _API_KEY = 'X5BM3w8N7MKozC0B85o4KMlzLZKhV00y'
+    _API_SECRET = b'acOrvUS15XRW2o9JksiK1KgQ6Vbds8ZW'
+    _API_VERSION = '1.19.1'
+    _SIGNED_PARAMS = ('ctime', 'id', 'type', 'page', 'count', 'version')
     _API_SLUGS = {
         # Audio/video
         'bai-hat': '/api/v2/page/get/song',
@@ -29,16 +32,9 @@ class ZingMp3BaseIE(InfoExtractor):
         'lyric': '/api/v2/lyric/get/lyric',
         'song-streaming': '/api/v2/song/get/streaming',
         'liveradio': '/api/v2/livestream/get/info',
-        'eps': '/api/v2/page/get/podcast-episode',
-        'episode-streaming': '/api/v2/podcast/episode/get/streaming',
         # Playlist
         'playlist': '/api/v2/page/get/playlist',
         'album': '/api/v2/page/get/playlist',
-        'pgr': '/api/v2/page/get/podcast-program',
-        'pgr-list': '/api/v2/podcast/episode/get/list',
-        'cgr': '/api/v2/page/get/podcast-category',
-        'cgr-list': '/api/v2/podcast/program/get/list-by-cate',
-        'cgrs': '/api/v2/page/get/podcast-categories',
         # Chart
         'zing-chart': '/api/v2/page/get/chart-home',
         'zing-chart-tuan': '/api/v2/page/get/week-chart',
@@ -51,20 +47,27 @@ class ZingMp3BaseIE(InfoExtractor):
         'hub': '/api/v2/page/get/hub-detail',
         'new-release': '/api/v2/chart/get/new-release',
         'top100': '/api/v2/page/get/top-100',
-        'podcast-new': '/api/v2/podcast/program/get/list-by-type',
-        'top-podcast': '/api/v2/podcast/program/get/top-episode',
     }
 
     def _api_url(self, url_type, params):
         api_slug = self._API_SLUGS[url_type]
-        params.update({'ctime': '1'})
-        sha256 = hashlib.sha256(
-            ''.join(f'{k}={v}' for k, v in sorted(params.items())).encode()).hexdigest()
+        params = {
+            **params,
+            'ctime': '1',
+            'version': self._API_VERSION,
+        }
+        sign_params = {
+            k: v for k, v in sorted(params.items())
+            if k in self._SIGNED_PARAMS and v not in (None, '')
+        }
+        hash_input = ''.join(
+            f'{urllib.parse.quote(str(k), safe="")}={urllib.parse.quote(str(v), safe="")}'
+            for k, v in sign_params.items())
+        sha256 = hashlib.sha256(hash_input.encode()).hexdigest()
         data = {
             **params,
-            'apiKey': 'X5BM3w8N7MKozC0B85o4KMlzLZKhV00y',
-            'sig': hmac.new(b'acOrvUS15XRW2o9JksiK1KgQ6Vbds8ZW',
-                            f'{api_slug}{sha256}'.encode(), hashlib.sha512).hexdigest(),
+            'apiKey': self._API_KEY,
+            'sig': hmac.new(self._API_SECRET, f'{api_slug}{sha256}'.encode(), hashlib.sha512).hexdigest(),
         }
         return f'{self._DOMAIN}{api_slug}?{urllib.parse.urlencode(data)}'
 
@@ -98,7 +101,7 @@ class ZingMp3BaseIE(InfoExtractor):
 
 
 class ZingMp3IE(ZingMp3BaseIE):
-    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip|embed|eps'
+    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip|embed'
     IE_NAME = 'zingmp3'
     IE_DESC = 'zingmp3.vn'
     _TESTS = [{
@@ -119,10 +122,12 @@ class ZingMp3IE(ZingMp3BaseIE):
             'artist': 'Bảo Thy',
             'album': 'Special Album',
             'album_artist': 'Bảo Thy',
+            'artists': ['Bảo Thy'],
+            'album_artists': ['Bảo Thy'],
         },
     }, {
         'url': 'https://zingmp3.vn/video-clip/Suong-Hoa-Dua-Loi-K-ICM-RYO/ZO8ZF7C7.html',
-        'md5': '92c6e7a019f06b4682a6c35ae5785fab',
+        'md5': '83a362d2975463cb022e00476174a6d7',
         'info_dict': {
             'id': 'ZO8ZF7C7',
             'title': 'Sương Hoa Đưa Lối',
@@ -133,6 +138,8 @@ class ZingMp3IE(ZingMp3BaseIE):
             'artist': 'K-ICM, RYO',
             'album': 'Sương Hoa Đưa Lối (Single)',
             'album_artist': 'K-ICM, RYO',
+            'artists': ['K-ICM', 'RYO'],
+            'album_artists': ['K-ICM', 'RYO'],
         },
     }, {
         'url': 'https://zingmp3.vn/bai-hat/Nguoi-Yeu-Toi-Lanh-Lung-Sat-Da-Mr-Siro/ZZ6IW7OU.html',
@@ -147,24 +154,25 @@ class ZingMp3IE(ZingMp3BaseIE):
             'artist': 'Mr. Siro',
             'album': 'Người Yêu Tôi Lạnh Lùng Sắt Đá (Single)',
             'album_artist': 'Mr. Siro',
-        },
-    }, {
-        'url': 'https://zingmp3.vn/eps/Cham-x-Ban-Noi-Goi-La-Nha/ZZD9ACWI.html',
-        'md5': 'd52f9f63e2631e004e4f15188eedcf80',
-        'info_dict': {
-            'id': 'ZZD9ACWI',
-            'title': 'Chạm x Bạn - Nơi Gọi Là Nhà',
-            'ext': 'mp3',
-            'duration': 3716,
-            'thumbnail': r're:^https?://.+\.jpg',
-            'track': 'Chạm x Bạn - Nơi Gọi Là Nhà',
-            'artist': 'On Air',
-            'album': 'Top Podcast',
-            'album_artist': 'On Air',
+            'artists': ['Mr. Siro'],
+            'album_artists': ['Mr. Siro'],
         },
     }, {
         'url': 'https://zingmp3.vn/embed/song/ZWZEI76B?start=false',
-        'only_matching': True,
+        'md5': '54e24a19b276359dbd4e4ca45d2b5845',
+        'info_dict': {
+            'id': 'ZWZEI76B',
+            'title': 'Everytime I Look Into Your Eyes',
+            'ext': 'mp3',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'duration': 294,
+            'track': 'Everytime I Look Into Your Eyes',
+            'artist': 'Bảo Thy',
+            'album': 'Special Album',
+            'album_artist': 'Bảo Thy',
+            'artists': ['Bảo Thy'],
+            'album_artists': ['Bảo Thy'],
+        },
     }, {
         'url': 'https://zingmp3.vn/bai-hat/Xa-Mai-Xa-Bao-Thy/ZWZB9WAB.html',
         'only_matching': True,
@@ -177,12 +185,6 @@ class ZingMp3IE(ZingMp3BaseIE):
         item_id = item.get('encodeId') or song_id
         if url_type == 'video-clip':
             source = item.get('streaming')
-            source['mp4'] = self._download_json(
-                'http://api.mp3.zing.vn/api/mobile/video/getvideoinfo', item_id,
-                query={'requestdata': json.dumps({'id': item_id})},
-                note='Downloading mp4 JSON metadata').get('source')
-        elif url_type == 'eps':
-            source = self._call_api('episode-streaming', {'id': item_id})
         else:
             source = self._call_api('song-streaming', {'id': item_id})
 
@@ -286,13 +288,7 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'top100',
         },
-        'playlist_mincount': 50,
-    }, {
-        'url': 'https://zingmp3.vn/podcast-discover',
-        'info_dict': {
-            'id': 'podcast-discover',
-        },
-        'playlist_mincount': 4,
+        'playlist_mincount': 30,
     }]
     IE_NAME = 'zingmp3:chart-home'
 
@@ -399,7 +395,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - bai-hat',
-            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
+            'description': 'md5:9ee6811c4de9407ee16593e4f2f6ad90',
         },
         'playlist_mincount': 91,
     }, {
@@ -407,7 +403,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - album',
-            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
+            'description': 'md5:9ee6811c4de9407ee16593e4f2f6ad90',
         },
         'playlist_mincount': 3,
     }, {
@@ -415,7 +411,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - single',
-            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
+            'description': 'md5:9ee6811c4de9407ee16593e4f2f6ad90',
         },
         'playlist_mincount': 20,
     }, {
@@ -423,9 +419,9 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - video',
-            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
+            'description': 'md5:9ee6811c4de9407ee16593e4f2f6ad90',
         },
-        'playlist_mincount': 15,
+        'playlist_mincount': 5,
     }, {
         'url': 'https://zingmp3.vn/new-release/song',
         'info_dict': {
@@ -559,70 +555,3 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
                 'description': 'description',
             }, get_all=False),
         }
-
-
-class ZingMp3PodcastEpisodeIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:podcast-episode'
-    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr|cgr'
-    _TESTS = [{
-        'url': 'https://zingmp3.vn/pgr/Nhac-Moi-Moi-Ngay/68Z9W66B.html',
-        'info_dict': {
-            'id': '68Z9W66B',
-            'title': 'Nhạc Mới Mỗi Ngày',
-            'description': 'md5:2875dfa951f8e5356742f1610cf20691',
-        },
-        'playlist_mincount': 20,
-    }, {
-        'url': 'https://zingmp3.vn/cgr/Am-nhac/IWZ980AO.html',
-        'info_dict': {
-            'id': 'IWZ980AO',
-            'title': 'Âm nhạc',
-        },
-        'playlist_mincount': 2,
-    }]
-
-    def _fetch_page(self, eps_id, url_type, page):
-        return self._call_api(url_type, {
-            'id': eps_id,
-            'page': page,
-            'count': self._PER_PAGE,
-        })
-
-    def _real_extract(self, url):
-        podcast_id, url_type = self._match_valid_url(url).group('id', 'type')
-        podcast_info = self._call_api(url_type, {'id': podcast_id})
-        entries = self._paged_list(podcast_id, 'pgr-list' if url_type == 'pgr' else 'cgr-list')
-        return self.playlist_result(
-            entries, podcast_id, podcast_info.get('title'), podcast_info.get('description'))
-
-
-class ZingMp3PodcastIE(ZingMp3BaseIE):
-    IE_NAME = 'zingmp3:podcast'
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:cgr|top-podcast|podcast-new))/?(?:[#?]|$)'
-    _TESTS = [{
-        'url': 'https://zingmp3.vn/cgr',
-        'info_dict': {
-            'id': 'cgr',
-        },
-        'playlist_mincount': 5,
-    }, {
-        'url': 'https://zingmp3.vn/top-podcast',
-        'info_dict': {
-            'id': 'top-podcast',
-        },
-        'playlist_mincount': 7,
-    }, {
-        'url': 'https://zingmp3.vn/podcast-new',
-        'info_dict': {
-            'id': 'podcast-new',
-        },
-        'playlist_mincount': 4,
-    }]
-
-    def _real_extract(self, url):
-        url_type = self._match_id(url)
-        params = {'id': url_type}
-        if url_type == 'podcast-new':
-            params['type'] = 'new'
-        items = self._call_api('cgrs' if url_type == 'cgr' else url_type, params)['items']
-        return self.playlist_result(self._parse_items(items), url_type)
