@@ -860,7 +860,7 @@ class VKPlayBaseIE(InfoExtractor):
         return traverse_obj(stream_info, {
             'id': ('id', {str_or_none}),
             'title': ('title', {str}),
-            'release_timestamp': ('startTime', {int_or_none}),
+            'release_timestamp': (('startTime', 'plannedAt'), {int_or_none}),
             'thumbnail': ('previewUrl', {url_or_none}),
             'view_count': ('count', 'views', {int_or_none}),
             'like_count': ('count', 'likes', {int_or_none}),
@@ -917,7 +917,7 @@ class VKPlayIE(VKPlayBaseIE):
 
 
 class VKPlayLiveIE(VKPlayBaseIE):
-    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)/?(?:[#?]|$)'
+    _VALID_URL = rf'{VKPlayBaseIE._BASE_URL_RE}(?P<id>[^/#?]+)(?:/stream/(?P<stream_id>sl_[^/#?]+))?/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://vkplay.live/bayda',
         'info_dict': {
@@ -943,19 +943,43 @@ class VKPlayLiveIE(VKPlayBaseIE):
     }, {
         'url': 'https://live.vkvideo.ru/panterka',
         'only_matching': True,
+    }, {
+        'url': 'https://live.vkvideo.ru/sportcastnhl/stream/sl_519058',
+        'only_matching': True,
+    },{
+        'url': 'https://live.vkvideo.ru/channel31804066/stream/sl_503220?tab=slots',
+        'only_matching': True,
+    },{
+        'url': 'https://live.vkvideo.ru/channel31804066/stream/sl_503232/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        username = self._match_id(url)
+        username, stream_id = self._match_valid_url(url).group('id', 'stream_id')
+        video_id = f'{username}/{stream_id}' if stream_id else username
 
-        stream_info = self._download_json(
-            f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', username, fatal=False)
+        if stream_id:
+            stream_info = traverse_obj(self._download_json(
+                f'https://api.vkplay.live/v1/channel/{username}/stream/slot/{stream_id}', video_id, fatal=False), ('data', 'stream', {dict}))
+        else:
+            stream_info = self._download_json(
+                f'https://api.vkplay.live/v1/blog/{username}/public_video_stream', video_id, fatal=False)
+            
         if not stream_info:
-            stream_info = self._extract_from_initial_state(url, username, ('stream', 'stream', 'data', 'stream'))
+            stream_info = self._extract_from_initial_state(url, video_id, ('stream', 'stream', 'data', 'stream'))
 
-        formats = self._extract_formats(stream_info, username)
+        formats = self._extract_formats(stream_info, video_id)
         if not formats and not traverse_obj(stream_info, ('isOnline', {bool})):
-            raise UserNotLive(video_id=username)
+            if not traverse_obj(stream_info, ('plannedAt', {int_or_none})):
+                raise UserNotLive(video_id=video_id)
+            
+            self.raise_no_formats('This live event has not started', expected=True, video_id=video_id)
+            
+            return {
+                **self._extract_common_meta(stream_info),
+                'is_live': None,
+                'live_status': 'is_upcoming'
+            }
 
         return {
             **self._extract_common_meta(stream_info),
