@@ -402,7 +402,8 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     (default)
     --live-from-start               Download livestreams from the start.
                                     Currently experimental and only supported
-                                    for YouTube, Twitch, TVer, and mellow-fan
+                                    for YouTube, Twitch, TVer, mellow-fan, and
+                                    WhoWatch
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
