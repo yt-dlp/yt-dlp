@@ -1412,6 +1412,10 @@ from .pinterest import (
     PinterestCollectionIE,
     PinterestIE,
 )
+from .pixabay import (
+    PixabaySoundMusicIE,
+    PixabayVideosIE,
+)
 from .platzi import (
     PlatziCourseIE,
     PlatziIE,
