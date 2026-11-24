@@ -3107,7 +3107,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if client == 'tv_downgraded':
                 player_url = self._construct_player_url(
                     player_id=self._extract_player_info(self._extract_player_url(new_player_ytcfg, raw=True)),
-                    variant='tv_tcl')
+                    variant=self._DEFAULT_PLAYER_JS_VARIANT_STS_V8)
             else:
                 player_url = self._extract_player_url(
                     *filter(None, (webpage_ytcfg if client == webpage_client else None, new_player_ytcfg)))
