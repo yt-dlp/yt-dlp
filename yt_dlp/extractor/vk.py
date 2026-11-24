@@ -168,18 +168,35 @@ class VKIE(VKBaseIE):
             },
         },
         {
-            'note': 'Embedded video',
+            'note': 'Embedded video, apiPrefetchCache format',
             'url': 'https://vk.com/video_ext.php?oid=-77521&id=162222515&hash=87b046504ccd8bfa',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
-                'uploader': 're:(?:Noize MC|Alexander Ilyashenko).*',
                 'title': 'ProtivoGunz - Хуёвая песня',
+                'description': 'Видео из официальной группы Noize MC\nhttp://vk.com/noizemc',
                 'duration': 195,
-                'upload_date': '20120212',
                 'timestamp': 1329049880,
-                'uploader_id': '39545378',
-                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
+                'upload_date': '20120212',
+                'thumbnail': r're:https?://.+',
+                'view_count': int,
+                'like_count': int,
+            },
+            'params': {'skip_download': 'm3u8'},
+        },
+        {
+            'note': 'Embedded video, apiPrefetchCache format',
+            'url': 'https://vk.com/video_ext.php?oid=646754736&id=456239022&hd=2',
+            'info_dict': {
+                'id': '646754736_456239022',
+                'ext': 'mp4',
+                'title': 'Beyblade.S01E24.Viva Las Vegas',
+                'duration': 1316,
+                'timestamp': 1739401764,
+                'upload_date': '20250212',
+                'thumbnail': r're:https?://.+',
+                'view_count': int,
+                'like_count': int,
             },
             'params': {'skip_download': 'm3u8'},
         },
@@ -394,6 +411,7 @@ class VKIE(VKBaseIE):
         video_id = mobj.group('videoid')
 
         mv_data = {}
+        is_embedded = not video_id
         if video_id:
             data = {
                 'act': 'show',
@@ -466,10 +484,6 @@ class VKIE(VKBaseIE):
                 if re.search(error_re, info_page):
                     raise ExtractorError(error_msg % video_id, expected=True)
 
-            player = self._parse_json(self._search_regex(
-                r'var\s+playerParams\s*=\s*({.+?})\s*;\s*\n',
-                info_page, 'player params'), video_id)
-
         youtube_url = YoutubeIE._extract_url(info_page)
         if youtube_url:
             return self.url_result(youtube_url, YoutubeIE.ie_key())
@@ -505,6 +519,58 @@ class VKIE(VKBaseIE):
                 if opts_url.startswith('//'):
                     opts_url = 'https:' + opts_url
                 return self.url_result(opts_url)
+
+        if is_embedded:
+            api_data = traverse_obj(
+                self._search_json(
+                    r'window\.cur\s*=\s*Object\.assign\(window\.cur\s*\|\|\s*\{\}\s*,',
+                    info_page, 'api data', video_id, default=None),
+                ('apiPrefetchCache', lambda _, v: v['method'] == 'video.get',
+                 'response', 'items', 0, any))
+            if api_data:
+                formats = []
+                subtitles = {}
+                for format_id, format_url in (api_data.get('files') or {}).items():
+                    format_url = url_or_none(format_url)
+                    if not format_url:
+                        continue
+                    if format_id.startswith('mp4_'):
+                        formats.append({
+                            'format_id': format_id,
+                            'url': format_url,
+                            'ext': 'mp4',
+                            'height': int_or_none(format_id[4:]),
+                        })
+                    elif format_id.startswith('hls'):
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                            format_url, video_id, 'mp4', 'm3u8_native',
+                            m3u8_id=format_id, fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
+                    elif format_id.startswith('dash'):
+                        fmts, subs = self._extract_mpd_formats_and_subtitles(
+                            format_url, video_id, mpd_id=format_id, fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
+
+                return {
+                    'id': video_id,
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    **traverse_obj(api_data, {
+                        'title': ('title', {str}, {unescapeHTML}),
+                        'description': ('description', {clean_html}, filter),
+                        'thumbnail': ('image', -1, 'url', {url_or_none}),
+                        'duration': ('duration', {int_or_none}),
+                        'timestamp': ('date', {int_or_none}),
+                        'view_count': ('views', {int_or_none}),
+                        'like_count': ('likes', 'count', {int_or_none}),
+                    }),
+                }
+
+            player = self._parse_json(self._search_regex(
+                r'var\s+playerParams\s*=\s*({.+?})\s*;\s*\n',
+                info_page, 'player params'), video_id)
 
         data = player['params'][0]
 
