@@ -7,7 +7,6 @@ import xml.etree.ElementTree
 from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
-from ..compat import compat_etree_fromstring
 from ..cookies import LenientSimpleCookie
 from ..networking.exceptions import HTTPError
 from ..networking.impersonate import ImpersonateTarget
@@ -923,10 +922,7 @@ class GenericIE(InfoExtractor):
 
         # Is it an RSS feed, a SMIL file, an XSPF playlist or a MPD manifest?
         try:
-            try:
-                doc = compat_etree_fromstring(webpage)
-            except xml.etree.ElementTree.ParseError:
-                doc = compat_etree_fromstring(webpage.encode())
+            doc = xml.etree.ElementTree.fromstring(webpage)
             if doc.tag == 'rss':
                 self.report_detected('RSS feed')
                 return self._extract_rss(url, video_id, doc)

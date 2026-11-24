@@ -1,6 +1,5 @@
 import datetime as dt
 import os
-import xml.etree.ElementTree as etree
 
 from .compat_utils import passthrough_module
 
@@ -12,15 +11,6 @@ del passthrough_module
 # Keep a replacement for API compatibility and uniform exception handling.
 class compat_HTMLParseError(ValueError):
     pass
-
-
-class _TreeBuilder(etree.TreeBuilder):
-    def doctype(self, name, pubid, system):
-        pass
-
-
-def compat_etree_fromstring(text):
-    return etree.XML(text, parser=etree.XMLParser(target=_TreeBuilder()))
 
 
 def compat_ord(c):
