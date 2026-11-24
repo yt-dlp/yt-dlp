@@ -6,6 +6,7 @@ import io
 import logging
 import ssl
 import sys
+from email.message import Message
 
 from ._helper import (
     create_connection,
@@ -54,10 +55,13 @@ with contextlib.suppress(Exception):
 class WebsocketsResponseAdapter(WebSocketResponse):
 
     def __init__(self, ws: websockets.sync.client.ClientConnection, url):
+        headers = Message()
+        for name, value in ws.response.headers.raw_items():
+            headers.add_header(name, value)
         super().__init__(
             fp=io.BytesIO(ws.response.body or b''),
             url=url,
-            headers=ws.response.headers,
+            headers=headers,
             status=ws.response.status_code,
             reason=ws.response.reason_phrase,
         )
