@@ -94,6 +94,38 @@ class TestAES(unittest.TestCase):
                 data, bytes(self.key), authentication_tag, bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg[:16])
 
+    def test_gcm_carry_decrypt(self):
+        """
+        With this crafted 16B IV, j0 ends in 32 ones (ffff ffff) after the first GHASH.
+        This test makes sure "inc 32" is used instead of inc 128
+        """
+        magic_iv = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00[\xc7\xf3\x8a'
+        ciphtext = b'\x8aXT\x9c@\xdc"\xe6\x81\n \x1bs\x97\x9fL\x0e*\x03\xaeDi\xaf\xa9'
+        auth_tag = b'\x84\xe8(\x87\x93\xa6r\xf0\xb9\x99\x08f\xe1Zv\xbd'
+        if Cryptodome.AES:
+            gotplain = aes_gcm_decrypt_and_verify_bytes(
+                ciphtext, bytes(self.key), auth_tag, magic_iv)
+            self.assertEqual(gotplain, self.secret_msg)
+        gotplain = bytes(aes_gcm_decrypt_and_verify(
+            *map(list, (ciphtext, self.key, auth_tag, magic_iv))))
+        self.assertEqual(gotplain, self.secret_msg)
+
+    def test_gcm_carry2_decrypt(self):
+        """
+        ffff fffe to test aes-ctr increment with nonce
+        """
+        magic_iv = b'^9m\x17\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00'
+        ciphtext = b'N\xe1#sP\x96\xe9&\xbd\xd6\xb9\xf7 \x88\x0b\n\xecM\xb3\x00\xa6\x97\xf7\x93'
+        auth_tag = b'7I\x05~\xe0\x81<\x9b\xc2J9w\x81\xc2\x88\xa5'
+
+        if Cryptodome.AES:
+            gotplain = aes_gcm_decrypt_and_verify_bytes(
+                ciphtext, bytes(self.key), auth_tag, magic_iv)
+            self.assertEqual(gotplain, self.secret_msg)
+        gotplain = bytes(aes_gcm_decrypt_and_verify(
+            *map(list, (ciphtext, self.key, auth_tag, magic_iv))))
+        self.assertEqual(gotplain, self.secret_msg)
+
     def test_decrypt_text(self):
         password = bytes(self.key).decode()
         encrypted = base64.b64encode(
