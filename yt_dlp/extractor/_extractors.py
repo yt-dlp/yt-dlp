@@ -924,6 +924,7 @@ from .lecture2go import Lecture2GoIE
 from .lecturio import (
     LecturioCourseIE,
     LecturioDeCourseIE,
+    LecturioDeIE,
     LecturioIE,
 )
 from .leeco import (
