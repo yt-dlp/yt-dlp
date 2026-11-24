@@ -20,7 +20,7 @@ from ..utils.traversal import traverse_obj
 
 
 class PanoptoBaseIE(InfoExtractor):
-    BASE_URL_RE = r'(?P<base_url>https?://[\w.-]+\.panopto.(?:com|eu)/Panopto)'
+    BASE_URL_RE = r'(?P<base_url>https?://(?:[\w-]+\.)*panopto(?:\.[\w-]+)+/Panopto)'
 
     # see panopto core.js
     _SUB_LANG_MAPPING = {
@@ -223,6 +223,9 @@ class PanoptoIE(PanoptoBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
+        'only_matching': True,
+    }, {
+        'url': 'https://panopto.dtu.dk/Panopto/Pages/Viewer.aspx?id=f9c4c308-c299-4c49-89f6-af5b008849e8',
         'only_matching': True,
     }]
     _WEBPAGE_TESTS = [{
