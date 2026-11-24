@@ -34,7 +34,8 @@ class OpencastBaseIE(InfoExtractor):
                             cursosabertos\.c3sl\.ufpr\.br|
                             mcmedia\.missioncollege\.org|
                             clases\.odon\.edu\.uy|
-                            oc-p\.uni-jena\.de
+                            oc-p\.uni-jena\.de|
+                            electures\.h-da\.de
                         )'''
     _UUID_RE = r'[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
 
@@ -127,6 +128,15 @@ class OpencastIE(OpencastBaseIE):
                 'series': 'Kryptographie - WiSe 15/16',
                 'creator': 'Alexander May',
             },
+        },
+        {
+            'url': 'https://electures.h-da.de/paella7/ui/watch.html?id=f3694c96-be64-42d9-a743-d0c5320fabe4',
+            'info_dict': {
+                'id': 'f3694c96-be64-42d9-a743-d0c5320fabe4',
+                'ext': 'mp4',
+                'thumbnail': r're:^https?://.*',
+            },
+            'params': {'skip_download': True},
         },
     ]
 
