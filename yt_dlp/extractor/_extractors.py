@@ -1011,7 +1011,10 @@ from .mbn import MBNIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
 from .mediaite import MediaiteIE
-from .mediaklikk import MediaKlikkIE
+from .mediaklikk import (
+    MediaKlikkAudioIE,
+    MediaKlikkIE,
+)
 from .medialaan import MedialaanIE
 from .mediaset import (
     MediasetIE,
