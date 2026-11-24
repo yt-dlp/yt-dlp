@@ -40,9 +40,13 @@ class TwitchBaseIE(InfoExtractor):
     _LOGIN_POST_URL = 'https://passport.twitch.tv/login'
     _NETRC_MACHINE = 'twitch'
 
+    # Static title for streams without a title set.
+    _UNTITLED_BROADCAST = 'Untitled Broadcast'
+
     _OPERATION_HASHES = {
         'CollectionSideBar': '016e1e4ccee0eb4698eb3bf1a04dc1c077fb746c78c82bac9a8f0289658fbd1a',
         'FilterableVideoTower_Videos': '67004f7881e65c297936f32c75246470629557a393788fb5a69d6d9a25a8fd5f',
+        'ClipsCards__Game': 'cc14976959c8f31c617e956a7c4c32216c3e04f6b586088b7bf49561c35e841b',
         'ClipsCards__User': '1cd671bfa12cec480499c087319f26d21925e9695d1f80225aae6a4354f23088',
         'ShareClipRenderStatus': '2db6a3b20eabf510bd3cf465ae2408834b59eb6b8af89ca73ab1486cacecfb63',
         'ChannelCollectionsContent': '5247910a19b1cd2b760939bf4cba4dcbd3d13bdf8c266decd16956f6ef814077',
@@ -278,7 +282,7 @@ class TwitchVodIE(TwitchBaseIE):
         'info_dict': {
             'id': 'v11230755',
             'ext': 'mp4',
-            'title': 'Untitled Broadcast',
+            'title': TwitchBaseIE._UNTITLED_BROADCAST,
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 1638,
             'timestamp': 1439746708,
@@ -472,7 +476,7 @@ class TwitchVodIE(TwitchBaseIE):
                 })
         return {
             'id': info['_id'],
-            'title': info.get('title') or 'Untitled Broadcast',
+            'title': info.get('title') or self._UNTITLED_BROADCAST,
             'description': info.get('description'),
             'duration': int_or_none(info.get('length')),
             'thumbnails': thumbnails,
@@ -648,15 +652,17 @@ class TwitchCollectionIE(TwitchBaseIE):
 
 class TwitchPlaylistBaseIE(TwitchBaseIE):
     _PAGE_LIMIT = 100
+    _DATA_KIND = 'user'
 
     def _entries(self, channel_name, *args):
         """
         Subclasses must define _make_variables() and _extract_entry(),
-        as well as set _OPERATION_NAME, _ENTRY_KIND, _EDGE_KIND, and _NODE_KIND
+        as well as set _OPERATION_NAME, _ENTRY_KIND, _DATA_KIND, _EDGE_KIND, and _NODE_KIND
         """
         cursor = None
         variables_common = self._make_variables(channel_name, *args)
         entries_key = f'{self._ENTRY_KIND}s'
+        data_key = self._DATA_KIND
         for page_num in itertools.count(1):
             variables = variables_common.copy()
             variables['limit'] = self._PAGE_LIMIT
@@ -669,14 +675,23 @@ class TwitchPlaylistBaseIE(TwitchBaseIE):
                 }],
                 f'Downloading {self._NODE_KIND}s GraphQL page {page_num}',
                 fatal=False)
+
             # Avoid extracting random/unrelated entries when channel_name doesn't exist
             # See https://github.com/yt-dlp/yt-dlp/issues/15450
             if traverse_obj(page, (0, 'data', 'user', 'id', {str})) == '':
                 raise ExtractorError(f'Channel "{channel_name}" not found', expected=True)
+
+            # Fail instead of returning zero results if the category doesn't exist.
+            # Used for directory URLs.
+            if data_key == 'game':
+                data = traverse_obj(page, (0, 'data', {dict})) or {}
+                if 'game' in data and data['game'] is None:
+                    raise ExtractorError(f'Category "{channel_name}" not found', expected=True)
+
             if not page:
                 break
             edges = try_get(
-                page, lambda x: x[0]['data']['user'][entries_key]['edges'], list)
+                page, lambda x: x[0]['data'][data_key][entries_key]['edges'], list)
             if not edges:
                 break
             for edge in edges:
@@ -732,14 +747,13 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 754,
     }, {
-        # TODO: Investigate why we get 0 entries
         # Past Broadcasts sorted by Date
-        'url': 'https://www.twitch.tv/spamfish/videos?filter=archives',
+        'url': 'https://www.twitch.tv/gamesdonequick/videos?filter=archives',
         'info_dict': {
-            'id': 'spamfish',
-            'title': 'spamfish - Past Broadcasts sorted by Date',
+            'id': 'gamesdonequick',
+            'title': 'gamesdonequick - Past Broadcasts sorted by Date',
         },
-        'playlist_mincount': 27,
+        'playlist_mincount': 100,
     }, {
         # Highlights sorted by Date
         'url': 'https://www.twitch.tv/spamfish/videos?filter=highlights',
@@ -749,21 +763,19 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         },
         'playlist_mincount': 751,
     }, {
-        # TODO: Investigate why we get 0 entries
         # Uploads sorted by Date
-        'url': 'https://www.twitch.tv/esl_csgo/videos?filter=uploads&sort=time',
+        'url': 'https://www.twitch.tv/eslcs/videos?filter=uploads&sort=time',
         'info_dict': {
-            'id': 'esl_csgo',
-            'title': 'esl_csgo - Uploads sorted by Date',
+            'id': 'eslcs',
+            'title': 'eslcs - Uploads sorted by Date',
         },
         'playlist_mincount': 5,
     }, {
-        # TODO: Investigate why we get 0 entries
         # Past Premieres sorted by Date
-        'url': 'https://www.twitch.tv/spamfish/videos?filter=past_premieres',
+        'url': 'https://www.twitch.tv/blizzard/videos?filter=past_premieres',
         'info_dict': {
-            'id': 'spamfish',
-            'title': 'spamfish - Past Premieres sorted by Date',
+            'id': 'blizzard',
+            'title': 'blizzard - Past Premieres sorted by Date',
         },
         'playlist_mincount': 1,
     }, {
@@ -799,6 +811,7 @@ class TwitchVideosIE(TwitchVideosBaseIE):
         return (False
                 if any(ie.suitable(url) for ie in (
                     TwitchVideosClipsIE,
+                    TwitchDirectoryClipsIE,
                     TwitchVideosCollectionsIE))
                 else super().suitable(url))
 
@@ -818,6 +831,95 @@ class TwitchVideosIE(TwitchVideosBaseIE):
             playlist_title=(
                 f'{channel_name} - {broadcast.label} '
                 f'sorted by {self._SORTED_BY.get(sort, self._DEFAULT_SORTED_BY)}'))
+
+
+class TwitchDirectoryClipsIE(TwitchPlaylistBaseIE):
+    IE_NAME = 'twitch:directory:clips'
+    _VALID_URL = r'https?://(?:(?:www|go|m)\.)?twitch\.tv/directory/category/(?P<id>[^/]+)/clips'
+
+    _TESTS = [{
+        # Clips (defaults to 7d)
+        'url': 'https://www.twitch.tv/directory/category/starcraft/clips',
+        'info_dict': {
+            'id': 'starcraft',
+            'title': 'starcraft - Clips Top 7D',
+        },
+        'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/directory/category/minecraft/clips?range=30d',
+        'info_dict': {
+            'id': 'minecraft',
+            'title': 'minecraft - Clips Top 30D',
+        },
+        'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/directory/category/minecraft/clips?range=all',
+        'info_dict': {
+            'id': 'minecraft',
+            'title': 'minecraft - Clips Top All',
+        },
+        'playlist_mincount': 3,
+    }]
+
+    Clip = collections.namedtuple('Clip', ['filter', 'label'])
+
+    _DEFAULT_CLIP = Clip('LAST_WEEK', 'Top 7D')
+    _RANGE = {
+        '24hr': Clip('LAST_DAY', 'Top 24H'),
+        '7d': _DEFAULT_CLIP,
+        '30d': Clip('LAST_MONTH', 'Top 30D'),
+        'all': Clip('ALL_TIME', 'Top All'),
+    }
+
+    _PAGE_LIMIT = 20
+
+    _OPERATION_NAME = 'ClipsCards__Game'
+    _ENTRY_KIND = 'clip'
+    _DATA_KIND = 'game'
+    _EDGE_KIND = 'ClipEdge'
+    _NODE_KIND = 'Clip'
+
+    @staticmethod
+    def _make_variables(game_name, channel_filter):
+        return {
+            'categorySlug': game_name,
+            'limit': 20,
+            'criteria': {
+                'filter': channel_filter,
+            },
+        }
+
+    @staticmethod
+    def _extract_entry(node):
+        assert isinstance(node, dict)
+        slug = node.get('slug')
+        broadcaster_name = traverse_obj(node, ('broadcaster', 'login'))
+        if not slug or not broadcaster_name:
+            return
+        clip_url = f'https://www.twitch.tv/{broadcaster_name}/clip/{slug}'
+        return {
+            '_type': 'url_transparent',
+            'ie_key': TwitchClipsIE.ie_key(),
+            'id': node.get('id'),
+            'url': clip_url,
+            'title': node.get('title'),
+            'thumbnail': node.get('thumbnailURL'),
+            'duration': float_or_none(node.get('durationSeconds')),
+            'timestamp': unified_timestamp(node.get('createdAt')),
+            'view_count': int_or_none(node.get('viewCount')),
+            'language': node.get('language'),
+        }
+
+    def _real_extract(self, url):
+        game_name = self._match_id(url)
+        qs = parse_qs(url)
+        date_range = qs.get('range', ['7d'])[0]
+        clip = self._RANGE.get(date_range, self._DEFAULT_CLIP)
+
+        return self.playlist_result(
+            self._entries(game_name, clip.filter),
+            playlist_id=game_name,
+            playlist_title=f'{game_name} - Clips {clip.label}')
 
 
 class TwitchVideosClipsIE(TwitchPlaylistBaseIE):
@@ -954,7 +1056,7 @@ class TwitchStreamIE(TwitchVideosBaseIE):
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
-                            (?:(?:www|go|m)\.)?twitch\.tv/|
+                            (?:(?:www|go|m)\.)?twitch\.tv/(?!directory/category/)|
                             player\.twitch\.tv/\?.*?\bchannel=
                         )
                         (?P<id>[^/#?]+)
@@ -993,23 +1095,24 @@ class TwitchStreamIE(TwitchVideosBaseIE):
         'url': 'https://m.twitch.tv/food',
         'only_matching': True,
     }, {
-        'url': 'https://www.twitch.tv/monstercat',
+        'url': 'https://www.twitch.tv/sery_bot',
         'info_dict': {
-            'id': '40500071752',
-            'display_id': 'monstercat',
-            'title': 're:Monstercat',
-            'description': 'md5:0945ad625e615bc8f0469396537d87d9',
+            'id': r're:\d+',
+            'display_id': 'sery_bot',
+            'title': 're:Sery_Bot',
+            'description': str,
             'is_live': True,
-            'timestamp': 1677107190,
-            'upload_date': '20230222',
-            'uploader': 'Monstercat',
-            'uploader_id': 'monstercat',
+            'timestamp': int,
+            'upload_date': r're:\d{8}',
+            'uploader': 'Sery_Bot',
+            'uploader_id': 'sery_bot',
             'live_status': 'is_live',
             'thumbnail': 're:https://.*.jpg',
             'ext': 'mp4',
         },
         'params': {
             'skip_download': 'Livestream',
+            'outtmpl': '%(display_id)s.%(ext)s',
         },
     }]
     _PAGE_LIMIT = 1
