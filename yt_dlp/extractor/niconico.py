@@ -469,7 +469,7 @@ class NiconicoIE(NiconicoBaseIE):
     @staticmethod
     def _extract_heatmap(comment_data, duration):
         heatmap = traverse_obj(comment_data, (
-            'data', 'voltageZone', 'heatmap', ..., {float_or_none}, all))
+            'data', 'voltageZone', 'heatmap', ..., {float_or_none}))
 
         max_value = max(heatmap, default=0)
         if not duration or max_value <= 0:
@@ -559,7 +559,7 @@ class NiconicoIE(NiconicoBaseIE):
             'genres': traverse_obj(api_data, ('genre', 'label', {str}, filter, all, filter)),
             'heatmap': self._extract_heatmap(comment_data, duration),
             'release_timestamp': parse_iso8601(scheduled_time),
-            'subtitles': self.extract_subtitles(comment_data),
+            'subtitles': self._get_subtitles(comment_data),
             'tags': traverse_obj(api_data, ('tag', 'items', ..., 'name', {str}, filter, all, filter)),
             'thumbnails': [{
                 'ext': 'jpg',
