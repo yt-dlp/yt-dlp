@@ -722,10 +722,10 @@ Tip: Use `CTRL`+`F` (or `Command`+`F`)  to search by keywords
                                     The name of the browser to load cookies
                                     from. Currently supported browsers are:
                                     brave, chrome, chromium, edge, firefox,
-                                    opera, safari, vivaldi, whale. Optionally,
-                                    the KEYRING used for decrypting Chromium
-                                    cookies on Linux, the name/path of the
-                                    PROFILE to load cookies from, and the
+                                    helium, opera, safari, vivaldi, whale.
+                                    Optionally, the KEYRING used for decrypting
+                                    Chromium cookies on Linux, the name/path of
+                                    the PROFILE to load cookies from, and the
                                     CONTAINER name (if Firefox) ("none" for no
                                     container) can be given with their
                                     respective separators. By default, all
