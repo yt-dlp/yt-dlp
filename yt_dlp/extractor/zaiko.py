@@ -31,6 +31,8 @@ class ZaikoBaseIE(InfoExtractor):
             if key.startswith(':'):
                 attrs[key[1:]] = self._parse_json(
                     value, video_id, transform_source=unescapeHTML, fatal=False)
+            else:
+                attrs[key] = unescapeHTML(value)
         return attrs
 
 
@@ -82,10 +84,14 @@ class ZaikoIE(ZaikoBaseIE):
             'cancelled': ('not_live', 'Event has been cancelled', True),
         }.get(status) or ('not_live', f'Unknown event status "{status}"', False)
 
-        if traverse_obj(initial_event_info, ('is_jwt_protected', {bool})):
+        is_jwt_protected = traverse_obj(initial_event_info, ('is_jwt_protected', {bool}))
+        if is_jwt_protected:
             stream_url = self._download_json(
                 initial_event_info['jwt_token_url'], video_id, 'Downloading JWT-protected stream URL',
-                'Failed to download JWT-protected stream URL')['playback_url']
+                'Failed to download JWT-protected stream URL', headers={
+                    'Origin': 'https://live.zaiko.services',
+                    'Referer': 'https://live.zaiko.services/',
+                })['playback_url']
         else:
             stream_url = traverse_obj(initial_event_info, ('endpoint', {url_or_none}))
 
@@ -93,6 +99,16 @@ class ZaikoIE(ZaikoBaseIE):
             stream_url, video_id, live=True, fatal=False) if stream_url else []
         if not formats:
             self.raise_no_formats(msg, expected=expected)
+        if is_jwt_protected:
+            for fmt in formats:
+                fmt['protocol'] = 'zaikojwt'
+                fmt['_ping_params'] = {
+                    'interval': traverse_obj(player_meta, ('config', 'status_poll_table', status, {float})) or 60000,
+                    'event_id': traverse_obj(player_meta, ('event_id', {str})),
+                    'external_id': traverse_obj(player_meta, ('external_id', {str})),
+                    'options': traverse_obj(player_meta, ('encoded_options', {str})),
+                    'referrer': stream_meta['stream-access']['video_source'],
+                }
 
         thumbnail_urls = [
             traverse_obj(initial_event_info, ('poster_url', {url_or_none})),
