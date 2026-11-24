@@ -830,8 +830,10 @@ class GenericIE(InfoExtractor):
                 and b'<title>Attention Required! | Cloudflare</title>' not in res.read()
             ):
                 raise
-            cf_cookie_domain = traverse_obj(
-                LenientSimpleCookie(res.get_header('set-cookie')), ('__cf_bm', 'domain'))
+            cookies = LenientSimpleCookie()
+            for header in res.headers.get_all('set-cookie', []):
+                cookies.load(header)
+            cf_cookie_domain = traverse_obj(cookies, ('__cf_bm', 'domain'))
             if cf_cookie_domain:
                 self.write_debug(f'Clearing __cf_bm cookie for {cf_cookie_domain}')
                 self.cookiejar.clear(domain=cf_cookie_domain, path='/', name='__cf_bm')
