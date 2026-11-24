@@ -4,6 +4,57 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2026.11.23
+
+#### Core changes
+- **utils**
+    - `find_xpath_attr`: [Support quotes in attribute values](https://github.com/yt-dlp/yt-dlp/commit/1507b26936b46d8613b3df197184a1fa1530afac) ([#17857](https://github.com/yt-dlp/yt-dlp/issues/17857)) by [doe1080](https://github.com/doe1080)
+    - `random_user_agent`: [Bump version range 145-151 => 151-157](https://github.com/yt-dlp/yt-dlp/commit/d432ab87485473de88f31c696c17815fb2983269) ([#17930](https://github.com/yt-dlp/yt-dlp/issues/17930)) by [dlp-bot](https://github.com/dlp-bot)
+
+#### Extractor changes
+- **arte**: [Fix subtitles extraction](https://github.com/yt-dlp/yt-dlp/commit/49b0a3fc79cc2a430abc7880855906346484685d) ([#17675](https://github.com/yt-dlp/yt-dlp/issues/17675)) by [BlackBadPinguin](https://github.com/BlackBadPinguin)
+- **drtv**
+    - [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/bd9f2b8779ed5d791c04f9f69584b006e784b527) ([#17980](https://github.com/yt-dlp/yt-dlp/issues/17980)) by [almx](https://github.com/almx)
+    - [Fix timestamp extraction](https://github.com/yt-dlp/yt-dlp/commit/0107be4416b40ee00b56d9dfc926652651158aeb) ([#15525](https://github.com/yt-dlp/yt-dlp/issues/15525)) by [andersgb1](https://github.com/andersgb1)
+- **duoplay**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/3b737b81cf0a8b47653fe3efe3f740fbe047122f) ([#18119](https://github.com/yt-dlp/yt-dlp/issues/18119)) by [LillieH1000](https://github.com/LillieH1000)
+- **facebook**
+    - [Detect age-restricted content](https://github.com/yt-dlp/yt-dlp/commit/8f9e23a47eb68816a639096aecfb9d802f83c0a5) ([#18055](https://github.com/yt-dlp/yt-dlp/issues/18055)) by [bashonly](https://github.com/bashonly), [ruben1PvP](https://github.com/ruben1PvP)
+    - [Improve error messages](https://github.com/yt-dlp/yt-dlp/commit/a38fc9a11f9dc519964ea710225ec1944c6444e0) ([#18083](https://github.com/yt-dlp/yt-dlp/issues/18083)) by [ruben1PvP](https://github.com/ruben1PvP)
+- **la7play.it**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/91361cca6ed4313d4ff5516cf150512da6209ba2) ([#17978](https://github.com/yt-dlp/yt-dlp/issues/17978)) by [InvalidUsernameException](https://github.com/InvalidUsernameException)
+- **screenrec**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/01c58db00f12855d2f6ac809c7120eb81bb215f7) ([#18087](https://github.com/yt-dlp/yt-dlp/issues/18087)) by [LillieH1000](https://github.com/LillieH1000)
+- **servus**: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/38a5fb16d142bcd8f051af003f8e1fd0c7078620) ([#17768](https://github.com/yt-dlp/yt-dlp/issues/17768)) by [0xvd](https://github.com/0xvd)
+- **thechosen**: [Support URLs with non-numeric IDs](https://github.com/yt-dlp/yt-dlp/commit/79a40f7ba122c78dcf7e9f6ba7f01d5afe49870d) ([#18109](https://github.com/yt-dlp/yt-dlp/issues/18109)) by [jirijakes](https://github.com/jirijakes)
+- **twitter**
+    - [Rework broadcast extraction](https://github.com/yt-dlp/yt-dlp/commit/4b91f5d702ca592fe25ff7047b082320b76b1166) ([#18111](https://github.com/yt-dlp/yt-dlp/issues/18111)) by [doe1080](https://github.com/doe1080)
+    - spaces: [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/e6275c2b72fe178d54c490c9d775097aa8184457) ([#17962](https://github.com/yt-dlp/yt-dlp/issues/17962)) by [0xvd](https://github.com/0xvd)
+- **youtube**
+    - [Add `ios_producer` player client](https://github.com/yt-dlp/yt-dlp/commit/7940e14e3fdda9b6030053bc5800060e0e416ce1) ([#17866](https://github.com/yt-dlp/yt-dlp/issues/17866)) by [bashonly](https://github.com/bashonly), [TheErrorExe](https://github.com/TheErrorExe)
+    - [Apply temporary STS workaround](https://github.com/yt-dlp/yt-dlp/commit/b2e6bb0dd4ebbe7962389ba911455496d44f36c5) ([#18126](https://github.com/yt-dlp/yt-dlp/issues/18126)) by [bashonly](https://github.com/bashonly) (With fixes in [f31e4c2](https://github.com/yt-dlp/yt-dlp/commit/f31e4c27a1c98cf57ef8e41b080cc202422c049e))
+    - [Do not truncate post-live streams](https://github.com/yt-dlp/yt-dlp/commit/fcfd814ffac6e3c1976ff7c6065386dcfea9f515) ([#18059](https://github.com/yt-dlp/yt-dlp/issues/18059)) by [bashonly](https://github.com/bashonly)
+    - [Fix `web_embedded` client policies and deprioritize](https://github.com/yt-dlp/yt-dlp/commit/ee2559128c7ddc471de5aeaa584a9a4ae6836ec3) ([#18051](https://github.com/yt-dlp/yt-dlp/issues/18051)) by [ruben1PvP](https://github.com/ruben1PvP)
+    - [Fix live adaptive formats with `dashy` extractor-arg](https://github.com/yt-dlp/yt-dlp/commit/f66c9c725ee92c3fc1853ac301ebfb4f40e1bee8) ([#18092](https://github.com/yt-dlp/yt-dlp/issues/18092)) by [bashonly](https://github.com/bashonly)
+    - [Fix post-live fragment generation](https://github.com/yt-dlp/yt-dlp/commit/6c6d09761a0368c19da5795fff4fe4b4276209a4) ([#18058](https://github.com/yt-dlp/yt-dlp/issues/18058)) by [bashonly](https://github.com/bashonly)
+    - [Improve `post_live` status information](https://github.com/yt-dlp/yt-dlp/commit/5aecc65a2a579e5b872e221fd922aca39142e6b9) ([#18063](https://github.com/yt-dlp/yt-dlp/issues/18063)) by [bashonly](https://github.com/bashonly)
+    - [Temporarily remove `web` from default clients](https://github.com/yt-dlp/yt-dlp/commit/6859de80b726cef78a96457429479631f3f62cb9) ([#18131](https://github.com/yt-dlp/yt-dlp/issues/18131)) by [bashonly](https://github.com/bashonly)
+    - [Use `tv` as default `player_js_variant`](https://github.com/yt-dlp/yt-dlp/commit/fa9a87158bc6c1b8ec3e720fcb1c41e1ba62055d) ([#18124](https://github.com/yt-dlp/yt-dlp/issues/18124)) by [bashonly](https://github.com/bashonly)
+
+#### Misc. changes
+- [Use `ini_options` table for pytest config](https://github.com/yt-dlp/yt-dlp/commit/0b8f7258b9176524d4a8145dbcdbf87e0d95c426) ([#17952](https://github.com/yt-dlp/yt-dlp/issues/17952)) by [yardenac](https://github.com/yardenac)
+- **build**
+    - [Bump pyinstaller 6.22.0 => 6.22.3](https://github.com/yt-dlp/yt-dlp/commit/f38fb253b8ba05fdc64f771ed86c31f3bee58234) ([#18067](https://github.com/yt-dlp/yt-dlp/issues/18067)) by [bashonly](https://github.com/bashonly), [dlp-bot](https://github.com/dlp-bot)
+    - [Remove temporary cooldown exceptions](https://github.com/yt-dlp/yt-dlp/commit/b3b18f8fc606e782ee7c82b0780a40c67b829072) ([#17936](https://github.com/yt-dlp/yt-dlp/issues/17936)) by [bashonly](https://github.com/bashonly)
+    - [Update 10 dependencies](https://github.com/yt-dlp/yt-dlp/commit/412e7f0a4b0588fe884a02b344ac66a06538475b) ([#17990](https://github.com/yt-dlp/yt-dlp/issues/17990)) by [dlp-bot](https://github.com/dlp-bot)
+    - [Update 9 dependencies](https://github.com/yt-dlp/yt-dlp/commit/9cd944f345d124640e1c48e4c652751418cbd140) ([#18065](https://github.com/yt-dlp/yt-dlp/issues/18065)) by [dlp-bot](https://github.com/dlp-bot)
+    - [Use `macos-15-intel` runner for `macos` builds](https://github.com/yt-dlp/yt-dlp/commit/34ea29166e37d6f16849217982d0429aafc463e8) ([#17944](https://github.com/yt-dlp/yt-dlp/issues/17944)) by [bashonly](https://github.com/bashonly)
+- **ci**
+    - [Run required checks on all branches](https://github.com/yt-dlp/yt-dlp/commit/b77c9304e1c4220cca450c583491904daf8455af) ([#17953](https://github.com/yt-dlp/yt-dlp/issues/17953)) by [bashonly](https://github.com/bashonly)
+    - [Update 2 actions in 2 workflows](https://github.com/yt-dlp/yt-dlp/commit/c8dfd5776d43410d16d0177864f892272dbec9a6) ([#17991](https://github.com/yt-dlp/yt-dlp/issues/17991)) by [dlp-bot](https://github.com/dlp-bot)
+- **cleanup**: Miscellaneous: [696c067](https://github.com/yt-dlp/yt-dlp/commit/696c0673e9e06bf50514a11e6796644771ce330e) by [bashonly](https://github.com/bashonly)
+- **docs**
+    - [Add new site support policy](https://github.com/yt-dlp/yt-dlp/commit/4adbf698d9a7d79d67a7d11669d04efde3722951) ([#18086](https://github.com/yt-dlp/yt-dlp/issues/18086)) by [bashonly](https://github.com/bashonly)
+    - [Add student project policy](https://github.com/yt-dlp/yt-dlp/commit/28b379d666051e795cbb663adac85179d5ce81f7) ([#18093](https://github.com/yt-dlp/yt-dlp/issues/18093)) by [bashonly](https://github.com/bashonly)
+    - [Add third party license for c-ares](https://github.com/yt-dlp/yt-dlp/commit/2d596f4882a2d6e6414836bccd9fd3fb1e1534a2) ([#18075](https://github.com/yt-dlp/yt-dlp/issues/18075)) by [bashonly](https://github.com/bashonly)
+
 ### 2026.10.26
 
 #### Important changes

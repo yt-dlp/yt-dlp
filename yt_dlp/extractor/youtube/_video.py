@@ -141,7 +141,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _SUBTITLE_FORMATS = ('json3', 'srv1', 'srv2', 'srv3', 'ttml', 'srt', 'vtt')
-    _DEFAULT_CLIENTS = ('tv_samsung', 'visionos', 'web')
+    _DEFAULT_CLIENTS = ('tv_samsung', 'visionos')
     _DEFAULT_JSLESS_CLIENTS = ('visionos',)
     _DEFAULT_AUTHED_CLIENTS = ('tv_samsung', 'web_embedded', 'web')
     # Premium does not require POT (except for subtitles)
@@ -1882,7 +1882,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
-    _DEFAULT_PLAYER_JS_VARIANT = 'main'
+    _DEFAULT_PLAYER_JS_VARIANT = 'tv'
     _PLAYER_JS_VARIANT_MAP = {
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
@@ -1918,6 +1918,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # If forcing a player version, the webpage player response must be skipped
         if self._player_js_version != 'actual':
             skipped.add('player_response')
+        # TODO: Remove the line below when player JS variant `tcl` support is solved
+        skipped.add('player_response')
         return skipped
 
     @classmethod
@@ -2242,7 +2244,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         sts = traverse_obj(ytcfg, ('STS', {int_or_none}))
         if sts:
-            return sts
+            # TODO: Revert to `return sts` immediately when reworking STS/variant handling!
+            # XXX: If any supported (i.e. non-`tcl`) variants start using >5 digit STS,
+            #      then the line of code below is dead wrong and actively harmful!
+            # XXX: If clients other than tv_downgraded start seeing "the page needs to be reloaded"
+            #      errors, this STS truncation is the likely culprit! Revert it!
+            return int(str(sts)[:5])
 
         if not player_url:
             error_msg = 'Cannot extract signature timestamp without player url'
@@ -3151,10 +3158,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 client in {'android_vr', 'visionos'}
                 and (self._is_unplayable(pr) or self._is_error_response(pr))
                 and webpage and 'made for kids' in webpage
-                # ...and is a JS runtime is available?
-                and any(p.is_available() for p in self._jsc_director.providers.values())
             ):
-                append_client('web_embedded')
+                # Is a JS runtime available?
+                if any(p.is_available() for p in self._jsc_director.providers.values()):
+                    append_client('web_embedded')
+                if not self.is_authenticated:
+                    append_client('ios_producer')
 
             # web_embedded can work around age-gate and age-verification for some embeddable videos
             if self._is_agegated(pr) and variant != 'web_embedded':
@@ -3605,6 +3614,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     https_fmts.append(fmt)
 
                 for fmt in https_fmts:
+                    # Live adaptive https formats don't need chunk size and shouldn't be made dashy
+                    if fmt.get('is_from_start'):
+                        yield fmt
+                        continue
                     if (all_formats or 'dashy' in format_types) and fmt['filesize']:
                         yield {
                             **fmt,
