@@ -580,7 +580,11 @@ class XHamsterEmbedIE(InfoExtractor):
 
 
 class XHamsterUserIE(InfoExtractor):
-    _VALID_URL = rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/(?:(?P<user>users)|creators)/(?P<id>[^/?#&]+)'
+    _VALID_URL = (
+        rf'https?://(?:[^/?#]+\.)?{XHamsterIE._DOMAINS}/'
+        r'(?P<orientation>(?:gay/)|(?:shemale/))?'
+        r'(?P<user_type>(?:celebrities)|(?:channels)|(?:creators)|(?:pornstars)|(?:users)|)/'
+        r'(?P<id>[^/?#&]+)')
     _TESTS = [{
         # Paginated user profile
         'url': 'https://xhamster.com/users/netvideogirls/videos',
@@ -607,11 +611,43 @@ class XHamsterUserIE(InfoExtractor):
     }, {
         'url': 'https://xhvid.com/users/pelushe21',
         'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/gay/creators/deiby-latino',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/shemale/creators/keerthanakeerthi95',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/channels/niks-indian',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/gay/channels/daddys-asians',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/shemale/channels/hello-ladyboy',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/pornstars/diamond-jackson',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/celebrities/ana-de-armas',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/gay/pornstars/jesse-rivera',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhamster.com/shemale/pornstars/seang',
+        'only_matching': True,
     }]
 
-    def _entries(self, user_id, is_user):
-        prefix, suffix = ('users', 'videos') if is_user else ('creators', 'exclusive')
-        next_page_url = f'https://xhamster.com/{prefix}/{user_id}/{suffix}/1'
+    def _entries(self, user_id, user_type, orientation):
+        if user_type in ['celebrities', 'channels', 'pornstars']:
+            suffix = 'newest'
+        elif user_type == 'creators':
+            suffix = 'newest/exclusive'
+        else:
+            suffix = 'videos'
+        next_page_url = f'https://xhamster.com/{orientation}{user_type}/{user_id}/{suffix}/1'
         for pagenum in itertools.count(1):
             page = self._download_webpage(
                 next_page_url, user_id, f'Downloading page {pagenum}')
@@ -634,5 +670,7 @@ class XHamsterUserIE(InfoExtractor):
                 break
 
     def _real_extract(self, url):
-        user, user_id = self._match_valid_url(url).group('user', 'id')
-        return self.playlist_result(self._entries(user_id, bool(user)), user_id)
+        orientation, user_id, user_type = (
+            self._match_valid_url(url).group('orientation', 'id', 'user_type'))
+        orientation = orientation if orientation is not None else ''
+        return self.playlist_result(self._entries(user_id, user_type, orientation), user_id)
