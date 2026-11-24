@@ -1,6 +1,7 @@
 import functools
 import itertools
 import json
+import os
 import re
 
 from .common import InfoExtractor, SearchInfoExtractor
@@ -9,6 +10,7 @@ from ..networking.exceptions import HTTPError
 from ..networking.impersonate import ImpersonateTarget
 from ..utils import (
     ExtractorError,
+    disposition_filename,
     float_or_none,
     int_or_none,
     join_nonempty,
@@ -250,6 +252,7 @@ class SoundcloudBaseIE(InfoExtractor):
     def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
         track_id = str(info['id'])
 
+        original_filename = None
         format_urls = set()
         formats = []
         has_drm = False
@@ -282,6 +285,7 @@ class SoundcloudBaseIE(InfoExtractor):
                     HEADRequest(redirect_url), track_id, 'Checking original download format availability',
                     'Original download format is not available', fatal=False)
                 if urlh:
+                    original_filename = os.path.splitext(disposition_filename(urlh.headers))[0]
                     format_url = urlh.url
                     format_urls.add(format_url)
                     formats.append({
@@ -401,6 +405,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 'artists': ('publisher_metadata', 'artist', {str}, filter, all, filter),
             }),
             'id': track_id,
+            'alt_title': original_filename,
             'thumbnails': self._extract_thumbnails(info),
             'formats': formats if not extract_flat else None,
             '__post_extractor': self.extract_comments(track_id),
@@ -590,7 +595,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'modified_date': '20131209',
         },
     }, {
-        # downloadable song
+        # downloadable song, 'alt_title' available with auth
         'url': 'https://soundcloud.com/the80m/the-following',
         'info_dict': {
             'id': '343609555',
@@ -617,11 +622,12 @@ class SoundcloudIE(SoundcloudBaseIE):
             'release_date': '20170926',
             'modified_timestamp': 1647390150,
             'modified_date': '20220316',
+            # 'alt_title': 'The Following',
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Original download format is only available for registered users'],
     }, {
-        # private link, downloadable format
+        # private link, downloadable format, 'alt_title' available with auth
         # tags with spaces (e.g. "Uplifting Trance", "Ori Uplift")
         'url': 'https://soundcloud.com/oriuplift/uponly-238-no-talking-wav/s-AyZUd',
         'md5': '59ed00579679f3b660dfdb8d2dbf8589',  # wav: '64a60b16e617d41d0bef032b7f55441e'
@@ -635,7 +641,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'uploader_id': '12563093',
             'timestamp': 1504206263,
             'upload_date': '20170831',
-            'duration': 7449.096,
+            'duration': 7449.096,  # wav: 7448.349
             'license': 'all-rights-reserved',
             'view_count': int,
             'like_count': int,
@@ -648,6 +654,7 @@ class SoundcloudIE(SoundcloudBaseIE):
             'tags': 'count:6',
             'modified_timestamp': 1504258507,
             'modified_date': '20170901',
+            # 'alt_title': 'Ori Uplift - Uplifting Only 238 [No Talking] (incl. Alex Feed Guestmix) (Aug 31, 2017)',
         },
         'expected_warnings': ['Original download format is only available for registered users'],
     }, {
@@ -929,8 +936,8 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
             'modified_date': '20221108',
             'duration': 1531.376,
             'license': 'all-rights-reserved',
-            'like_count': 185,
-            'repost_count': 40,
+            'like_count': 191,
+            'repost_count': 39,
             'genres': ['Hip-hop & Rap'],
             'tags': ['Drum & Bass', 'Alternative', 'Ambient'],
             'thumbnails': [
