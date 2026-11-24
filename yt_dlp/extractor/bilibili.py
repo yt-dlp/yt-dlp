@@ -995,11 +995,11 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         headers['Referer'] = url
 
+        embedded_play_info = self._search_json(
+            r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
+            end_pattern='\n', default=None)
         play_info = (
-            self._search_json(
-                r'playurlSSRData\s*=', webpage, 'embedded page info', episode_id,
-                end_pattern='\n', default=None)
-            or self._download_json(
+            embedded_play_info or self._download_json(
                 'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
                 'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
                 headers=headers))
@@ -1025,6 +1025,17 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         video_info = traverse_obj(play_info, ('video_info', {dict})) or {}
         formats = self.extract_formats(video_info)
+
+        if not formats and embedded_play_info:
+            api_info = self._download_json(
+                'https://api.bilibili.com/pgc/player/web/v2/playurl', episode_id,
+                'Extracting episode', query={'fnval': 12240, 'ep_id': episode_id},
+                headers=headers, fatal=False)
+            api_result = traverse_obj(api_info, ('result', {dict})) or {}
+            api_video_info = traverse_obj(api_result, ('video_info', {dict})) or {}
+            api_formats = self.extract_formats(api_video_info)
+            if api_formats:
+                play_info, video_info, formats = api_result, api_video_info, api_formats
 
         if not formats:
             if geo_blocked:
