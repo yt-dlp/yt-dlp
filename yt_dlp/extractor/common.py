@@ -56,6 +56,7 @@ from ..utils import (
     classproperty,
     clean_html,
     deprecation_warning,
+    detect_media_ext,
     determine_ext,
     dict_get,
     encode_data_uri,
@@ -2017,6 +2018,33 @@ class InfoExtractor:
         msg = msg_template % {'video_id': video_id, 'timeout': timeout}
         self.to_screen(msg)
         time.sleep(timeout)
+
+    def _detect_media_ext(self, url, video_id):
+        max_size = 1024 * 1024
+        response = self._request_webpage(
+            url, video_id, 'Detecting media extension',
+            'Unable to detect media extension', fatal=False, headers={
+                'Accept-Encoding': 'identity',
+                'Range': f'bytes=0-{max_size - 1}',
+            })
+        if not response:
+            return None
+
+        try:
+            with contextlib.closing(response):
+                data = b''
+                while len(data) < max_size and not response.closed:
+                    read_size = min(max(2048, len(data)), max_size - len(data))
+                    chunk = response.read(read_size)
+                    if not chunk:
+                        break
+                    data += chunk
+                    if ext := detect_media_ext(data):
+                        return ext
+        except network_exceptions as e:
+            self.report_warning(
+                f'Unable to detect media extension: {e}', video_id=video_id)
+        return None
 
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
