@@ -266,6 +266,7 @@
       group="3"
       contentType="text"
       lang="en"
+      label="English (US)"
       mimeType="application/mp4"
       codecs="stpp"
       startWithSAP="1">
