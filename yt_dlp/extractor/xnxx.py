@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     NO_DEFAULT,
+    clean_html,
     determine_ext,
     int_or_none,
     str_to_int,
@@ -12,8 +13,22 @@ from ..utils import (
 class XNXXIE(InfoExtractor):
     _VALID_URL = r'https?://(?:video|www)\.xnxx3?\.com/video-?(?P<id>[0-9a-z]+)/'
     _TESTS = [{
+        'url': 'https://www.xnxx.com/video-u0yn555/chubby_mature_in_swimsuit',
+        'md5': '25f139121ff1c414b06a90d8772249ce',
+        'info_dict': {
+            'id': 'u0yn555',
+            'ext': 'mp4',
+            'title': 'Chubby Mature in Swimsuit',
+            'description': 'Getting wet in a tight one piece swimsuit.',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 157,
+            'view_count': int,
+            'tags': ['sexy', 'milf', 'mature', 'chubby', 'wet', 'swimsuit', 'pawg', 'one piece'],
+            'age_limit': 18,
+        },
+    }, {
         'url': 'http://www.xnxx.com/video-55awb78/skyrim_test_video',
-        'md5': '7583e96c15c0f21e9da3453d9920fbba',
+        'md5': 'f684f53b17babb6a69880d0cd88b33f5',
         'info_dict': {
             'id': '55awb78',
             'ext': 'mp4',
@@ -44,6 +59,39 @@ class XNXXIE(InfoExtractor):
                 rf'set{meta}\s*\(\s*(["\'])(?P<value>(?:(?!\1).)+)\1',
                 webpage, meta, default=default, fatal=fatal, group='value')
 
+        def extract_description():
+            # <p class="metadata-row video-description">\nGetting wet in a tight one piece swimsuit.\n</p>
+            desc = self._search_regex(
+                r'(?s)<p[^>]+\bclass=["\'].*?video-description[^>]*?>\s*(.+?)\s*</p>',
+                webpage, 'description', default=None)
+            if desc:
+                # <a class="is-keyword" href="/search/licking">licking</a>
+                return clean_html(desc).strip()
+
+        def extract_tags():
+            # <div class="metadata-row video-tags">
+            div = self._search_regex(
+                r'(?s)<div[^>]+\bclass=["\'].*?video-tags[^>]*?>(.+?)</div>',
+                webpage, 'tags', default=None)
+            if div:
+                # <a class="is-keyword" href="/search/licking">licking</a>
+                return [clean_html(x).strip() for x in re.findall(r'(?s)<a[^>]+\bclass=["\'].*?is-keyword[^>]+\bhref=[^>]+>.+?</a>', div)]
+
+        def extract_view_count():
+            # <div class="video-title-container">
+            #   <div class="video-title">
+            #     <strong>Skyrim Test Video</strong>
+            #     ...
+            #     <span class="metadata">
+            #        <a class="free-plate" href="/porn-maker/glurp">Glurp</a>						8min
+            #   	1080p					- 671,137 <span class="icon-f icf-eye"></span>					</span>
+            # </div>
+            match = self._search_regex(
+                r'(?s)<div[^>]+?\bclass=["\'][^>]*?video-title-container\b[^>]*>.+?<span[^>]+?\bclass=["\'][^>]*?metadata\b[^>]*>.*?\s(\d{1,3}(?:,\d{3})*)\s*<span[^>]+?\bclass=["\'][^>]*?icf-eye\b[^>]*>.*?</a>.*?</div>',
+                webpage, 'view_count_outer_div', default=None)
+            if match:
+                return str_to_int(match)
+
         title = self._og_search_title(
             webpage, default=None) or get('VideoTitle')
 
@@ -68,13 +116,16 @@ class XNXXIE(InfoExtractor):
         thumbnail = self._og_search_thumbnail(webpage, default=None) or get(
             'ThumbUrl', fatal=False) or get('ThumbUrl169', fatal=False)
         duration = int_or_none(self._og_search_property('duration', webpage))
-        view_count = str_to_int(self._search_regex(
-            r'id=["\']nb-views-number[^>]+>([\d,.]+)', webpage, 'view count',
-            default=None))
+
+        description = extract_description()
+        view_count = extract_view_count()
+        tags = extract_tags()
 
         return {
             'id': video_id,
             'title': title,
+            'description': description,
+            'tags': tags,
             'thumbnail': thumbnail,
             'duration': duration,
             'view_count': view_count,
