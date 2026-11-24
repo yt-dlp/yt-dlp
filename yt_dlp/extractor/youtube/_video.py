@@ -2272,12 +2272,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         sts = traverse_obj(ytcfg, ('STS', {int_or_none}))
         if sts:
-            # TODO: Revert to `return sts` immediately when reworking STS/variant handling!
-            # XXX: If any supported (i.e. non-`tcl`) variants start using >5 digit STS,
-            #      then the line of code below is dead wrong and actively harmful!
-            # XXX: If clients other than tv_downgraded start seeing "the page needs to be reloaded"
-            #      errors, this STS truncation is the likely culprit! Revert it!
-            return int(str(sts)[:5])
+            return sts
 
         if not player_url:
             error_msg = 'Cannot extract signature timestamp without player url'
