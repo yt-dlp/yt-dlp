@@ -115,6 +115,10 @@ class FragmentFD(FileDownloader):
             'http_headers': headers or info_dict.get('http_headers'),
             'request_data': request_data,
             'ctx_id': ctx.get('ctx_id'),
+            'extractor_key': info_dict.get('extractor_key') or info_dict.get('extractor'),
+            'fragment_id': ctx['fragment_index'],
+            'fragment_count': ctx.get('fragment_count') or ctx.get('total_frags'),
+            'is_live': bool(info_dict.get('is_live') or ctx.get('live')),
         }
         frag_resume_len = 0
         if ctx['dl'].params.get('continuedl', True):
@@ -145,8 +149,9 @@ class FragmentFD(FileDownloader):
 
     def _append_fragment(self, ctx, frag_content):
         try:
-            ctx['dest_stream'].write(frag_content)
-            ctx['dest_stream'].flush()
+            if frag_content is not None:
+                ctx['dest_stream'].write(frag_content)
+                ctx['dest_stream'].flush()
         finally:
             if self.__do_ytdl_file(ctx):
                 self._write_ytdl_file(ctx)
@@ -349,6 +354,8 @@ class FragmentFD(FileDownloader):
         def decrypt_fragment(fragment, frag_content):
             if frag_content is None:
                 return
+            if not frag_content:
+                return frag_content
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
@@ -470,7 +477,7 @@ class FragmentFD(FileDownloader):
                         raise
 
         def append_fragment(frag_content, frag_index, ctx):
-            if frag_content:
+            if frag_content is not None:
                 self._append_fragment(ctx, pack_func(frag_content, frag_index))
             elif not is_fatal(frag_index - 1):
                 self.report_skip_fragment(frag_index, 'fragment not found')
