@@ -136,7 +136,7 @@ class MediaKlikkAudioIE(InfoExtractor):
             'channel': 'Kossuth',
             'channel_id': 'mr1',
             'release_date': '20261124',
-            'duration': 1800,
+            'duration': 1794,
         },
     }]
 
