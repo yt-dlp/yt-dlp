@@ -339,6 +339,7 @@ from .ciscolive import (
 )
 from .ciscowebex import CiscoWebexIE
 from .cjsw import CJSWIE
+from .clapdat import  ClapDatIE
 from .clipchamp import ClipchampIE
 from .cliprs import ClipRsIE
 from .closertotruth import CloserToTruthIE
