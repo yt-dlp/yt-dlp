@@ -1406,6 +1406,9 @@ from .picarto import (
     PicartoIE,
     PicartoVodIE,
 )
+from .piczel import (
+    PiczelIE,
+)
 from .piksel import PikselIE
 from .pinkbike import PinkbikeIE
 from .pinterest import (
