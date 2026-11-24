@@ -241,13 +241,24 @@ def normalize_url(url):
     if url_parsed.scheme == 'file' and path.startswith('//') and not url_parsed.path.startswith('//'):
         path = '/' + path.lstrip('/')
 
-    return url_parsed._replace(
+    normalized = url_parsed._replace(
         netloc=url_parsed.netloc.encode('idna').decode('ascii'),
         path=escape_rfc3986(path),
         params=escape_rfc3986(url_parsed.params),
         query=escape_rfc3986(url_parsed.query),
         fragment=escape_rfc3986(url_parsed.fragment),
-    ).geturl()
+    )
+    url = normalized.geturl()
+
+    # compat: <=3.12: Restore the empty authority delimiter if urlunsplit() omits it
+    if (
+        normalized.scheme == 'file'
+        and not normalized.netloc
+        and normalized.path.startswith('//')
+        and not url.startswith(normalized.path, len('file://'))
+    ):
+        return url.replace('file:', 'file://', 1)
+    return url
 
 
 def select_proxy(url, proxies):

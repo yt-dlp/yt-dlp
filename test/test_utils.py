@@ -18,7 +18,6 @@ import pickle
 import subprocess
 import unittest
 import unittest.mock
-import urllib.parse
 import warnings
 import xml.etree.ElementTree
 
@@ -1058,10 +1057,7 @@ class TestUtil(unittest.TestCase):
 
         self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
         self.assertEqual(normalize_url('file:///..//dir/media/video.mp4'), 'file:///dir/media/video.mp4')
-        self.assertEqual(
-            normalize_url('file:////server/share/dir/../video.mp4'),
-            urllib.parse.urlparse('file:////server/share/video.mp4').geturl(),
-        )
+        self.assertEqual(normalize_url('file:////server/share/dir/../video.mp4'), 'file:////server/share/video.mp4')
 
     def test_remove_dot_segments(self):
         self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
