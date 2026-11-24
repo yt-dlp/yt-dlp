@@ -3025,6 +3025,13 @@ class InfoExtractor:
                             'container': mimetype2ext(mime_type) + '_dash',
                             **codecs,
                         }
+                        if content_type == 'video' and (f['width'] or 0) > 0 and (f['height'] or 0) > 0:
+                            with contextlib.suppress(ValueError, ZeroDivisionError, OverflowError):
+                                f['aspect_ratio'] = round(f['width'] / f['height'], 2)
+                                if sar := re.fullmatch(r'([0-9]+):([0-9]+)', representation_attrib.get('sar') or ''):
+                                    aspect_ratio = f['width'] * int(sar[1]) / (f['height'] * int(sar[2]))
+                                    if aspect_ratio > 0:
+                                        f['aspect_ratio'] = round(aspect_ratio, 2)
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
