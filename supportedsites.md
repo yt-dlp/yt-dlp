@@ -647,9 +647,7 @@ The only reliable way to check if a site is supported is to try it.
  - **kuwo:mv**: 酷我音乐 - MV (**Currently broken**)
  - **kuwo:singer**: 酷我音乐 - 歌手 (**Currently broken**)
  - **kuwo:song**: 酷我音乐 (**Currently broken**)
- - **la7.it**
- - **la7.it:​pod:episode**
- - **la7.it:podcast**
+ - **la7play.it**
  - **laracasts**
  - **laracasts:series**
  - **LastFM**
@@ -1002,8 +1000,6 @@ The only reliable way to check if a site is supported is to try it.
  - **peloton**: [*peloton*](## "netrc machine")
  - **peloton:live**: Peloton Live
  - **PerformGroup**
- - **periscope**: Periscope
- - **periscope:user**: Periscope user videos
  - **PGATour**
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
@@ -1491,6 +1487,7 @@ The only reliable way to check if a site is supported is to try it.
  - **twitter:amplify**
  - **twitter:broadcast**
  - **twitter:card**
+ - **twitter:event**
  - **twitter:shortener**
  - **twitter:spaces**
  - **Txxx**
