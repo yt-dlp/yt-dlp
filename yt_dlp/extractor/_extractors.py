@@ -2058,7 +2058,6 @@ from .tvopengr import (
 from .tvp import (
     TVPIE,
     TVPEmbedIE,
-    TVPStreamIE,
     TVPVODSeriesIE,
     TVPVODVideoIE,
 )
