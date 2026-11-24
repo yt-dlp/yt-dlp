@@ -1,4 +1,5 @@
 import functools
+import json
 
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
@@ -91,35 +92,82 @@ class DropoutIE(InfoExtractor):
         },
     ]
 
-    def _get_authenticity_token(self, display_id):
+    def _get_login_authenticity_token(self, display_id):
         signin_page = self._download_webpage(
             self._LOGIN_URL, display_id, note='Getting authenticity token')
         return self._html_search_regex(
             r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
-            signin_page, 'authenticity_token')
+            signin_page, 'login_authenticity_token')
+
+    def _get_profile_csrf_token(self, display_id):
+        profile_page = self._download_webpage('https://watch.dropout.tv/profile/pick',
+                                              display_id, note='Getting CSRF token')
+        return self._html_search_regex(
+            r'<meta name=["\']csrf-token["\'] content=["\'](.+?)["\']',
+            profile_page, 'profile_csrf_token')
 
     def _login(self, display_id):
         username, password = self._get_login_info()
         if not username:
             return True
 
+        (username, profile_idx) = self._extract_profile(username)
+
+        return self._do_login(display_id, username, password) or self._select_profile(display_id, profile_idx)
+
+    def _extract_profile(self, username):
+        # don't have a username ending in `:{number}` (if even valid)
+        result = self._search_regex(
+            pattern='^(?P<username>.+?)(:(?P<profile_idx>[0-9]+)$|$)',
+            string=username,
+            name='Extract profile ID from username',
+            fatal=False,
+            group=('username', 'profile_idx'),
+        )
+
+        if type(result) is tuple:
+            (username, profile_idx) = result
+            profile_idx = int_or_none(profile_idx, default=0)
+            return (username, profile_idx)
+        else:
+            return (username, 0)
+
+    def _do_login(self, video_id, username, password):
         response = self._download_webpage(
-            self._LOGIN_URL, display_id, note='Logging in', fatal=False,
+            self._LOGIN_URL, video_id, note='Logging in', fatal=False,
             data=urlencode_postdata({
                 'email': username,
                 'password': password,
-                'authenticity_token': self._get_authenticity_token(display_id),
+                'authenticity_token': self._get_login_authenticity_token(video_id),
                 'utf8': True,
             }))
 
-        user_has_subscription = self._search_regex(
-            r'user_has_subscription:\s*["\'](.+?)["\']', response, 'subscription status', default='none')
-        if user_has_subscription.lower() == 'true':
-            return
+        user_has_subscription = self._search_regex(r'user_has_subscription:\s*["\'](.+?)["\']',
+                                                   response,
+                                                   name='subscription status',
+                                                   )
+
+        if user_has_subscription.lower() != 'true':
+            return 'Incorrect username/password'
         elif user_has_subscription.lower() == 'false':
             return 'Account is not subscribed'
         else:
-            return 'Incorrect username/password'
+            return
+
+    def _select_profile(self, video_id, profile_idx):
+        response = self._request_webpage('https://watch.dropout.tv/profile/login',
+                                         video_id=video_id,
+                                         note=f'Selecting profile {profile_idx}',
+                                         data=json.dumps({'profile_index': profile_idx}).encode(),
+                                         headers={
+                                             'Content-Type': 'application/json',
+                                             'x-csrf-token': self._get_profile_csrf_token(video_id),
+                                         })
+
+        if response:
+            return None
+        else:
+            return 'Profile could not be selected'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
