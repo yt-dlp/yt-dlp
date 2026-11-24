@@ -62,7 +62,7 @@ class AudiusBaseIE(InfoExtractor):
             if 'Failed to parse JSON' in str(exc):
                 raise ExtractorError('An error occurred while receiving data. Try again',
                                      expected=True)
-            raise exc
+            raise
         return self._get_response_data(response)
 
     def _resolve_url(self, url, item_id):
