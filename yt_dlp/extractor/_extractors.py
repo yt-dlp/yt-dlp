@@ -2,6 +2,7 @@
 from .abc import (
     ABCIE,
     ABCIViewIE,
+    ABCIViewShowIE,
     ABCIViewShowSeriesIE,
 )
 from .abcnews import (
