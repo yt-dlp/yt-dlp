@@ -1882,20 +1882,44 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     }]
 
     _DEFAULT_PLAYER_JS_VERSION = 'actual'
-    _DEFAULT_PLAYER_JS_VARIANT = 'tv'
-    _PLAYER_JS_VARIANT_MAP = {
+    _DEFAULT_PLAYER_JS_VARIANT_STS_V5 = 'tv'
+    _DEFAULT_PLAYER_JS_VARIANT_STS_V8 = 'tv_tcl'
+    _PLAYER_JS_VARIANT_MAP_STS_V5 = {
+        # 5-digit STS variants
         'main': 'player_ias.vflset/en_US/base.js',
         'tcc': 'player_ias_tcc.vflset/en_US/base.js',
         'tce': 'player_ias_tce.vflset/en_US/base.js',
-        'es5': 'player_es5.vflset/en_US/base.js',
         'es6': 'player_es6.vflset/en_US/base.js',
         'es6_tcc': 'player_es6_tcc.vflset/en_US/base.js',
         'es6_tce': 'player_es6_tce.vflset/en_US/base.js',
         'tv': 'tv-player-ias.vflset/tv-player-ias.js',
+        'tv_tcc': 'tv-player-ias-tcc.vflset/tv-player-ias-tcc.js',
+        'tv_tce': 'tv-player-ias-tce.vflset/tv-player-ias-tce.js',
         'tv_es6': 'tv-player-es6.vflset/tv-player-es6.js',
+        'tv_es6_tcc': 'tv-player-es6-tcc.vflset/tv-player-es6-tcc.js',
+        'tv_es6_tce': 'tv-player-es6-tce.vflset/tv-player-es6-tce.js',
         'phone': 'player-plasma-ias-phone-en_US.vflset/base.js',
+        'phone_tcc': 'player-plasma-ias-phone-tcc-en_US.vflset/base.js',
+        'phone_tce': 'player-plasma-ias-phone-tce-en_US.vflset/base.js',
+        'embed': 'player_embed.vflset/en_US/base.js',
+        'embed_tcc': 'player_embed_tcc.vflset/en_US/base.js',
+        'embed_tce': 'player_embed_tce.vflset/en_US/base.js',
+        'embed_es6': 'player_embed_es6.vflset/en_US/base.js',
+        'embed_es6_tcc': 'player_embed_es6_tcc.vflset/en_US/base.js',
+        'embed_es6_tce': 'player_embed_es6_tce.vflset/en_US/base.js',
         'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
     }
+    _PLAYER_JS_VARIANT_MAP_STS_V8 = {
+        # 8-digit STS variants
+        'tcl': 'player_ias_tcl.vflset/en_US/base.js',
+        'es6_tcl': 'player_es6_tcl.vflset/en_US/base.js',
+        'tv_tcl': 'tv-player-ias-tcl.vflset/tv-player-ias-tcl.js',
+        'tv_es6_tcl': 'tv-player-es6-tcl.vflset/tv-player-es6-tcl.js',
+        'phone_tcl': 'player-plasma-ias-phone-tcl-en_US.vflset/base.js',
+        'embed_tcl': 'player_embed_tcl.vflset/en_US/base.js',
+        'embed_es6_tcl': 'player_embed_es6_tcl.vflset/en_US/base.js',
+    }
+    _PLAYER_JS_VARIANT_MAP = {**_PLAYER_JS_VARIANT_MAP_STS_V5, **_PLAYER_JS_VARIANT_MAP_STS_V8}
     _INVERSE_PLAYER_JS_VARIANT_MAP = {v: k for k, v in _PLAYER_JS_VARIANT_MAP.items()}
 
     @functools.cached_property
@@ -1953,13 +1977,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if time.time() <= start_time + delay:
                 return
 
-            _, _, _, _, prs, player_url = self._initial_extract(
+            _, _, _, _, prs, player_url_map = self._initial_extract(
                 url, smuggled_data, webpage_url, self._webpage_client, video_id)
             video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict)
-            _, live_status, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+            _, live_status, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url_map)
             is_live = live_status == 'is_live'
             start_time = time.time()
 
@@ -2098,6 +2122,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _get_player_js_version(self):
+        """Returns a tuple of the player_js_version extractor-arg values, or (None, None) if actual"""
         if self._player_js_version == 'actual':
             return None, None
         if not re.fullmatch(r'[0-9]{5,}@[0-9a-f]{8,}', self._player_js_version):
@@ -2107,10 +2132,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return None, None
         return self._player_js_version.split('@')
 
-    def _construct_player_url(self, *, player_id=None, player_url=None):
-        assert player_id or player_url, '_construct_player_url must take one of player_id or player_url'
-        if not player_id:
-            player_id = self._extract_player_info(player_url)
+    @functools.cached_property
+    def _player_js_variant(self):
+        """Returns the player_js_variant extractor-arg as a string"""
+        CHOICES = ('recommended', 'actual', *self._PLAYER_JS_VARIANT_MAP)
+        variant = self._configuration_arg('player_js_variant', [''])[0] or CHOICES[0]
+        if variant not in CHOICES:
+            self.report_warning(
+                f'Invalid player JS variant name "{variant}" requested. '
+                f'Valid choices are: {", ".join(CHOICES)}', only_once=True)
+            variant = CHOICES[0]
+
+        return variant
+
+    def _construct_player_url(self, *, player_id=None, variant=None, player_url=None):
+        assert (player_id and variant) or player_url, '_construct_player_url must take one of (player_id AND variant) OR player_url'
+        if player_url:
+            player_id, variant, player_path = self._get_player_id_variant_and_path(player_url)
+        else:
+            player_path = self._PLAYER_JS_VARIANT_MAP[variant]
+            player_url = urljoin('https://www.youtube.com', f'/s/player/{player_id}/{player_path}')
 
         force_player_id = False
         player_id_override = self._get_player_js_version()[1]
@@ -2118,63 +2159,52 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             force_player_id = f'Forcing player {player_id_override} in place of player {player_id}'
             player_id = player_id_override
 
-        variant = self._configuration_arg('player_js_variant', [''])[0] or self._DEFAULT_PLAYER_JS_VARIANT
-        if variant not in (*self._PLAYER_JS_VARIANT_MAP, 'actual'):
-            self.report_warning(
-                f'Invalid player JS variant name "{variant}" requested. '
-                f'Valid choices are: {", ".join(self._PLAYER_JS_VARIANT_MAP)}', only_once=True)
-            variant = self._DEFAULT_PLAYER_JS_VARIANT
+        force_variant = False
+        if self._player_js_variant not in ('actual', variant):
+            default_variant, target_map = next((
+                (default, vmap)
+                for default, vmap in (
+                    (self._DEFAULT_PLAYER_JS_VARIANT_STS_V5, self._PLAYER_JS_VARIANT_MAP_STS_V5),
+                    (self._DEFAULT_PLAYER_JS_VARIANT_STS_V8, self._PLAYER_JS_VARIANT_MAP_STS_V8),
+                ) if variant in vmap
+            ), (self._DEFAULT_PLAYER_JS_VARIANT_STS_V5, {}))
 
-        if not player_url:
-            if force_player_id:
-                self.write_debug(force_player_id, only_once=True)
-            if variant == 'actual':
-                # We don't have an actual variant so we always use 'main' & don't need to write debug
-                variant = 'main'
-            return urljoin('https://www.youtube.com', f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[variant]}')
+            if self._player_js_variant == 'recommended':
+                if not target_map:
+                    self.report_warning(
+                        f'Forcing "{default_variant}" player JS variant even though '
+                        'it may have an incompatible STS', only_once=True)
+                force_variant = f'Forcing "{default_variant}" player JS variant for player {player_id}'
+                player_path = self._PLAYER_JS_VARIANT_MAP[default_variant]
 
-        actual_variant = self._get_player_id_variant_and_path(player_url)[1]
-        if not force_player_id and (variant == 'actual' or variant == actual_variant):
-            return urljoin('https://www.youtube.com', player_url)
-
-        if variant == 'actual':
-            if actual_variant:
-                variant = actual_variant
             else:
-                # We need to force player_id but can't determine variant; fall back to 'main' variant
-                variant = 'main'
+                if not target_map:
+                    self.report_warning(
+                        f'Unable to force "{self._player_js_variant}" player JS variant for player {player_id}; '
+                        f'actual variant "{variant}" has an incompatible STS', only_once=True)
+                else:
+                    force_variant = f'Forcing "{self._player_js_variant}" player JS variant for player {player_id}'
+                    player_path = target_map[self._player_js_variant]
+
+        if not force_player_id and not force_variant:
+            return player_url
 
         self.write_debug(join_nonempty(
-            force_player_id,
-            variant != actual_variant and f'Forcing "{variant}" player JS variant for player {player_id}',
+            force_player_id, force_variant,
             f'original url = {player_url}',
             delim='\n        '), only_once=True)
 
-        return urljoin('https://www.youtube.com', f'/s/player/{player_id}/{self._PLAYER_JS_VARIANT_MAP[variant]}')
+        return urljoin('https://www.youtube.com', f'/s/player/{player_id}/{player_path}')
 
-    def _extract_player_url(self, *ytcfgs, webpage=None):
+    def _extract_player_url(self, *ytcfgs, raw=False):
         player_url = traverse_obj(
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
             get_all=False, expected_type=str)
         if not player_url:
             return
+        if raw:
+            return player_url
         return self._construct_player_url(player_url=player_url)
-
-    def _download_player_url(self, video_id, fatal=False):
-        if player_id_override := self._get_player_js_version()[1]:
-            self.write_debug(f'Forcing player {player_id_override}', only_once=True)
-            return self._construct_player_url(player_id=player_id_override)
-
-        iframe_webpage = self._download_webpage_with_retries(
-            'https://www.youtube.com/iframe_api',
-            note='Downloading iframe API JS',
-            video_id=video_id, retry_fatal=fatal)
-
-        if iframe_webpage:
-            player_version = self._search_regex(
-                r'player\\?/([0-9a-fA-F]{8})\\?/', iframe_webpage, 'player version', fatal=fatal)
-            if player_version:
-                return self._construct_player_url(player_id=player_version)
 
     def _get_player_id_variant_and_path(self, player_url):
         player_id = self._extract_player_info(player_url)
@@ -2264,7 +2294,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if code := self._load_player(video_id, player_url, fatal=fatal):
             sts = int_or_none(self._search_regex(
-                r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
+                r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5,8})', code,
                 'JS player signature timestamp', group='sts', fatal=fatal))
             if sts:
                 # TODO: Pass `use_disk_cache=True` when preprocessed player JS cache is solved
@@ -2950,7 +2980,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if po_token:
             yt_query['serviceIntegrityDimensions'] = {'poToken': po_token}
 
-        sts = self._extract_signature_timestamp(video_id, player_url, webpage_ytcfg, fatal=False) if player_url else None
+        sts = self._extract_signature_timestamp(video_id, player_url, player_ytcfg, fatal=False) if player_url else None
 
         use_ad_playback_context = (
             self._configuration_arg('use_ad_playback_context', ['false'])[0] != 'false'
@@ -3066,25 +3096,36 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         all_clients.add(actual_client)
                         return
 
-        tried_iframe_fallback = False
-        player_url = visitor_data = data_sync_id = None
+        visitor_data = data_sync_id = None
+        player_url_map = {}
         skipped_clients = {}
         while clients:
             deprioritize_pr = False
             client, base_client, variant = _split_innertube_client(clients.pop())
             player_ytcfg = webpage_ytcfg if client == webpage_client else {}
             if 'configs' not in self._configuration_arg('player_skip') and client != webpage_client:
-                player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
+                new_player_ytcfg = self._download_ytcfg(client, video_id) or player_ytcfg
 
-            player_url = player_url or self._extract_player_url(webpage_ytcfg, player_ytcfg, webpage=webpage)
+            # XXX: We need to manually adjust the tv_downgraded player variant to tcl (8-digit STS)
+            if client == 'tv_downgraded':
+                player_url = self._construct_player_url(
+                    player_id=self._extract_player_info(self._extract_player_url(new_player_ytcfg, raw=True)),
+                    variant='tv_tcl')
+            else:
+                player_url = self._extract_player_url(
+                    *filter(None, (webpage_ytcfg if client == webpage_client else None, new_player_ytcfg)))
+
+            # XXX: Downgraded tv clients request config only for player_url and discard the rest
+            if client not in ('tv_downgraded', 'tv_samsung'):
+                player_ytcfg = new_player_ytcfg
+
             require_js_player = self._get_default_ytcfg(client).get('REQUIRE_JS_PLAYER')
             if 'js' in self._configuration_arg('player_skip'):
                 require_js_player = False
                 player_url = None
 
-            if not player_url and not tried_iframe_fallback and require_js_player:
-                player_url = self._download_player_url(video_id)
-                tried_iframe_fallback = True
+            if player_url:
+                player_url_map.setdefault(client, player_url)
 
             pr = None
             if client == webpage_client and 'player_response' not in self._skipped_webpage_data:
@@ -3199,7 +3240,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'All player responses are invalid. Your IP is likely being blocked by Youtube', expected=True)
         elif not prs:
             raise ExtractorError('Failed to extract any player response')
-        return prs, player_url
+        return prs, player_url_map
 
     def _needs_live_processing(self, live_status):
         return live_status == 'post_live' or (
@@ -3237,7 +3278,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         else:
             self.report_warning(msg, only_once=True)
 
-    def _extract_formats_and_subtitles(self, video_id, player_responses, player_url, live_status, duration):
+    def _extract_formats_and_subtitles(self, video_id, player_responses, player_url_map, live_status, duration):
         CHUNK_SIZE = 10 << 20
         ORIGINAL_LANG_VALUE = 10
         DEFAULT_LANG_VALUE = 5
@@ -3310,47 +3351,48 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 r'/n/([^/]+)/', urllib.parse.urlparse(manifest_url).path,
                 'n challenge', default=None)
 
-        n_challenges = set()
-        s_challenges = set()
+        n_challenges = collections.defaultdict(set)
+        s_challenges = collections.defaultdict(set)
 
         def solve_js_challenges():
             # Solve all n/sig challenges in bulk and store the results in self._player_cache
             challenge_requests = []
-            if n_challenges:
+            for player_url, challenges in n_challenges.items():
                 challenge_requests.append(JsChallengeRequest(
                     type=JsChallengeType.N,
                     video_id=video_id,
-                    input=NChallengeInput(challenges=list(n_challenges), player_url=player_url)))
-            if s_challenges:
+                    input=NChallengeInput(challenges=list(challenges), player_url=player_url)))
+            for player_url, challenges in s_challenges.items():
                 cached_sigfuncs = set()
-                for spec_id in s_challenges:
+                for spec_id in challenges:
                     if self._load_player_data_from_cache('sigfuncs', player_url, spec_id, use_disk_cache=True):
                         cached_sigfuncs.add(spec_id)
-                s_challenges.difference_update(cached_sigfuncs)
+                challenges.difference_update(cached_sigfuncs)
 
                 challenge_requests.append(JsChallengeRequest(
                     type=JsChallengeType.SIG,
                     video_id=video_id,
                     input=SigChallengeInput(
-                        challenges=[''.join(map(chr, range(spec_id))) for spec_id in s_challenges],
+                        challenges=[''.join(map(chr, range(spec_id))) for spec_id in challenges],
                         player_url=player_url)))
 
             if challenge_requests:
-                for _challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
+                for challenge_request, challenge_response in self._jsc_director.bulk_solve(challenge_requests):
+                    player_url = challenge_request.input.player_url
                     if challenge_response.type == JsChallengeType.SIG:
                         for challenge, result in challenge_response.output.results.items():
                             spec_id = len(challenge)
                             self._store_player_data_to_cache(
                                 [ord(c) for c in result], 'sigfuncs',
                                 player_url, spec_id, use_disk_cache=True)
-                            if spec_id in s_challenges:
-                                s_challenges.remove(spec_id)
+                            if spec_id in s_challenges[player_url]:
+                                s_challenges[player_url].remove(spec_id)
 
                     elif challenge_response.type == JsChallengeType.N:
                         for challenge, result in challenge_response.output.results.items():
                             self._store_player_data_to_cache(result, 'n', player_url, challenge)
-                            if challenge in n_challenges:
-                                n_challenges.remove(challenge)
+                            if challenge in n_challenges[player_url]:
+                                n_challenges[player_url].remove(challenge)
 
                 # Raise warning if any challenge requests remain
                 # Depending on type of challenge request
@@ -3359,11 +3401,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'challenge solver script distribution installed. '
                     'Review any warnings presented before this message. '
                     f'For more details, refer to  {_EJS_WIKI_URL}')
-                if s_challenges:
+                if any(s_challenges.values()):
                     self.report_warning(
                         f'Signature solving failed: Some formats may be missing. {help_message}',
                         video_id=video_id, only_once=True)
-                if n_challenges:
+                if any(n_challenges.values()):
                     self.report_warning(
                         f'n challenge solving failed: Some formats may be missing. {help_message}',
                         video_id=video_id, only_once=True)
@@ -3374,6 +3416,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # 1st pass to collect all n/sig challenges so they can later be solved at once in bulk
         for streaming_data in traverse_obj(player_responses, (..., 'streamingData', {dict})):
+            client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
+            player_url = player_url_map.get(client_name)
+
             # HTTPS formats
             for fmt_stream in traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ..., {dict})):
                 fmt_url = fmt_stream.get('url')
@@ -3384,14 +3429,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     s_challenge = traverse_obj(sc, ('s', 0))
 
                 if s_challenge:
-                    s_challenges.add(len(s_challenge))
+                    s_challenges[player_url].add(len(s_challenge))
 
                 if n_challenge := traverse_obj(fmt_url, ({parse_qs}, 'n', 0)):
-                    n_challenges.add(n_challenge)
+                    n_challenges[player_url].add(n_challenge)
 
             # Manifest formats
-            n_challenges.update(traverse_obj(
-                streaming_data, (('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge})))
+            if manifest_n_challenges := traverse_obj(
+                streaming_data, (('hlsManifestUrl', 'dashManifestUrl'), {get_manifest_n_challenge}),
+            ):
+                n_challenges[player_url].update(manifest_n_challenges)
 
         # Final pass to extract formats and solve n/sig challenges as needed
         for pr in player_responses:
@@ -3404,6 +3451,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             client_name = streaming_data.get(STREAMING_DATA_CLIENT_NAME)
             available_at = streaming_data[STREAMING_DATA_AVAILABLE_AT_TIMESTAMP]
             streaming_formats = traverse_obj(streaming_data, (('formats', 'adaptiveFormats'), ...))
+            player_url = player_url_map.get(client_name)
 
             def get_stream_id(fmt_stream):
                 return str_or_none(fmt_stream.get('itag')), traverse_obj(fmt_stream, 'audioTrack', 'id'), fmt_stream.get('isDrc')
@@ -3875,7 +3923,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return int(now)
 
-    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
+    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url_map, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
         if is_live is None:
@@ -3889,7 +3937,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        else 'was_live' if live_content
                        else 'not_live' if False in (is_live, live_content)
                        else None)
-        *formats, subtitles = self._extract_formats_and_subtitles(video_id, player_responses, player_url, live_status, duration)
+        *formats, subtitles = self._extract_formats_and_subtitles(video_id, player_responses, player_url_map, live_status, duration)
         if all(f.get('has_drm') for f in formats):
             # If there are no formats that definitely don't have DRM, all have DRM
             for f in formats:
@@ -3935,11 +3983,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if is_premium_subscriber:
             self.write_debug('Detected YouTube Premium subscription')
 
-        player_responses, player_url = self._extract_player_responses(
+        player_responses, player_url_map = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data, is_premium_subscriber),
             video_id, webpage, webpage_client, webpage_ytcfg, is_premium_subscriber)
 
-        return webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url
+        return webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url_map
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -3948,7 +3996,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         base_url = self.http_scheme() + '//www.youtube.com/'
         webpage_url = base_url + 'watch?v=' + video_id
 
-        webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url = self._initial_extract(
+        webpage, webpage_ytcfg, initial_data, is_premium_subscriber, player_responses, player_url_map = self._initial_extract(
             url, smuggled_data, webpage_url, self._webpage_client, video_id)
 
         playability_statuses = traverse_obj(
@@ -4055,7 +4103,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     or parse_duration(search_meta('duration')) or None)
 
         live_broadcast_details, live_status, formats, automatic_captions = \
-            self._list_formats(video_id, microformats, video_details, player_responses, player_url, duration)
+            self._list_formats(video_id, microformats, video_details, player_responses, player_url_map, duration)
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         if live_status == 'post_live':
             self.to_screen(

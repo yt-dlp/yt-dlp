@@ -1036,6 +1036,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'web_creator': 'https://studio.youtube.com',
             'web_embedded': f'https://www.youtube.com/embed/{video_id}?html5=1',
             'tv': 'https://www.youtube.com/tv',
+            'tv_downgraded': 'https://www.youtube.com/tv',
+            'tv_samsung': 'https://www.youtube.com/tv',
         }.get(client)
         if not url:
             return {}
