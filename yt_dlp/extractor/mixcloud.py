@@ -25,7 +25,7 @@ class MixcloudBaseIE(InfoExtractor):
     %s
   }
 }''' % (lookup_key, username, f', slug: "{slug}"' if slug else '', object_fields),  # noqa: UP031
-            })['data'][lookup_key]
+            }, impersonate=True)['data'][lookup_key]
 
 
 class MixcloudIE(MixcloudBaseIE):

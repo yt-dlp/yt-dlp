@@ -1,3 +1,4 @@
+import datetime as dt
 import functools
 import json
 import math
@@ -5,11 +6,11 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from .periscope import PeriscopeBaseIE, PeriscopeIE
 from ..jsinterp import js_number_to_string
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
+    clean_html,
     dict_get,
     filter_dict,
     float_or_none,
@@ -17,15 +18,19 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     make_archive_id,
+    parse_qs,
     remove_end,
+    smuggle_url,
     str_or_none,
     strip_or_none,
     truncate_string,
     try_call,
     try_get,
     unified_timestamp,
+    unsmuggle_url,
     update_url_query,
     url_or_none,
+    urljoin,
     xpath_text,
 )
 from ..utils.traversal import require, traverse_obj
@@ -131,11 +136,15 @@ class TwitterBaseIE(InfoExtractor):
             video_id, headers=headers, query=query, expected_status=allowed_status,
             note=f'Downloading {"GraphQL" if graphql else "legacy API"} JSON')
 
-        if result.get('errors'):
-            errors = ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str}))))
-            if errors and 'not authorized' in errors:
-                self.raise_login_required(remove_end(errors, '.'))
-            raise ExtractorError(f'Error(s) while querying API: {errors or "Unknown error"}')
+        if error_msg := ', '.join(set(traverse_obj(result, ('errors', ..., 'message', {str})))):
+            # Errors with the message 'Dependency: Unspecified' are a false positive
+            # See https://github.com/yt-dlp/yt-dlp/issues/15963
+            if error_msg.lower() == 'dependency: unspecified':
+                self.write_debug(f'Ignoring Twitter API error: "{error_msg}"')
+            elif 'not authorized' in error_msg.lower():
+                self.raise_login_required(remove_end(error_msg, '.'))
+            else:
+                raise ExtractorError(f'Error(s) while querying API: {error_msg or "Unknown error"}')
 
         return result
 
@@ -396,20 +405,6 @@ class TwitterIE(TwitterBaseIE):
             '_old_archive_ids': ['twitter 719944021058060289'],
         },
     }, {
-        'url': 'https://twitter.com/OPP_HSD/status/779210622571536384',
-        'info_dict': {
-            'id': '1zqKVVlkqLaKB',
-            'ext': 'mp4',
-            'title': 'Sgt Kerry Schmidt - Ontario Provincial Police - Road rage, mischief, assault, rollover and fire in one occurrence',
-            'upload_date': '20160923',
-            'uploader_id': '1PmKqpJdOJQoY',
-            'uploader': 'Sgt Kerry Schmidt - Ontario Provincial Police',
-            'timestamp': 1474613214,
-            'thumbnail': r're:^https?://.*\.jpg',
-        },
-        'add_ie': ['Periscope'],
-        'skip': 'Broadcast not found',
-    }, {
         # has mp4 formats via mobile API
         'url': 'https://twitter.com/news_al3alm/status/852138619213144067',
         'info_dict': {
@@ -511,20 +506,24 @@ class TwitterIE(TwitterBaseIE):
         },
         'skip': 'This Tweet is unavailable',
     }, {
-        # not available in Periscope
-        'url': 'https://twitter.com/ViviEducation/status/1136534865145286656',
+        'url': 'https://x.com/SpaceX/status/2077785645645209727',
         'info_dict': {
-            'id': '1vOGwqejwoWxB',
+            'id': '1MKgNNXAZdmxL',
             'ext': 'mp4',
-            'title': 'Vivi - Vivi founder @lior_rauchy announcing our new student feedback tool live at @EduTECH_AU #EduTECH2019',
-            'uploader': 'Vivi',
-            'uploader_id': '1eVjYOLGkGrQL',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'tags': ['EduTECH2019'],
+            'title': 'Starship\'s Thirteenth Flight Test',
+            'concurrent_view_count': int,
+            'live_status': 'was_live',
+            'release_date': '20260716',
+            'release_timestamp': 1784239800,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1784239795,
+            'upload_date': '20260716',
+            'uploader': 'SpaceX',
+            'uploader_id': 'SpaceX',
+            'uploader_url': 'https://x.com/SpaceX',
             'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
-        'skip': 'Broadcast no longer exists',
     }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
@@ -973,6 +972,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'like_count': int,
             'comment_count': int,
+            'view_count': int,
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1724884212803834154'],
         },
@@ -997,6 +997,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'repost_count': int,
             'like_count': int,
+            'view_count': int,
             'thumbnail': r're:https://pbs\.twimg\.com/amplify_video_thumb/.+',
             'age_limit': 0,
             '_old_archive_ids': ['twitter 1790637656616943991'],
@@ -1017,6 +1018,7 @@ class TwitterIE(TwitterBaseIE):
             'comment_count': int,
             'like_count': int,
             'repost_count': int,
+            'view_count': int,
             'age_limit': 0,
             'duration': 30.278,
             'thumbnail': 'https://pbs.twimg.com/amplify_video_thumb/2001841416071450628/img/hpy5KpJh4pO17b65.jpg?name=orig',
@@ -1078,7 +1080,7 @@ class TwitterIE(TwitterBaseIE):
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
         elif typename == 'TweetUnavailable':
             reason = result.get('reason')
-            if reason == 'NsfwLoggedOut':
+            if reason in ('NsfwLoggedOut', 'NsfwViewerHasNoStatedAge'):
                 self.raise_login_required('NSFW tweet requires authentication')
             elif reason == 'Protected':
                 self.raise_login_required('You are not authorized to view this protected tweet')
@@ -1106,6 +1108,8 @@ class TwitterIE(TwitterBaseIE):
         }
         if binding_values:
             status['card']['binding_values'] = binding_values
+
+        status.update(traverse_obj(result, {'view_count': ('views', 'count', {int_or_none})}))
 
         return status
 
@@ -1218,6 +1222,7 @@ class TwitterIE(TwitterBaseIE):
             'channel_id': str_or_none(status.get('user_id_str')) or str_or_none(user.get('id_str')),
             'uploader_id': uploader_id,
             'uploader_url': format_field(uploader_id, None, 'https://twitter.com/%s'),
+            'view_count': int_or_none(status.get('view_count')),
             'like_count': int_or_none(status.get('favorite_count')),
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),
@@ -1255,7 +1260,6 @@ class TwitterIE(TwitterBaseIE):
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
-                'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),  # No longer available
                 'duration': float_or_none(traverse_obj(media, ('video_info', 'duration_millis')), 1000),
                 # Prioritize m3u8 formats for compat, see https://github.com/yt-dlp/yt-dlp/issues/8117
                 '_format_sort_fields': ('res', 'proto:m3u8', 'br', 'size'),  # http format codec is unknown
@@ -1277,12 +1281,6 @@ class TwitterIE(TwitterBaseIE):
                 yield {
                     '_type': 'url',
                     'url': get_binding_value('player_url'),
-                }
-            elif card_name == 'periscope_broadcast':
-                yield {
-                    '_type': 'url',
-                    'url': get_binding_value('url') or get_binding_value('player_url'),
-                    'ie_key': PeriscopeIE.ie_key(),
                 }
             elif card_name == 'broadcast':
                 yield {
@@ -1437,63 +1435,150 @@ class TwitterAmplifyIE(TwitterBaseIE):
         }
 
 
-class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
+class TwitterBroadcastIE(TwitterBaseIE):
     IE_NAME = 'twitter:broadcast'
 
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/(?P<type>broadcasts|events)/(?P<id>\w+)'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/broadcasts/(?P<id>\w+)'
     _TESTS = [{
-        # untitled Periscope video
-        'url': 'https://twitter.com/i/broadcasts/1yNGaQLWpejGj',
+        # Untitled broadcast
+        'url': 'https://x.com/i/broadcasts/1yNGaQLWpejGj',
         'info_dict': {
             'id': '1yNGaQLWpejGj',
             'ext': 'mp4',
-            'title': 'Andrea May Sahouri - Periscope Broadcast',
-            'display_id': '1yNGaQLWpejGj',
-            'uploader': 'Andrea May Sahouri',
-            'uploader_id': 'andreamsahouri',
-            'uploader_url': 'https://twitter.com/andreamsahouri',
-            'timestamp': 1590973638,
-            'upload_date': '20200601',
-            'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
-            'view_count': int,
+            'title': 'Andrea May Sahouri - X Broadcast',
             'concurrent_view_count': int,
             'live_status': 'was_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1590973647,
+            'upload_date': '20200601',
+            'uploader': 'Andrea May Sahouri',
+            'uploader_id': 'andreamsahouri',
+            'uploader_url': 'https://x.com/andreamsahouri',
+            'view_count': int,
         },
     }, {
-        'url': 'https://twitter.com/i/broadcasts/1ZkKzeyrPbaxv',
+        'url': 'https://x.com/i/broadcasts/1ZkKzeyrPbaxv',
         'info_dict': {
             'id': '1ZkKzeyrPbaxv',
             'ext': 'mp4',
             'title': 'Starship | SN10 | High-Altitude Flight Test',
-            'display_id': '1ZkKzeyrPbaxv',
-            'uploader': 'SpaceX',
-            'uploader_id': 'SpaceX',
-            'uploader_url': 'https://twitter.com/SpaceX',
-            'timestamp': 1614812942,
-            'upload_date': '20210303',
-            'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
-            'view_count': int,
             'concurrent_view_count': int,
             'live_status': 'was_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1614812964,
+            'upload_date': '20210303',
+            'uploader': 'SpaceX',
+            'uploader_id': 'SpaceX',
+            'uploader_url': 'https://x.com/SpaceX',
+            'view_count': int,
         },
     }, {
-        'url': 'https://twitter.com/i/broadcasts/1OyKAVQrgzwGb',
+        'url': 'https://x.com/i/broadcasts/1OyKAVQrgzwGb',
         'info_dict': {
             'id': '1OyKAVQrgzwGb',
             'ext': 'mp4',
             'title': 'Starship Flight Test',
-            'display_id': '1OyKAVQrgzwGb',
-            'uploader': 'SpaceX',
-            'uploader_id': 'SpaceX',
-            'uploader_url': 'https://twitter.com/SpaceX',
-            'timestamp': 1681993964,
-            'upload_date': '20230420',
-            'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
-            'view_count': int,
             'concurrent_view_count': int,
             'live_status': 'was_live',
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1681994486,
+            'upload_date': '20230420',
+            'uploader': 'SpaceX',
+            'uploader_id': 'SpaceX',
+            'uploader_url': 'https://x.com/SpaceX',
+            'view_count': int,
         },
-    }, {
+    }]
+
+    def _build_graphql_query(self, broadcast_id):
+        return {'variables': {'id': broadcast_id}}
+
+    def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        display_id = self._match_id(url)
+        graphql = self._call_graphql_api('0THBwNgta8LrS-cno61adw/BroadcastQuery', display_id)
+        broadcast = traverse_obj(graphql, ('broadcast', {dict}))
+
+        broadcast_id = traverse_obj(broadcast, ('broadcast_id', {str}))
+        live_status = {
+            'notstarted': 'is_upcoming',
+            'prepublished': 'is_upcoming',
+            'running': 'is_live',
+            'canceled': 'was_live',
+            'ended': 'was_live',
+            'timedout': 'was_live',
+        }.get(traverse_obj(broadcast, ('state', {str.lower})))
+        if not broadcast_id or (
+            live_status == 'was_live'
+            and not traverse_obj(broadcast, ('available_for_replay', {bool}))
+        ):
+            raise ExtractorError('This broadcast is no longer available', expected=True)
+
+        release_timestamp = traverse_obj(broadcast, (
+            'scheduled_start_time', {int_or_none(scale=1000)}))
+
+        if live_status == 'is_upcoming':
+            if release_timestamp is not None:
+                start_time = dt.datetime.fromtimestamp(
+                    release_timestamp, dt.UTC,
+                ).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+                msg = f'This broadcast is scheduled to start at {start_time}'
+            else:
+                msg = 'This broadcast has not yet started'
+
+            self.raise_no_formats(msg, expected=True)
+
+            return {
+                'id': broadcast_id,
+                'live_status': live_status,
+                'release_timestamp': release_timestamp,
+            }
+
+        media_key = traverse_obj(broadcast, (
+            'media_key', {str}, filter, any, {require('media key')}))
+        stream = self._call_api(f'live_video_stream/status/{media_key}', broadcast_id)
+        m3u8_url = traverse_obj(stream, (
+            'source', ('noRedirectPlaybackUrl', 'location'), {url_or_none}, any))
+        if m3u8_url and '/live_video_stream/geoblocked/' in m3u8_url:
+            self.raise_geo_restricted()
+
+        formats = self._extract_m3u8_formats(
+            m3u8_url, broadcast_id, 'mp4',
+            m3u8_id=traverse_obj(m3u8_url, ({parse_qs}, 'type', -1)))
+        if len(formats) == 1:
+            fmt = formats[0]
+            for key in ('height', 'width'):
+                if not fmt.get(key):
+                    fmt[key] = traverse_obj(broadcast, (key, {int_or_none}))
+
+        return {
+            'id': broadcast_id,
+            'display_id': smuggled_data.get('display_id', display_id),
+            'formats': formats,
+            'live_status': live_status,
+            'release_timestamp': release_timestamp,
+            **traverse_obj(broadcast, ('user_results', 'result', 'core', {
+                'title': ('name', {clean_html},
+                          {lambda name: join_nonempty(name, 'X Broadcast', delim=' - ')}),
+                'uploader': ('name', {clean_html}, filter),
+                'uploader_id': ('screen_name', {str}, filter),
+                'uploader_url': ('screen_name', {urljoin('https://x.com/')}),
+            })),
+            **traverse_obj(broadcast, {
+                'title': ('status', {clean_html}, filter),
+                'concurrent_view_count': ('total_watching', {int_or_none}),
+                'thumbnails': (('image_url_small', 'image_url_medium', 'image_url'), {'url': {url_or_none}}),
+                'timestamp': ('start_time', {int_or_none(scale=1000)}),
+                'view_count': ('total_watched', {int_or_none}),
+            }),
+        }
+
+
+class TwitterEventIE(TwitterBaseIE):
+    IE_NAME = 'twitter:event'
+
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/events/(?P<id>\d+)'
+    _TESTS = [{
         'url': 'https://x.com/i/events/1910629646300762112',
         'info_dict': {
             'id': '1LyxBWDRNqyKN',
@@ -1504,63 +1589,51 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'live_status': 'was_live',
             'release_date': '20250423',
             'release_timestamp': 1745409000,
-            'tags': ['ガンニバル'],
-            'thumbnail': r're:https?://[^?#]+\.jpg\?token=',
-            'timestamp': 1745403328,
+            'thumbnail': r're:https?://.+',
+            'timestamp': 1745408996,
             'upload_date': '20250423',
             'uploader': 'ディズニープラス公式',
             'uploader_id': 'DisneyPlusJP',
-            'uploader_url': 'https://twitter.com/DisneyPlusJP',
+            'uploader_url': 'https://x.com/DisneyPlusJP',
             'view_count': int,
         },
+    }, {
+        'url': 'https://x.com/i/events/2018869372748472320',
+        'info_dict': {
+            'id': '2018869372748472320',
+            'title': '#カワラボ4周年おめでとう 記念キャンペーン',
+        },
+        'playlist_count': 18,
     }]
 
     def _real_extract(self, url):
-        broadcast_type, display_id = self._match_valid_url(url).group('type', 'id')
+        event_id = self._match_id(url)
+        timeline = self._call_api(
+            f'live_event/1/{event_id}/timeline.json', event_id)
+        twitter_objects = traverse_obj(timeline, ('twitter_objects', {dict}))
 
-        if broadcast_type == 'events':
-            timeline = self._call_api(
-                f'live_event/1/{display_id}/timeline.json', display_id)
-            broadcast_id = traverse_obj(timeline, (
-                'twitter_objects', 'broadcasts', ..., ('id', 'broadcast_id'),
-                {str}, any, {require('broadcast ID')}))
-        else:
-            broadcast_id = display_id
+        if tweet_ids := traverse_obj(twitter_objects, (
+            'tweets', ..., 'id_str', {str},
+        )):
+            event_title = traverse_obj(twitter_objects, (
+                'live_events', event_id, 'title', {clean_html}, filter))
 
-        broadcast = self._call_api(
-            'broadcasts/show.json', broadcast_id,
-            {'ids': broadcast_id})['broadcasts'][broadcast_id]
-        if not broadcast:
-            raise ExtractorError('Broadcast no longer exists', expected=True)
-        info = self._parse_broadcast_data(broadcast, broadcast_id)
-        info.update({
-            'display_id': display_id,
-            'title': broadcast.get('status') or info.get('title'),
-            'uploader_id': broadcast.get('twitter_username') or info.get('uploader_id'),
-            'uploader_url': format_field(
-                broadcast, 'twitter_username', 'https://twitter.com/%s', default=None),
-        })
-        if info['live_status'] == 'is_upcoming':
-            self.raise_no_formats('This live broadcast has not yet started', expected=True)
-            return info
+            return self.playlist_result([self.url_result(
+                f'https://x.com/i/web/status/{tweet_id}', TwitterIE,
+            ) for tweet_id in tweet_ids], event_id, event_title)
 
-        media_key = broadcast['media_key']
-        source = self._call_api(
-            f'live_video_stream/status/{media_key}', media_key)['source']
-        m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
-        if '/live_video_stream/geoblocked/' in m3u8_url:
-            self.raise_geo_restricted()
-        m3u8_id = urllib.parse.parse_qs(urllib.parse.urlparse(
-            m3u8_url).query).get('type', [None])[0]
-        state, width, height = self._extract_common_format_info(broadcast)
-        info['formats'] = self._extract_pscp_m3u8_formats(
-            m3u8_url, broadcast_id, m3u8_id, state, width, height)
-        return info
+        broadcast_id = traverse_obj(twitter_objects, (
+            'broadcasts', ..., ('id', 'broadcast_id'), {str}, any, {require('broadcast ID')}))
+
+        return self.url_result(smuggle_url(
+            f'https://x.com/i/broadcasts/{broadcast_id}',
+            {'display_id': event_id},
+        ), TwitterBroadcastIE)
 
 
 class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13,})'
 
     _TESTS = [{
         'url': 'https://twitter.com/i/spaces/1OwxWwQOPlNxQ',
@@ -1607,7 +1680,7 @@ class TwitterSpacesIE(TwitterBaseIE):
             'ext': 'm4a',
             'title': 'あ',
             'description': 'Twitter Space participated by nobody yet',
-            'uploader': '息根とめる',
+            'uploader': '息根とめる@録音機能付き拡声器',
             'uploader_id': 'tomeru_ikinone',
             'live_status': 'was_live',
             'release_date': '20230601',
@@ -1636,6 +1709,23 @@ class TwitterSpacesIE(TwitterBaseIE):
             'release_timestamp': 1723932056,
             'release_date': '20240817',
             'protocol': 'm3u8_native',  # not ffmpeg, detected as video space
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://x.com/i/spaces/1ybQVJRXmjnKWb',
+        'info_dict': {
+            'id': '1ybQVJRXmjnKWb',
+            'ext': 'mp4',
+            'title': '𝟱𝗞+🔸𝐈𝐧𝐭𝐞𝐫𝐧𝐚𝐭𝐢𝐨𝐧𝐚𝐥 𝗮𝗰𝘁𝗶𝘃𝗲 𝗺𝘂𝘁𝘂𝗮𝗹 🇮🇳 𝗦𝐩𝐚𝐜𝐞 𝐟𝐨𝐫 𝐚𝐥𝐥 ⚡️Turn on 🔔 Host ☑️ 2026-11-17 12:05',
+            'description': 'md5:bb31bcbaea413da307a4bd56d580e9eb',
+            'uploader': 'Tҽαɱ Ɲιтуα™ ✘',
+            'uploader_id': 'taashi2016',
+            'thumbnail': 'https://pbs.twimg.com/profile_images/2116385713436729344/5HgVbAA1_400x400.jpg',
+            'timestamp': 1794880385,
+            'upload_date': '20261117',
+            'release_timestamp': 1794880391,
+            'release_date': '20261117',
+            'live_status': 'is_live',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -1675,7 +1765,7 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
-        space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
+        space_data = self._call_graphql_api('zm3JmUpYWDXIUsf_33-ZrA/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
 
@@ -1723,10 +1813,10 @@ class TwitterSpacesIE(TwitterBaseIE):
                 'release_timestamp': (('started_at', 'scheduled_start'), {int_or_none(scale=1000)}, any),
                 'timestamp': ('created_at', {int_or_none(scale=1000)}),
             }),
-            **traverse_obj(metadata, ('creator_results', 'result', 'legacy', {
-                'uploader': ('name', {str}),
-                'uploader_id': ('screen_name', {str_or_none}),
-                'thumbnail': ('profile_image_url_https', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
+            **traverse_obj(metadata, ('creator_results', 'result', {
+                'uploader': ('core', 'name', {str}),
+                'uploader_id': ('core', 'screen_name', {str_or_none}),
+                'thumbnail': ('avatar', 'image_url', {lambda x: x.replace('_normal', '_400x400')}, {url_or_none}),
             })),
         }
 

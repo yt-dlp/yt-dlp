@@ -125,20 +125,20 @@ class IchinanaLiveClipIE(InfoExtractor):
         formats = []
         if view_data.get('videoURL'):
             formats.append({
-                'id': 'video',
+                'format_id': 'video',
                 'url': view_data['videoURL'],
                 'quality': -1,
             })
         if view_data.get('transcodeURL'):
             formats.append({
-                'id': 'transcode',
+                'format_id': 'transcode',
                 'url': view_data['transcodeURL'],
                 'quality': -1,
             })
         if view_data.get('srcVideoURL'):
             # highest quality
             formats.append({
-                'id': 'srcVideo',
+                'format_id': 'srcVideo',
                 'url': view_data['srcVideoURL'],
                 'quality': 1,
             })

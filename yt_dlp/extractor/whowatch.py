@@ -9,6 +9,7 @@ from ..utils import (
 
 
 class WhoWatchIE(InfoExtractor):
+    _WORKING = False
     IE_NAME = 'whowatch'
     _VALID_URL = r'https?://whowatch\.tv/viewer/(?P<id>\d+)'
 

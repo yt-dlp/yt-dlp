@@ -21,12 +21,20 @@ from yt_dlp.utils import Popen
 class QuickJSJCP(EJSBaseJCP, BuiltinIEContentProvider):
     PROVIDER_NAME = 'quickjs'
     JS_RUNTIME_NAME = 'quickjs'
+    _QJS_MIN_RECOMMENDED = {
+        'quickjs': (2025, 4, 26),
+        'quickjs-ng': (0, 12, 0),
+    }
+    _QJS_WARNING_TMPL = (
+        '{name} versions older than {version} are missing important optimizations '
+        'and will solve the JS challenges very slowly. Consider upgrading.')
 
     def _run_js_runtime(self, stdin: str, /) -> str:
-        if self.runtime_info.name == 'quickjs-ng':
-            self.logger.warning('QuickJS-NG is missing some optimizations making this very slow. Consider using upstream QuickJS instead.')
-        elif self.runtime_info.version_tuple < (2025, 4, 26):
-            self.logger.warning('Older QuickJS versions are missing optimizations making this very slow. Consider upgrading.')
+        min_recommended_version = self._QJS_MIN_RECOMMENDED[self.runtime_info.name]
+        if self.runtime_info.version_tuple < min_recommended_version:
+            self.logger.warning(self._QJS_WARNING_TMPL.format(
+                name=self.runtime_info.name,
+                version='.'.join(map(str, min_recommended_version))))
 
         # QuickJS does not support reading from stdin, so we have to use a temp file
         temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')

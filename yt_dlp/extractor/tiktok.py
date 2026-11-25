@@ -220,7 +220,7 @@ class TikTokBaseIE(InfoExtractor):
             raise ExtractorError('Unable to extract aweme detail info', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
-    def _solve_challenge_and_set_cookie(self, webpage):
+    def _solve_challenge_and_set_cookies(self, webpage):
         challenge_data = traverse_obj(webpage, (
             {find_element(id='cs', html=True)}, {extract_attributes}, 'class',
             filter, {lambda x: f'{x}==='}, {base64.b64decode}, {json.loads}))
@@ -250,27 +250,42 @@ class TikTokBaseIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to solve JS challenge')
 
-        cookie_value = base64.b64encode(
+        wci_cookie_value = base64.b64encode(
             json.dumps(challenge_data, separators=(',', ':')).encode()).decode()
 
-        # At time of writing, the cookie name was _wafchallengeid
-        cookie_name = traverse_obj(webpage, (
+        # At time of writing, the wci cookie name was `_wafchallengeid`
+        wci_cookie_name = traverse_obj(webpage, (
             {find_element(id='wci', html=True)}, {extract_attributes},
             'class', {require('challenge cookie name')}))
 
-        # Actual JS sets Max-Age=1, but we need to adjust for --sleep-requests and Python slowness
-        expire_time = int(time.time()) + (self.get_param('sleep_interval_requests') or 0) + 2
-        self._set_cookie('.tiktok.com', cookie_name, cookie_value, expire_time=expire_time)
+        # At time of writing, the **optional** rci cookie name was `waforiginalreid`
+        rci_cookie_name = traverse_obj(webpage, (
+            {find_element(id='rci', html=True)}, {extract_attributes}, 'class'))
+        rci_cookie_value = traverse_obj(webpage, (
+            {find_element(id='rs', html=True)}, {extract_attributes}, 'class'))
+
+        # Actual JS sets Max-Age=1 for the cookies, but we'll manually clear them later instead
+        expire_time = int(time.time()) + (self.get_param('sleep_interval_requests') or 0) + 120
+        self._set_cookie('.tiktok.com', wci_cookie_name, wci_cookie_value, expire_time=expire_time)
+        if rci_cookie_name and rci_cookie_value:
+            self._set_cookie('.tiktok.com', rci_cookie_name, rci_cookie_value, expire_time=expire_time)
+
+        return wci_cookie_name, rci_cookie_name
 
     def _extract_web_data_and_status(self, url, video_id, fatal=True):
         video_data, status = {}, -1
+        headers = self._generate_blockbuster_headers()
 
         def get_webpage(note='Downloading webpage'):
-            res = self._download_webpage_handle(url, video_id, note, fatal=fatal, impersonate=True)
+            res = self._download_webpage_handle(
+                url, video_id, note, fatal=fatal, headers=headers, impersonate=True)
             if res is False:
                 return False
 
             webpage, urlh = res
+            self.write_debug(f'Webpage size: {len(webpage)} bytes')
+            self.write_debug(f'Impersonation target: {urlh.extensions.get("impersonate")}')
+
             if urllib.parse.urlparse(urlh.url).path == '/login':
                 message = 'TikTok is requiring login for access to this content'
                 if fatal:
@@ -287,7 +302,7 @@ class TikTokBaseIE(InfoExtractor):
         universal_data = self._get_universal_data(webpage, video_id)
         if not universal_data:
             try:
-                self._solve_challenge_and_set_cookie(webpage)
+                cookie_names = self._solve_challenge_and_set_cookies(webpage)
             except ExtractorError as e:
                 if fatal:
                     raise
@@ -295,6 +310,9 @@ class TikTokBaseIE(InfoExtractor):
                 return video_data, status
 
             webpage = get_webpage(note='Downloading webpage with challenge cookie')
+            # Manually clear challenge cookies that should expire immediately after webpage request
+            for cookie_name in filter(None, cookie_names):
+                self.cookiejar.clear(domain='.tiktok.com', path='/', name=cookie_name)
             if webpage is False:
                 return video_data, status
             universal_data = self._get_universal_data(webpage, video_id)
@@ -590,6 +608,13 @@ class TikTokBaseIE(InfoExtractor):
                     **COMMON_FORMAT_INFO,
                     **format_info,
                     'url': self._proto_relative_url(video_url),
+                    # Some bytevc1 formats are video-only or may return HTTP Error 404
+                    # See: https://github.com/yt-dlp/yt-dlp/issues/16622
+                    #      https://github.com/yt-dlp/yt-dlp/issues/17372
+                    **({
+                        'acodec': 'none',
+                        '__needs_testing': True,
+                    } if urllib.parse.urlparse(video_url).path.endswith('/media-video-hvc1/') else {}),
                 })
 
         # We don't have res string for play formats, but need quality for sorting & de-duplication
@@ -612,13 +637,12 @@ class TikTokBaseIE(InfoExtractor):
                 'url': self._proto_relative_url(download_url),
                 'format_note': 'watermarked',
                 'preference': -2,
+                '__needs_testing': True,
             })
 
         self._remove_duplicate_formats(formats)
 
-        # Is it a slideshow with only audio for download?
-        if not formats and traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
-            audio_url = aweme_detail['music']['playUrl']
+        if audio_url := traverse_obj(aweme_detail, ('music', 'playUrl', {url_or_none})):
             ext = traverse_obj(parse_qs(audio_url), (
                 'mime_type', -1, {lambda x: x.replace('_', '/')}, {mimetype2ext})) or 'm4a'
             formats.append({
@@ -682,7 +706,7 @@ class TikTokBaseIE(InfoExtractor):
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktokv?\.com/(?:embed|(?:share|@(?P<user_id>[\w\.-]+)?)/video)/(?P<id>\d+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
@@ -956,6 +980,15 @@ class TikTokIE(TikTokBaseIE):
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True,
+    }, {
+        'url': 'https://www.tiktokv.com/share/video/7668090902816017671/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/share/video/7668090902816017671/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tiktok.com/@/video/7668090902816017671/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -1142,7 +1175,7 @@ class TikTokUserIE(TikTokBaseIE):
             webpage = self._download_webpage(
                 self._UPLOADER_URL_FORMAT % user_name, user_name,
                 'Downloading user webpage', 'Unable to download user webpage',
-                fatal=False, impersonate=True) or ''
+                impersonate=True, fatal=False, headers=self._generate_blockbuster_headers()) or ''
             detail = traverse_obj(
                 self._get_universal_data(webpage, user_name), ('webapp.user-detail', {dict})) or {}
             video_count = traverse_obj(detail, ('userInfo', ('stats', 'statsV2'), 'videoCount', {int}, any))
@@ -1600,7 +1633,8 @@ class TikTokLiveIE(TikTokBaseIE):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
         if not room_id:
             webpage = self._download_webpage(
-                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader, impersonate=True)
+                format_field(uploader, None, self._UPLOADER_URL_FORMAT), uploader,
+                impersonate=True, headers=self._generate_blockbuster_headers())
             room_id = traverse_obj(
                 self._get_universal_data(webpage, uploader),
                 ('webapp.user-detail', 'userInfo', 'user', 'roomId', {str}))

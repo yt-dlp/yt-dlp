@@ -239,6 +239,7 @@ class TestTraversal:
             'accept matching `expected_type` type'
         assert traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int) is None, \
             'reject non matching `expected_type` type'
+        # ruff: noqa: PLW0108 `type`s get special treatment, so wrap in lambda
         assert traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)) == '0', \
             'transform type using type function'
         assert traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=lambda _: 1 / 0) is None, \
@@ -545,6 +546,18 @@ class TestTraversalHelpers:
                 {'url': 'https://example.com/subs/de4'},
             ],
         }, 'non str types should be replaced by default id'
+        assert traverse_obj([
+            {'name': '', 'ext': '', 'url': 'https://example.com/subs/en'},
+        ], [..., {
+            'id': 'name',
+            'ext': 'ext',
+            'url': 'url',
+        }, all, {subs_list_to_dict(lang='en', ext='vtt')}]) == {
+            'en': [{
+                'ext': 'vtt',
+                'url': 'https://example.com/subs/en',
+            }],
+        }, 'empty id and ext should be replaced by defaults'
 
     def test_trim_str(self):
         with pytest.raises(TypeError):
