@@ -1911,6 +1911,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         'embed_es6_tcc': 'player_embed_es6_tcc.vflset/en_US/base.js',
         'embed_es6_tce': 'player_embed_es6_tce.vflset/en_US/base.js',
         'house': 'house_brand_player.vflset/en_US/base.js',  # Used by Google Drive
+        'house_es6': 'house_brand_player_es6.vflset/en_US/base.js',
     }
     _PLAYER_JS_VARIANT_MAP_STS_V8 = {
         # 8-digit STS variants
