@@ -161,17 +161,7 @@ class HTTPHandler(urllib.request.AbstractHTTPHandler):
         if decoded_response is not None:
             resp = urllib.request.addinfourl(io.BytesIO(decoded_response), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-        # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
-        # https://github.com/ytdl-org/youtube-dl/issues/6457).
-        if 300 <= resp.code < 400:
-            location = resp.headers.get('Location')
-            if location:
-                # As of RFC 2616 default charset is iso-8859-1 that is respected by Python 3
-                location = location.encode('iso-8859-1').decode()
-                location_escaped = normalize_url(location)
-                if location != location_escaped:
-                    del resp.headers['Location']
-                    resp.headers['Location'] = location_escaped
+
         return resp
 
     https_request = http_request
@@ -296,13 +286,9 @@ class UrllibResponseAdapter(Response):
     """
 
     def __init__(self, res: http.client.HTTPResponse | urllib.response.addinfourl):
-        # addinfourl: In Python 3.9+, .status was introduced and .getcode() was deprecated [1]
-        # HTTPResponse: .getcode() was deprecated, .status always existed [2]
-        # 1. https://docs.python.org/3/library/urllib.request.html#urllib.response.addinfourl.getcode
-        # 2. https://docs.python.org/3.10/library/http.client.html#http.client.HTTPResponse.status
         super().__init__(
             fp=res, headers=res.headers, url=res.url,
-            status=getattr(res, 'status', None) or res.getcode(), reason=getattr(res, 'reason', None))
+            status=res.status, reason=getattr(res, 'reason', None))
 
     def read(self, amt=None):
         if self.closed:
@@ -317,7 +303,9 @@ class UrllibResponseAdapter(Response):
                 # urllib's addinfourl does not close the underlying fp automatically when fully read
                 if isinstance(underlying, io.BytesIO):
                     # data URLs or in-memory responses (e.g. gzip/deflate/brotli decoded)
-                    if underlying.tell() >= len(underlying.getbuffer()):
+                    with underlying.getbuffer() as view:
+                        fully_read = underlying.tell() >= len(view)
+                    if fully_read:
                         self.close()
                 elif isinstance(underlying, io.BufferedReader) and amt is None:
                     # file URLs.

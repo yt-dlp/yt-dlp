@@ -872,7 +872,9 @@ from .khanacademy import (
 )
 from .kick import (
     KickClipIE,
+    KickClipsIE,
     KickIE,
+    KickVideosIE,
     KickVODIE,
 )
 from .kicker import KickerIE
@@ -896,11 +898,7 @@ from .kuwo import (
     KuwoMvIE,
     KuwoSingerIE,
 )
-from .la7 import (
-    LA7IE,
-    LA7PodcastEpisodeIE,
-    LA7PodcastIE,
-)
+from .la7 import LA7IE
 from .laracasts import (
     LaracastsIE,
     LaracastsPlaylistIE,
@@ -1398,10 +1396,6 @@ from .peloton import (
     PelotonLiveIE,
 )
 from .performgroup import PerformGroupIE
-from .periscope import (
-    PeriscopeIE,
-    PeriscopeUserIE,
-)
 from .pgatour import PGATourIE
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
@@ -2100,6 +2094,7 @@ from .twitter import (
     TwitterAmplifyIE,
     TwitterBroadcastIE,
     TwitterCardIE,
+    TwitterEventIE,
     TwitterIE,
     TwitterShortenerIE,
     TwitterSpacesIE,

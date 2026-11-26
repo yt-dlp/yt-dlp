@@ -432,29 +432,28 @@ class InfoExtractor:
 
     chapter:        Name or title of the chapter the video belongs to.
     chapter_number: Number of the chapter the video belongs to, as an integer.
-    chapter_id:     Id of the chapter the video belongs to, as a unicode string.
+    chapter_id:     Id of the chapter the video belongs to.
 
     The following fields should only be used when the video is an episode of some
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
-    series_id:      Id of the series or programme the video episode belongs to, as a unicode string.
+    series_id:      Id of the series or programme the video episode belongs to.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
-    season_id:      Id of the season the video episode belongs to, as a unicode string.
+    season_id:      Id of the season the video episode belongs to.
     episode:        Title of the video episode. Unlike mandatory video title field,
                     this field should denote the exact title of the video episode
                     without any kind of decoration.
     episode_number: Number of the video episode within a season, as an integer.
-    episode_id:     Id of the video episode, as a unicode string.
+    episode_id:     Id of the video episode.
 
     The following fields should only be used when the media is a track or a part of
     a music album:
 
     track:          Title of the track.
     track_number:   Number of the track within an album or a disc, as an integer.
-    track_id:       Id of the track (useful in case of custom indexing, e.g. 6.iii),
-                    as a unicode string.
+    track_id:       Id of the track (useful for custom indexing, e.g. 6.iii).
     artists:        List of artists of the track.
     composers:      List of composers of the piece.
     genres:         List of genres of the track.
@@ -487,7 +486,7 @@ class InfoExtractor:
     creator:        Use "creators" instead.
                     The creator of the video.
 
-    Unless mentioned otherwise, the fields should be Unicode strings.
+    Unless mentioned otherwise, the fields should be strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.
 
@@ -1277,6 +1276,9 @@ class InfoExtractor:
         """Returns a URL that points to a page that should be processed"""
         if ie is not None:
             kwargs['ie_key'] = ie if isinstance(ie, str) else ie.ie_key()
+        # Silence fallback warning if this is an intentional generic result
+        if kwargs.get('ie_key') == 'Generic':
+            url = smuggle_url(url, {'to_generic': True})
         if video_id is not None:
             kwargs['id'] = video_id
         if video_title is not None:
@@ -1309,7 +1311,7 @@ class InfoExtractor:
             'entries': entries,
         }
 
-    def _search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
+    def _search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=re.NOFLAG, group=None):
         """
         Perform a regex search on the given string, using a single or a list of
         patterns returning the first matching group.
@@ -1371,7 +1373,7 @@ class InfoExtractor:
                     f'Unable to extract {_name} - Failed to parse JSON: {e}', video_id=video_id)
         return default
 
-    def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
+    def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=re.NOFLAG, group=None):
         """
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
@@ -1410,12 +1412,6 @@ class InfoExtractor:
             return None, None
 
         self.write_debug(f'Using netrc for {netrc_machine} authentication')
-
-        # compat: <=py3.10: netrc cannot parse tokens as empty strings, will return `""` instead
-        # Ref: https://github.com/yt-dlp/yt-dlp/issues/11413
-        #      https://github.com/python/cpython/commit/15409c720be0503131713e3d3abc1acd0da07378
-        if sys.version_info < (3, 11):
-            return tuple(x if x != '""' else '' for x in info[::2])
 
         return info[0], info[2]
 

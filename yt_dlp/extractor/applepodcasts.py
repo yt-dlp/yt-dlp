@@ -28,7 +28,7 @@ class AppleBaseIE(InfoExtractor):
 
     def _get_token(self, webpage, episode_id):
         if self._jwt_cache.get(self._BASE_URL) and not self._jwt_is_expired(self._jwt_cache[self._BASE_URL]):
-            return self._jwt
+            return self._jwt_cache[self._BASE_URL]
 
         js_path = self._search_regex(
             r'<script [^>]*\bsrc="(/assets/index~[0-9a-f]+\.js)">', webpage, 'JS asset path')

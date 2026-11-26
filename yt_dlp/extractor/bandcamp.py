@@ -25,7 +25,35 @@ from ..utils import (
 from ..utils.traversal import find_element, find_elements, traverse_obj
 
 
-class BandcampIE(InfoExtractor):
+class BandcampBaseIE(InfoExtractor):
+    # Initially try without impersonation, retry with impersonation
+    def _download_webpage(self, *args, **kwargs):
+        impersonate = kwargs.pop('impersonate', None) or True
+        kwargs.pop('require_impersonation', None)
+        webpage = super()._download_webpage(*args, **kwargs)
+        if webpage:
+            if self._html_extract_title(webpage) == 'Client Challenge':
+                self.write_debug('Got client challenge webpage response')
+            else:
+                return webpage
+
+        res = self._download_webpage_handle(*args, impersonate=impersonate, require_impersonation=True, **kwargs)
+        if res is False:
+            return False
+
+        webpage, urlh = res
+        if self._html_extract_title(webpage) == 'Client Challenge':
+            raise ExtractorError(f'Got client challenge webpage response with {urlh.extensions.get("impersonate")}')
+
+        return webpage
+
+    def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
+        return self._parse_json(self._html_search_regex(
+            rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
+            attr + ' data', group=2), video_id, fatal=fatal)
+
+
+class BandcampIE(BandcampBaseIE):
     _VALID_URL = r'https?://(?P<uploader>[^/]+)\.bandcamp\.com/track/(?P<id>[^/?#&]+)'
     _EMBED_REGEX = [r'<meta property="og:url"[^>]*?content="(?P<url>.*?bandcamp\.com.*?)"']
     _TESTS = [{
@@ -149,14 +177,9 @@ class BandcampIE(InfoExtractor):
         'skip': 'embed detection is broken',
     }]
 
-    def _extract_data_attr(self, webpage, video_id, attr='tralbum', fatal=True):
-        return self._parse_json(self._html_search_regex(
-            rf'data-{attr}=(["\'])({{.+?}})\1', webpage,
-            attr + ' data', group=2), video_id, fatal=fatal)
-
     def _real_extract(self, url):
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
-        webpage = self._download_webpage(url, title, impersonate=True)
+        webpage = self._download_webpage(url, title)
         tralbum = self._extract_data_attr(webpage, title)
         thumbnail = self._og_search_thumbnail(webpage)
 
@@ -202,7 +225,7 @@ class BandcampIE(InfoExtractor):
             track_id = str(tralbum['id'])
 
             download_webpage = self._download_webpage(
-                download_link, track_id, 'Downloading free downloads page', impersonate=True)
+                download_link, track_id, 'Downloading free downloads page')
 
             blob = self._extract_data_attr(download_webpage, track_id, 'blob')
 
@@ -284,7 +307,7 @@ class BandcampIE(InfoExtractor):
         }
 
 
-class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
+class BandcampAlbumIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<id>[^/?#&]+)'
 
@@ -389,7 +412,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         uploader_id, album_id = self._match_valid_url(url).groups()
         playlist_id = album_id or uploader_id
-        webpage = self._download_webpage(url, playlist_id, impersonate=True)
+        webpage = self._download_webpage(url, playlist_id)
         tralbum = self._extract_data_attr(webpage, playlist_id)
         track_info = tralbum.get('trackinfo')
         if not track_info:
@@ -414,7 +437,7 @@ class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         }
 
 
-class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
+class BandcampWeeklyIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/radio/?\?(?:[^#]+&)?show=(?P<id>\d+)'
     _TESTS = [{
@@ -478,7 +501,7 @@ class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
         }
 
 
-class BandcampUserIE(InfoExtractor):
+class BandcampUserIE(BandcampBaseIE):
     IE_NAME = 'Bandcamp:user'
     _VALID_URL = r'https?://(?!www\.)(?P<id>[^.]+)\.bandcamp\.com(?:/music)?/?(?:[#?]|$)'
 

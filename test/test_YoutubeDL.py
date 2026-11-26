@@ -15,7 +15,7 @@ import contextlib
 import copy
 import json
 
-from test.helper import FakeYDL, assertRegexpMatches, try_rm
+from test.helper import FakeYDL, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
@@ -860,10 +860,10 @@ class TestYoutubeDL(unittest.TestCase):
     def test_format_note(self):
         ydl = YoutubeDL()
         self.assertEqual(ydl._format_note({}), '')
-        assertRegexpMatches(self, ydl._format_note({
+        self.assertRegex(ydl._format_note({
             'vbr': 10,
         }), r'^\s*10k$')
-        assertRegexpMatches(self, ydl._format_note({
+        self.assertRegex(ydl._format_note({
             'fps': 30,
         }), r'^30fps$')
 
