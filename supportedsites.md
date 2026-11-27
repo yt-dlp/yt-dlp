@@ -625,8 +625,10 @@ The only reliable way to check if a site is supported is to try it.
  - **Kenh14Video**
  - **khanacademy**
  - **khanacademy:unit**
+ - **kick:clip**
  - **kick:clips**
  - **kick:live**
+ - **kick:videos**
  - **kick:vod**
  - **Kicker**
  - **KickStarter**
@@ -645,9 +647,7 @@ The only reliable way to check if a site is supported is to try it.
  - **kuwo:mv**: 酷我音乐 - MV (**Currently broken**)
  - **kuwo:singer**: 酷我音乐 - 歌手 (**Currently broken**)
  - **kuwo:song**: 酷我音乐 (**Currently broken**)
- - **la7.it**
- - **la7.it:​pod:episode**
- - **la7.it:podcast**
+ - **la7play.it**
  - **laracasts**
  - **laracasts:series**
  - **LastFM**
@@ -883,6 +883,7 @@ The only reliable way to check if a site is supported is to try it.
  - **nhl.com**
  - **nick.com**
  - **niconico**: [*niconico*](## "netrc machine") ニコニコ動画
+ - **niconico:channel**: [*niconico*](## "netrc machine")
  - **niconico:history**: NicoNico user history or likes. Requires cookies.
  - **niconico:live**: [*niconico*](## "netrc machine") ニコニコ生放送
  - **niconico:playlist**
@@ -999,8 +1000,6 @@ The only reliable way to check if a site is supported is to try it.
  - **peloton**: [*peloton*](## "netrc machine")
  - **peloton:live**: Peloton Live
  - **PerformGroup**
- - **periscope**: Periscope
- - **periscope:user**: Periscope user videos
  - **PGATour**
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
@@ -1429,7 +1428,7 @@ The only reliable way to check if a site is supported is to try it.
  - **Tube8**: (**Currently broken**)
  - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
  - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
- - **tubitv**: [*tubitv*](## "netrc machine")
+ - **tubitv**
  - **tubitv:series**
  - **Tumblr**: [*tumblr*](## "netrc machine")
  - **tunein:embed**
@@ -1488,6 +1487,7 @@ The only reliable way to check if a site is supported is to try it.
  - **twitter:amplify**
  - **twitter:broadcast**
  - **twitter:card**
+ - **twitter:event**
  - **twitter:shortener**
  - **twitter:spaces**
  - **Txxx**

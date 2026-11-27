@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import datetime as dt
+import email.message
 import io
 import itertools
 import json
@@ -48,6 +49,7 @@ from yt_dlp.utils import (
     determine_ext,
     determine_file_encoding,
     dfxp2srt,
+    disposition_filename,
     encode_base_n,
     encode_compat_str,
     expand_path,
@@ -107,6 +109,7 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
+    setproctitle,
     shell_quote,
     strftime_or_none,
     smuggle_url,
@@ -125,6 +128,7 @@ from yt_dlp.utils import (
     url_basename,
     url_or_none,
     urlencode_postdata,
+    urlhandle_detect_ext,
     urljoin,
     urshift,
     variadic,
@@ -422,15 +426,15 @@ class TestUtil(unittest.TestCase):
 
     def test_datetime_round(self):
         self.assertEqual(datetime_round(dt.datetime.strptime('1820-05-12T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ')),
-                         dt.datetime(1820, 5, 12, tzinfo=dt.timezone.utc))
+                         dt.datetime(1820, 5, 12, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('1969-12-31T23:34:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'hour'),
-                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.timezone.utc))
+                         dt.datetime(1970, 1, 1, 0, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45Z', '%Y-%m-%dT%H:%M:%SZ'), 'minute'),
-                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 24, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.123Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
-                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 23, 45, tzinfo=dt.UTC))
         self.assertEqual(datetime_round(dt.datetime.strptime('2024-12-25T01:23:45.678Z', '%Y-%m-%dT%H:%M:%S.%fZ'), 'second'),
-                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.timezone.utc))
+                         dt.datetime(2024, 12, 25, 1, 23, 46, tzinfo=dt.UTC))
 
     def test_strftime_or_none(self):
         self.assertEqual(strftime_or_none(-4722192000), '18200512')
@@ -523,6 +527,7 @@ class TestUtil(unittest.TestCase):
             <node x="a" y="c" />
             <node x="b" y="d" />
             <node x="" />
+            <node x="a'b&quot;c" y="1" />
         </root>'''
         doc = compat_etree_fromstring(testxml)
 
@@ -537,6 +542,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(find_xpath_attr(doc, './/node', 'y', 'c'), doc[2])
         self.assertEqual(find_xpath_attr(doc, './/node', 'y', 'd'), doc[3])
         self.assertEqual(find_xpath_attr(doc, './/node', 'x', ''), doc[4])
+        self.assertEqual(find_xpath_attr(doc, './/node', 'x', 'a\'b"c'), doc[5])
+        self.assertEqual(find_xpath_attr(doc, './/node', 'y', 1), doc[5])
 
     def test_xpath_with_ns(self):
         testxml = '''<root xmlns:media="http://example.com/">
@@ -612,6 +619,14 @@ class TestUtil(unittest.TestCase):
         res_url, res_data = unsmuggle_url(smug_smug_url)
         self.assertEqual(res_url, url)
         self.assertEqual(res_data, {'a': 'b', 'c': 'd'})
+
+    @unittest.mock.patch('ctypes.cdll.LoadLibrary')
+    def test_setproctitle(self, load_library):
+        for title in ('yt-dlp', 'café'):
+            with self.subTest(title=title):
+                setproctitle(title)
+                buf = load_library.return_value.prctl.call_args.args[1]
+                self.assertEqual(bytes(buf), title.encode() + b'\0')
 
     def test_shell_quote(self):
         args = ['ffmpeg', '-i', 'ñ€ß\'.mp4']
@@ -1041,6 +1056,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(normalize_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
         self.assertEqual(normalize_url('http://www.example.com/../a/b/../c/./d.html'), 'http://www.example.com/a/c/d.html')
+        self.assertEqual(normalize_url('file:///..//dir/media/video.mp4'), 'file:///dir/media/video.mp4')
+        self.assertEqual(normalize_url('file:////server/share/dir/../video.mp4'), 'file:////server/share/video.mp4')
 
     def test_remove_dot_segments(self):
         self.assertEqual(remove_dot_segments('/a/b/c/./../../g'), '/a/g')
@@ -1048,6 +1065,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_dot_segments('/ad/../cd'), '/cd')
         self.assertEqual(remove_dot_segments('/ad/../cd/'), '/cd/')
         self.assertEqual(remove_dot_segments('/..'), '/')
+        self.assertEqual(remove_dot_segments('/../'), '/')
+        self.assertEqual(remove_dot_segments('/..//a'), '//a')
         self.assertEqual(remove_dot_segments('/./'), '/')
         self.assertEqual(remove_dot_segments('/./a'), '/a')
         self.assertEqual(remove_dot_segments('/abc/./.././d/././e/.././f/./../../ghi'), '/ghi')
@@ -1057,6 +1076,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(remove_dot_segments(''), '')
         self.assertEqual(remove_dot_segments('/../a/b/c'), '/a/b/c')
         self.assertEqual(remove_dot_segments('../a'), 'a')
+        self.assertEqual(remove_dot_segments('a/..'), '/')
+        self.assertEqual(remove_dot_segments('a/../b'), '/b')
         self.assertEqual(remove_dot_segments('./a'), 'a')
         self.assertEqual(remove_dot_segments('.'), '')
         self.assertEqual(remove_dot_segments('////'), '////')
@@ -2114,6 +2135,32 @@ Line 1
         self.assertEqual(get_compatible_ext(
             vcodecs=['av1'], acodecs=['mp4a'], vexts=['webm'], aexts=['m4a'], preferences=('webm', 'mkv')), 'mkv')
 
+    def test_disposition_filename(self):
+        test_cases = (
+            (None, None),
+            ('attachment', None),
+            ('attachment; filename="video.mp4"', 'video.mp4'),
+            ('attachment; FILENAME="video.mp4"', 'video.mp4'),
+            ('inline; filename=video.mp4', 'video.mp4'),
+            ('attachment; filename=" video.mp4 "', 'video.mp4'),
+            ("attachment; filename*=UTF-8''r%C3%A9sum%C3%A9.mp4", 'résumé.mp4'),
+            ("attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm", 'actual.webm'),
+            ("attachment; filename*=UTF-8''actual.webm; filename=fallback.mp4", 'actual.webm'),
+        )
+
+        for content_disposition, expected in test_cases:
+            headers = email.message.Message()
+            if content_disposition is not None:
+                headers['Content-Disposition'] = content_disposition
+            with self.subTest(content_disposition=content_disposition):
+                self.assertEqual(disposition_filename(headers), expected)
+
+    def test_urlhandle_detect_ext(self):
+        headers = email.message.Message()
+        headers['Content-Disposition'] = "attachment; filename=fallback.mp4; filename*=UTF-8''actual.webm"
+        headers['Content-Type'] = 'video/mp4'
+        self.assertEqual(urlhandle_detect_ext(unittest.mock.Mock(headers=headers)), 'webm')
+
     def test_try_call(self):
         def total(*x, **kwargs):
             return sum(x) + sum(kwargs.values())
@@ -2139,8 +2186,7 @@ Line 1
         self.assertEqual(variadic(None), (None, ))
         self.assertEqual(variadic('spam'), ('spam', ))
         self.assertEqual(variadic('spam', allowed_types=dict), 'spam')
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with warnings.catch_warnings(action='ignore'):
             self.assertEqual(variadic('spam', allowed_types=[dict]), 'spam')
 
     def test_http_header_dict(self):

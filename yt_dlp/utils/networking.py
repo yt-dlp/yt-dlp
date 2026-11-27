@@ -17,7 +17,7 @@ from .traversal import traverse_obj
 def random_user_agent():
     USER_AGENT_TMPL = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{}.0.0.0 Safari/537.36'
     # Target versions released within the last ~6 months
-    CHROME_MAJOR_VERSION_RANGE = (145, 151)
+    CHROME_MAJOR_VERSION_RANGE = (151, 157)
     return USER_AGENT_TMPL.format(random.randint(*CHROME_MAJOR_VERSION_RANGE))
 
 
@@ -206,9 +206,12 @@ def clean_headers(headers: HTTPHeaderDict):
 
 
 def remove_dot_segments(path):
-    # Implements RFC3986 5.2.4 remote_dot_segments
-    # Pseudo-code: https://tools.ietf.org/html/rfc3986#section-5.2.4
+    # Implements RFC 3986 5.2.4 remove_dot_segments
+    # https://www.rfc-editor.org/info/rfc3986/#section-5.2.4
     # https://github.com/urllib3/urllib3/blob/ba49f5c4e19e6bca6827282feb77a3c9f937e64b/src/urllib3/util/url.py#L263
+    if '/.' not in path and not path.startswith('.'):
+        return path
+
     output = []
     segments = path.split('/')
     for s in segments:
@@ -217,10 +220,10 @@ def remove_dot_segments(path):
         elif s == '..':
             if output:
                 output.pop()
+                if not output:
+                    output.append('')
         else:
             output.append(s)
-    if not segments[0] and (not output or output[0]):
-        output.insert(0, '')
     if segments[-1] in ('.', '..'):
         output.append('')
     return '/'.join(output)
@@ -234,13 +237,28 @@ def escape_rfc3986(s):
 def normalize_url(url):
     """Normalize URL as suggested by RFC 3986"""
     url_parsed = urllib.parse.urlparse(url)
-    return url_parsed._replace(
+    path = remove_dot_segments(url_parsed.path)
+    if url_parsed.scheme == 'file' and path.startswith('//') and not url_parsed.path.startswith('//'):
+        path = '/' + path.lstrip('/')
+
+    normalized = url_parsed._replace(
         netloc=url_parsed.netloc.encode('idna').decode('ascii'),
-        path=escape_rfc3986(remove_dot_segments(url_parsed.path)),
+        path=escape_rfc3986(path),
         params=escape_rfc3986(url_parsed.params),
         query=escape_rfc3986(url_parsed.query),
         fragment=escape_rfc3986(url_parsed.fragment),
-    ).geturl()
+    )
+    url = normalized.geturl()
+
+    # compat: <=3.12: Restore the empty authority delimiter if urlunsplit() omits it
+    if (
+        normalized.scheme == 'file'
+        and not normalized.netloc
+        and normalized.path.startswith('//')
+        and not url.startswith(normalized.path, len('file://'))
+    ):
+        return url.replace('file:', 'file://', 1)
+    return url
 
 
 def select_proxy(url, proxies):

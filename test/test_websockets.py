@@ -130,7 +130,11 @@ def ws_validate_and_send(rh, req):
         try:
             return rh.send(req)
         except TransportError as e:
-            if i < (max_tries - 1) and 'connection closed during handshake' in str(e):
+            if i < (max_tries - 1) and (
+                'connection closed during handshake' in str(e)
+                or (isinstance(e.cause, websockets.exceptions.InvalidMessage)
+                    and isinstance(e.cause.__cause__, EOFError))
+            ):
                 # websockets server sometimes hangs on new connections
                 continue
             raise

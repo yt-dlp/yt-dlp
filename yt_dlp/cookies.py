@@ -647,7 +647,7 @@ class DataParser:
 
 
 def _mac_absolute_time_to_posix(timestamp):
-    return int((dt.datetime(2001, 1, 1, 0, 0, tzinfo=dt.timezone.utc) + dt.timedelta(seconds=timestamp)).timestamp())
+    return int((dt.datetime(2001, 1, 1, 0, 0, tzinfo=dt.UTC) + dt.timedelta(seconds=timestamp)).timestamp())
 
 
 def _parse_safari_cookies_header(data, logger):
