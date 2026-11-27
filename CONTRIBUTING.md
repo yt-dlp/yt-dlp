@@ -66,6 +66,8 @@ Additionally, **a pull request** that adds support for a new site **will only be
 
 The idea behind this policy is that if a regular contributor is the one requesting or adding support for a new site, then they're more likely to stick around and help with fixing that support when it breaks. Maintainer bandwidth is limited; niche support requests and drive-by contributions are harmful to the sustainability of this project. Limiting the sprawl of site support is necessary to prevent the maintainers from becoming overwhelmed, overworked and burnt out.
 
+Furthermore, yt-dlp's support for [plugins](https://github.com/yt-dlp/yt-dlp#plugins) makes it so that adding support for a new site is possible without any changes to the yt-dlp codebase. If you require support for some niche site ASAP, nothing is stopping you from developing and using your own extractor plugin.
+
 (This policy took effect on November 19, 2026. It is not retroactively enforced for any site support requests or pull requests that were submitted before that date.)
 
 
