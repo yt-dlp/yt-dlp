@@ -9,7 +9,7 @@ from ..utils.traversal import traverse_obj
 
 
 class TheChosenIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/(?:video|watch)/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?watch\.thechosen\.tv/(?:video|watch)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://watch.thechosen.tv/video/184683594325',
         'md5': '3f878b689588c71b38ec9943c54ff5b0',
@@ -54,6 +54,17 @@ class TheChosenIE(InfoExtractor):
             'description': 'md5:90ca3cc41316a965fd1cd3d5b3458784',
             'duration': 3519,
             'thumbnail': 'https://cdn.thechosen.media/videos/cmkoltsl8000dfd5z3luid3mg/thumbnail.jpg',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://watch.thechosen.tv/video/cms2998xu0094272m1s0pev2t',
+        'info_dict': {
+            'id': 'cms2998xu0094272m1s0pev2t',
+            'ext': 'mp4',
+            'title': 'Aftershow: S1 E1',
+            'description': 'md5:0ea3749e29bb8be69487d87cd06db672',
+            'duration': 3085,
+            'thumbnail': 'https://cdn.thechosen.media/videos/cms2998xu0094272m1s0pev2t/thumbnail.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }]
