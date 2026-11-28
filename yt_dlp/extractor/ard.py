@@ -384,7 +384,7 @@ class ARDMediathekCollectionIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:[^/?#]+/)?
-        (?P<playlist>sendung|serie|sammlung)/
+        (?P<playlist>sendung|serie|sammlung|film)/
         (?:(?P<display_id>[^?#]+?)/)?
         (?P<id>[a-zA-Z0-9]+)
         (?:/(?P<season>\d+)(?:/(?P<version>OV|AD))?)?/?(?:[?#]|$)'''
@@ -437,6 +437,15 @@ class ARDMediathekCollectionIE(InfoExtractor):
         },
         # TODO: This only returns only the first 97 videos on the page, pagination seems broken
         'playlist_mincount': 90,
+    }, {
+        # Type 'film'
+        'url': 'https://www.ardmediathek.de/film/der-talentierte-mr-f/Y3JpZDovL21kci5kZS9zZW5kZXJlaWhlbi8yYjcwOGU3OC04YWNjLTQ4OWEtOThiNy00NmVjNGRhMTQxMzAvcHJvZ3JhbS01MzMxMzYtNTA3ODU5',
+        'info_dict': {
+            'id': 'Y3JpZDovL21kci5kZS9zZW5kZXJlaWhlbi8yYjcwOGU3OC04YWNjLTQ4OWEtOThiNy00NmVjNGRhMTQxMzAvcHJvZ3JhbS01MzMxMzYtNTA3ODU5',
+            'display_id': 'der-talentierte-mr-f',
+            'title': 'Der talentierte Mr. F.',
+        },
+        'playlist_count': 4,
     }, {
         # playlist of type 'sendung'
         'url': 'https://www.ardmediathek.de/ard/sendung/doctor-who/Y3JpZDovL3dkci5kZS9vbmUvZG9jdG9yIHdobw/',
