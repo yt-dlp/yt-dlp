@@ -28,7 +28,7 @@ class FirstTVIE(InfoExtractor):
             'id': '40049',
             'ext': 'mp4',
             'title': 'Гость Людмила Сенчина. Наедине со всеми. Выпуск от 12.02.2015',
-            'thumbnail': r're:https?://.+/.+\.jpg',
+            'thumbnail': r're:(?i)https?://.+/.+\.jpg',
             'upload_date': '20150212',
             'duration': 2694,
         },
@@ -54,16 +54,30 @@ class FirstTVIE(InfoExtractor):
             'thumbnail': 'https://static.1tv.ru/uploads/photo/image/8/big/338448_big_8fc7eb236f.jpg',
         },
         'playlist_count': 13,
+        'skip': 'Video does not contain playlist ID attribute',
     }, {
         # has timestamp; has item.uid but not item.id
         'url': 'https://www.1tv.ru/shows/segodnya-vecherom/vypuski/avtory-odnogo-hita-segodnya-vecherom-vypusk-ot-03-05-2025',
         'info_dict': {
-            'id': '270411',
+            'id': '810771',
             'ext': 'mp4',
-            'title': 'Авторы одного хита. Сегодня вечером. Выпуск от 03.05.2025',
-            'thumbnail': r're:https?://.+/.+\.jpg',
+            'title': 'Авторы одного хита. Сегодня вечером. Выпуск от\xa003.05.2025',
+            'thumbnail': 'https://static.1tv.ru/uploads/video/material/splash/2025/05/03/956771/big/956771_big_0f11ecd9db.jpg',
             'timestamp': 1746286020,
             'upload_date': '20250503',
+            'duration': 7268,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.1tv.ru/shows/zhit-zdorovo/vypuski/zhit-zdorovo-vypusk-ot-12-11-2026',
+        'info_dict': {
+            'id': '892762',
+            'ext': 'mp4',
+            'title': 'Жить здорово! Выпуск от\xa012.11.2026',
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1794467700,
+            'upload_date': '20261112',
+            'duration': 2332,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -124,9 +138,14 @@ class FirstTVIE(InfoExtractor):
         display_id = self._match_id(url)
 
         webpage = self._download_webpage(url, display_id)
-        playlist_url = urllib.parse.urljoin(url, self._html_search_regex(
+        playlist_url = self._html_search_regex(
             r'data-playlist-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
-            webpage, 'playlist url', group='url'))
+            webpage, 'playlist url', fatal=False, default=None, group='url')
+        if playlist_url:
+            playlist_url = urllib.parse.urljoin(url, playlist_url)
+        else:
+            content_id = self._html_search_meta('ya:ovs:content_id', webpage, fatal=True).split(':')[0]
+            playlist_url = f'https://www.1tv.ru/video_materials.json?video_id={content_id}'
 
         item_ids = traverse_obj(parse_qs(playlist_url), 'video_id', 'videos_ids[]', 'news_ids[]')
         items = traverse_obj(
