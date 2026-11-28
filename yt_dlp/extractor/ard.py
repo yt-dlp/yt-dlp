@@ -384,21 +384,23 @@ class ARDMediathekCollectionIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:[^/?#]+/)?
-        (?P<playlist>sendung|serie|sammlung)/
+        (?P<playlist>sendung|serie|sammlung|film)/
         (?:(?P<display_id>[^?#]+?)/)?
         (?P<id>[a-zA-Z0-9]+)
         (?:/(?P<season>\d+)(?:/(?P<version>OV|AD))?)?/?(?:[?#]|$)'''
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
-        'url': 'https://www.ardmediathek.de/serie/quiz/staffel-1-originalversion/Y3JpZDovL3dkci5kZS9vbmUvcXVpeg/1/OV',
+        # Type 'serie', single season, original version variant
+        'url': 'https://www.ardmediathek.de/serie/surface-das-versunkene-dorf/staffel-1-originalversion/Y3JpZDovL2Rhc2Vyc3RlLmRlL3N1cmZhY2U/1/OV',
         'info_dict': {
-            'id': 'Y3JpZDovL3dkci5kZS9vbmUvcXVpeg_1_OV',
-            'display_id': 'quiz/staffel-1-originalversion',
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL3N1cmZhY2U_1_OV',
+            'display_id': 'surface-das-versunkene-dorf/staffel-1-originalversion',
             'title': 'Staffel 1 Originalversion',
         },
-        'playlist_count': 3,
+        'playlist_count': 6,
     }, {
+        # Type 'serie', single season, audio description variant
         'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-4-mit-audiodeskription/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu/4/AD',
         'info_dict': {
             'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu_4_AD',
@@ -407,6 +409,7 @@ class ARDMediathekCollectionIE(InfoExtractor):
         },
         'playlist_count': 12,
     }, {
+        # Type 'serie', single season, regular variant
         'url': 'https://www.ardmediathek.de/serie/babylon-berlin/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu/1/',
         'info_dict': {
             'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JhYnlsb24tYmVybGlu_1',
@@ -415,6 +418,7 @@ class ARDMediathekCollectionIE(InfoExtractor):
         },
         'playlist_count': 8,
     }, {
+        # Type 'sendung'
         'url': 'https://www.ardmediathek.de/sendung/tatort/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydA',
         'info_dict': {
             'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydA',
@@ -423,12 +427,23 @@ class ARDMediathekCollectionIE(InfoExtractor):
         },
         'playlist_mincount': 500,
     }, {
-        'url': 'https://www.ardmediathek.de/sammlung/die-kirche-bleibt-im-dorf/5eOHzt8XB2sqeFXbIoJlg2',
+        # Type 'sammlung'
+        'url': 'https://www.ardmediathek.de/sammlung/medizin-oder-wissen/2yZsQlV4KuURntQrMC6gr5',
         'info_dict': {
-            'id': '5eOHzt8XB2sqeFXbIoJlg2',
-            'display_id': 'die-kirche-bleibt-im-dorf',
-            'title': 'Die Kirche bleibt im Dorf',
-            'description': 'Die Kirche bleibt im Dorf',
+            'id': '2yZsQlV4KuURntQrMC6gr5',
+            'display_id': 'medizin-oder-wissen',
+            'title': 'Medizin | Wissen',
+            'description': 'md5:d7f4b1b17873fd8cc8872dbddace34d0',
+        },
+        # TODO: This only returns only the first 97 videos on the page, pagination seems broken
+        'playlist_mincount': 90,
+    }, {
+        # Type 'film'
+        'url': 'https://www.ardmediathek.de/film/der-talentierte-mr-f/Y3JpZDovL21kci5kZS9zZW5kZXJlaWhlbi8yYjcwOGU3OC04YWNjLTQ4OWEtOThiNy00NmVjNGRhMTQxMzAvcHJvZ3JhbS01MzMxMzYtNTA3ODU5',
+        'info_dict': {
+            'id': 'Y3JpZDovL21kci5kZS9zZW5kZXJlaWhlbi8yYjcwOGU3OC04YWNjLTQ4OWEtOThiNy00NmVjNGRhMTQxMzAvcHJvZ3JhbS01MzMxMzYtNTA3ODU5',
+            'display_id': 'der-talentierte-mr-f',
+            'title': 'Der talentierte Mr. F.',
         },
         'playlist_count': 4,
     }, {
